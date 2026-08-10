@@ -5,10 +5,10 @@ import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
 import '../models/product.dart';
 import '../widgets/ugt_widgets.dart';
+import 'product_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
-  final VoidCallback? onGoToProduct;
-  const DashboardScreen({super.key, this.onGoToProduct});
+  const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -23,9 +23,26 @@ class DashboardScreen extends StatelessWidget {
     final kemarinTotal = prov.kemarinTotalPenjualan;
     final trxCount = prov.todayTrxCount;
     final rataRata = trxCount > 0 ? penjualanHariIni ~/ trxCount : 0;
-    final tunaiHariIni = prov.todayTunaiTotal;
     final itemsTerjual = prov.todayItemsCount;
     final skuTerjual = prov.todaySkuCount;
+
+    final modalAwal    = prov.activeShift?.modalAwal ?? 0;
+    final tunaiJual    = prov.todayTunaiTotal;
+    final kasMasuk     = prov.shiftKasMasuk;
+    final kasKeluar    = prov.shiftKasKeluar;
+    final kasTunai     = prov.shiftSaldoSeharusnya;
+
+    String kasTunaiTrend;
+    if (prov.activeShift == null) {
+      kasTunaiTrend = 'shift belum dibuka';
+    } else {
+      final parts = <String>[];
+      parts.add('modal ${formatRp(modalAwal)}');
+      if (tunaiJual > 0) parts.add('+jual ${formatRp(tunaiJual)}');
+      if (kasMasuk > 0)  parts.add('+masuk ${formatRp(kasMasuk)}');
+      if (kasKeluar > 0) parts.add('-keluar ${formatRp(kasKeluar)}');
+      kasTunaiTrend = parts.join(' ');
+    }
 
     String trendPenjualan;
     bool? trendPositive;
@@ -65,7 +82,7 @@ class DashboardScreen extends StatelessWidget {
                           const SizedBox(width: 12),
                           Expanded(child: _StatCard(label: 'Total Transaksi', value: '$trxCount', trend: rataRata > 0 ? 'rata-rata ${formatRp(rataRata)}' : 'belum ada transaksi', trendPositive: null)),
                           const SizedBox(width: 12),
-                          Expanded(child: _StatCard(label: 'Kas Tunai', value: formatRp(tunaiHariIni), trend: 'dari transaksi tunai', trendPositive: null)),
+                          Expanded(child: _StatCard(label: 'Kas Tunai', value: formatRp(kasTunai), trend: kasTunaiTrend, trendPositive: null)),
                           const SizedBox(width: 12),
                           Expanded(child: _StatCard(label: 'Produk Terjual', value: '$itemsTerjual pcs', trend: '$skuTerjual SKU berbeda', trendPositive: null)),
                         ],
@@ -80,13 +97,14 @@ class DashboardScreen extends StatelessWidget {
                         children: [
                           _StatCard(label: 'Penjualan Hari Ini', value: formatRp(penjualanHariIni), trend: trendPenjualan, trendPositive: trendPositive),
                           _StatCard(label: 'Total Transaksi', value: '$trxCount', trend: rataRata > 0 ? 'rata-rata ${formatRp(rataRata)}' : 'belum ada transaksi', trendPositive: null),
-                          _StatCard(label: 'Kas Tunai', value: formatRp(tunaiHariIni), trend: 'dari transaksi tunai', trendPositive: null),
+                          _StatCard(label: 'Kas Tunai', value: formatRp(kasTunai), trend: kasTunaiTrend, trendPositive: null),
                           _StatCard(label: 'Produk Terjual', value: '$itemsTerjual pcs', trend: '$skuTerjual SKU berbeda', trendPositive: null),
                         ],
                       ),
                 const SizedBox(height: 14),
                 // Transaksi Baru CTA
-                _NewTransactionButton(onTap: () => _goToProduct(context)),
+                _NewTransactionButton(onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ProductScreen()))),
                 const SizedBox(height: 16),
                 // Chart
                 _SalesChart(),
@@ -115,13 +133,7 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  void _goToProduct(BuildContext context) {
-    if (onGoToProduct != null) {
-      onGoToProduct!();
-    } else {
-      Navigator.of(context).pushNamed('/produk');
-    }
-  }
+
 }
 
 class _DashHeader extends StatelessWidget {
@@ -430,20 +442,27 @@ class _QuickMenu extends StatelessWidget {
     final prov = context.watch<AppProvider>();
     final isOwnerOrAdmin = prov.kasirRole == 'Owner' || prov.kasirRole == 'Admin';
     final items = [
+      _QuickItem(
+        icon: Icons.inventory_2_outlined,
+        label: 'Produk',
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const ProductScreen()),
+        ),
+      ),
       _QuickItem(icon: Icons.arrow_upward, label: 'Kas Masuk', onTap: () => _go(context, '/kas-masuk')),
       _QuickItem(icon: Icons.arrow_downward, label: 'Kas Keluar', onTap: () => _go(context, '/kas-keluar')),
       if (isOwnerOrAdmin)
         _QuickItem(icon: Icons.local_shipping_outlined, label: 'Pembelian', onTap: () => _go(context, '/pembelian')),
       _QuickItem(icon: Icons.person_outline, label: 'Member', onTap: () => _go(context, '/member')),
     ];
-    return GridView.count(
-      crossAxisCount: isOwnerOrAdmin ? 4 : 3,
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      childAspectRatio: 0.9,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      children: items.map((item) => _QuickMenuItem(item: item)).toList(),
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 10,
+      runSpacing: 10,
+      children: items.map((item) => SizedBox(
+        width: 88,
+        child: _QuickMenuItem(item: item),
+      )).toList(),
     );
   }
 
@@ -472,7 +491,7 @@ class _QuickMenuItem extends StatelessWidget {
         onTap: item.onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 6),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
@@ -484,20 +503,22 @@ class _QuickMenuItem extends StatelessWidget {
             ],
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 34,
-                height: 34,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: AppColors.primaryLight,
                   borderRadius: BorderRadius.circular(11),
                 ),
-                child: Icon(item.icon, size: 17, color: AppColors.primary),
+                child: Icon(item.icon, size: 18, color: AppColors.primary),
               ),
-              const SizedBox(height: 7),
+              const SizedBox(height: 6),
               Text(
                 item.label,
                 textAlign: TextAlign.center,
+                maxLines: 2,
                 style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
               ),
             ],

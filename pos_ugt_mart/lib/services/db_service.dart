@@ -184,6 +184,7 @@ class DbService {
     required int stokMin,
     required String barcode,
     required String status,
+    required String satuan,
   }) async {
     try {
       await _db.from('produk').update({
@@ -195,6 +196,7 @@ class DbService {
         'stok_minimum': stokMin,
         'barcode':      barcode,
         'status':       status,
+        'satuan':       satuan,
       }).eq('id', int.parse(id));
       return true;
     } catch (e) {
@@ -382,6 +384,7 @@ class DbService {
     required int stokMin,
     required String barcode,
     required String status,
+    required String satuan,
   }) async {
     if (_idToko == null) {
       debugPrint('[DB] saveProduct: _idToko null, aborted');
@@ -402,6 +405,7 @@ class DbService {
         'stok_minimum': stokMin,
         'barcode':      barcode,
         'status':       status,
+        'satuan':       satuan,
       }).select('id').single();
       debugPrint('[DB] saveProduct OK: id=${result['id']}');
       return result['id'].toString();
@@ -585,8 +589,8 @@ class DbService {
     }
   }
 
-  // Returns {nama, role, id_toko, nama_toko, plan, expired_at} or null.
-  static Future<Map<String, String>?> validateLogin(String username, String password) async {
+  // Returns {nama, role, id_toko, nama_toko, plan, expired_at, nama_pemilik, ppn_rate, alamat, no_hp} or null.
+  static Future<Map<String, dynamic>?> validateLogin(String username, String password) async {
     try {
       // Step 1: Validasi username/password via RPC (cek di tabel profiles)
       final data = await _db.rpc('validate_login', params: {
@@ -627,15 +631,42 @@ class DbService {
       ));
 
       return {
-        'nama':       row['nama']        as String? ?? '',
-        'role':       row['role']        as String? ?? '',
-        'id_toko':    idToko,
-        'nama_toko':  row['nama_toko']   as String? ?? '',
-        'plan':       row['plan']        as String? ?? 'free',
-        'expired_at': row['expired_at']?.toString() ?? '',
+        'nama':         row['nama']         as String? ?? '',
+        'role':         row['role']         as String? ?? '',
+        'id_toko':      idToko,
+        'nama_toko':    row['nama_toko']    as String? ?? '',
+        'plan':         row['plan']         as String? ?? 'free',
+        'expired_at':   row['expired_at']?.toString() ?? '',
+        'nama_pemilik': row['nama_pemilik'] as String? ?? '',
+        'ppn_rate':     (row['ppn_rate'] as num?)?.toDouble() ?? 0.0,
+        'alamat':       row['alamat']       as String? ?? '',
+        'no_hp':        row['no_hp']        as String? ?? '',
       };
     } catch (_) {
       return null;
+    }
+  }
+
+  static Future<void> updateTokoSettings({
+    required int idToko,
+    required String namaToko,
+    required String namaPemilik,
+    required String alamat,
+    required String noHp,
+    required double ppnRate,
+  }) async {
+    try {
+      await _db.rpc('update_toko_settings', params: {
+        'p_id_toko':      idToko,
+        'p_nama_toko':    namaToko,
+        'p_nama_pemilik': namaPemilik,
+        'p_alamat':       alamat,
+        'p_no_hp':        noHp,
+        'p_ppn_rate':     ppnRate,
+      });
+      debugPrint('[DB] updateTokoSettings OK');
+    } catch (e) {
+      debugPrint('[DB] updateTokoSettings ERROR: $e');
     }
   }
 

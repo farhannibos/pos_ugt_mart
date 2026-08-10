@@ -28,9 +28,11 @@ class _ProductScreenState extends State<ProductScreen> {
     final stokCtrl      = TextEditingController(text: '0');
     final stokMinCtrl   = TextEditingController(text: '10');
     final barcodeCtrl   = TextEditingController();
+    final satuanLainCtrl = TextEditingController();
     final formKey = GlobalKey<FormState>();
     String selectedKategori = dummyKategori.isNotEmpty ? dummyKategori.first : '';
     String selectedStatus   = 'Aktif';
+    String selectedSatuan   = 'Pcs';
     bool loading = false;
 
     showModalBottomSheet(
@@ -181,6 +183,28 @@ class _ProductScreenState extends State<ProductScreen> {
                           ]),
                           const SizedBox(height: 14),
 
+                          _fieldLabel('Satuan'),
+                          DropdownButtonFormField<String>(
+                            value: selectedSatuan,
+                            decoration: _inputDeco('Pilih satuan'),
+                            style: GoogleFonts.inter(fontSize: 14, color: AppColors.text),
+                            items: ['Pcs', 'Kg', 'Botol', 'Karung', 'Box', 'Liter', 'Lusin', 'Lainnya...']
+                              .map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                            onChanged: (v) => setSheet(() => selectedSatuan = v ?? 'Pcs'),
+                          ),
+                          if (selectedSatuan == 'Lainnya...') ...[
+                            const SizedBox(height: 10),
+                            TextFormField(
+                              controller: satuanLainCtrl,
+                              textCapitalization: TextCapitalization.words,
+                              style: GoogleFonts.inter(fontSize: 14, color: AppColors.text),
+                              decoration: _inputDeco('Ketik satuan, contoh: Kaleng, Gram'),
+                              validator: (v) => (selectedSatuan == 'Lainnya...' && (v == null || v.trim().isEmpty))
+                                ? 'Satuan tidak boleh kosong' : null,
+                            ),
+                          ],
+                          const SizedBox(height: 14),
+
                           _fieldLabel('Barcode (opsional)'),
                           TextFormField(
                             controller: barcodeCtrl,
@@ -225,13 +249,16 @@ class _ProductScreenState extends State<ProductScreen> {
                                   final barc   = barcodeCtrl.text.trim();
                                   final kat    = selectedKategori;
                                   final stat   = selectedStatus;
+                                  final sat    = selectedSatuan == 'Lainnya...'
+                                    ? satuanLainCtrl.text.trim()
+                                    : selectedSatuan;
                                   setSheet(() => loading = true);
                                   try {
                                     final ok = await prov.addProduct(
                                       nama: nama, kategori: kat,
                                       hargaBeli: beli, hargaJual: jual,
                                       stok: stok, stokMin: stokMn,
-                                      barcode: barc, status: stat,
+                                      barcode: barc, status: stat, satuan: sat,
                                     );
                                     if (!ok && ctx.mounted) {
                                       ScaffoldMessenger.of(ctx).showSnackBar(
@@ -450,12 +477,15 @@ class _ProductScreenState extends State<ProductScreen> {
     final namaCtrl      = TextEditingController(text: product.nama);
     final hargaBeliCtrl = TextEditingController(text: product.hargaBeli.toString());
     final hargaJualCtrl = TextEditingController(text: product.harga.toString());
-    final stokCtrl      = TextEditingController(text: product.stok.toString());
     final stokMinCtrl   = TextEditingController(text: product.stokMin.toString());
     final barcodeCtrl   = TextEditingController(text: product.barcode);
     final formKey = GlobalKey<FormState>();
     String selectedKategori = product.kategori;
     String selectedStatus   = product.status;
+    const satuanPreset = ['Pcs', 'Kg', 'Botol', 'Karung', 'Box', 'Liter', 'Lusin'];
+    final isPreset = satuanPreset.contains(product.satuan);
+    String selectedSatuan = isPreset ? product.satuan : 'Lainnya...';
+    final satuanLainCtrl = TextEditingController(text: isPreset ? '' : product.satuan);
     bool loading = false;
 
     showModalBottomSheet(
@@ -575,29 +605,36 @@ class _ProductScreenState extends State<ProductScreen> {
                           ]),
                           const SizedBox(height: 14),
 
-                          Row(children: [
-                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              _fieldLabel('Stok'),
-                              TextFormField(
-                                controller: stokCtrl,
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                style: GoogleFonts.inter(fontSize: 14, color: AppColors.text),
-                                decoration: _inputDeco('0'),
-                              ),
-                            ])),
-                            const SizedBox(width: 12),
-                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              _fieldLabel('Stok Minimum'),
-                              TextFormField(
-                                controller: stokMinCtrl,
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                style: GoogleFonts.inter(fontSize: 14, color: AppColors.text),
-                                decoration: _inputDeco('10'),
-                              ),
-                            ])),
-                          ]),
+                          _fieldLabel('Stok Minimum'),
+                          TextFormField(
+                            controller: stokMinCtrl,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            style: GoogleFonts.inter(fontSize: 14, color: AppColors.text),
+                            decoration: _inputDeco('10'),
+                          ),
+                          const SizedBox(height: 14),
+
+                          _fieldLabel('Satuan'),
+                          DropdownButtonFormField<String>(
+                            value: selectedSatuan,
+                            decoration: _inputDeco('Pilih satuan'),
+                            style: GoogleFonts.inter(fontSize: 14, color: AppColors.text),
+                            items: ['Pcs', 'Kg', 'Botol', 'Karung', 'Box', 'Liter', 'Lusin', 'Lainnya...']
+                              .map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                            onChanged: (v) => setSheet(() => selectedSatuan = v ?? 'Pcs'),
+                          ),
+                          if (selectedSatuan == 'Lainnya...') ...[
+                            const SizedBox(height: 10),
+                            TextFormField(
+                              controller: satuanLainCtrl,
+                              textCapitalization: TextCapitalization.words,
+                              style: GoogleFonts.inter(fontSize: 14, color: AppColors.text),
+                              decoration: _inputDeco('Ketik satuan, contoh: Kaleng, Gram'),
+                              validator: (v) => (selectedSatuan == 'Lainnya...' && (v == null || v.trim().isEmpty))
+                                ? 'Satuan tidak boleh kosong' : null,
+                            ),
+                          ],
                           const SizedBox(height: 14),
 
                           _fieldLabel('Barcode (opsional)'),
@@ -634,18 +671,20 @@ class _ProductScreenState extends State<ProductScreen> {
                                   final nama   = namaCtrl.text.trim();
                                   final beli   = int.tryParse(hargaBeliCtrl.text) ?? 0;
                                   final jual   = int.tryParse(hargaJualCtrl.text) ?? 0;
-                                  final stok   = int.tryParse(stokCtrl.text) ?? 0;
                                   final stokMn = int.tryParse(stokMinCtrl.text) ?? 10;
                                   final barc   = barcodeCtrl.text.trim();
                                   final kat    = selectedKategori;
                                   final stat   = selectedStatus;
+                                  final sat    = selectedSatuan == 'Lainnya...'
+                                    ? satuanLainCtrl.text.trim()
+                                    : selectedSatuan;
                                   setSheet(() => loading = true);
                                   try {
                                     final ok = await prov.editProduct(
                                       id: product.id, nama: nama, kategori: kat,
                                       hargaBeli: beli, hargaJual: jual,
-                                      stok: stok, stokMin: stokMn,
-                                      barcode: barc, status: stat,
+                                      stok: product.stok, stokMin: stokMn,
+                                      barcode: barc, status: stat, satuan: sat,
                                     );
                                     if (!ok && ctx.mounted) {
                                       ScaffoldMessenger.of(ctx).showSnackBar(
@@ -1024,7 +1063,7 @@ class _ProductCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Stok ${product.stok}',
+                          'Stok ${product.stok} ${product.satuan}',
                           style: GoogleFonts.inter(
                             fontSize: 10.5,
                             color: product.isLowStock ? AppColors.red : AppColors.textDim,

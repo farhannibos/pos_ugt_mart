@@ -58,12 +58,16 @@ class AppProvider extends ChangeNotifier {
   bool roundUpEnabled = false;
   String terminalName = 'Terminal Kasir';
   String alamatToko = '';
+  String namaPemilik = '';
+  String noHp = '';
 
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     roundUpEnabled = prefs.getBool('roundUp') ?? false;
     terminalName   = prefs.getString('terminalName') ?? 'Terminal Kasir';
     alamatToko     = prefs.getString('alamatToko') ?? '';
+    namaPemilik    = prefs.getString('namaPemilik') ?? '';
+    noHp           = prefs.getString('noHp') ?? '';
     taxRate        = prefs.getDouble('taxRate') ?? 0;
     storeName      = prefs.getString('storeName') ?? storeName;
     notifyListeners();
@@ -74,6 +78,8 @@ class AppProvider extends ChangeNotifier {
     await prefs.setBool('roundUp', roundUpEnabled);
     await prefs.setString('terminalName', terminalName);
     await prefs.setString('alamatToko', alamatToko);
+    await prefs.setString('namaPemilik', namaPemilik);
+    await prefs.setString('noHp', noHp);
     await prefs.setDouble('taxRate', taxRate);
     await prefs.setString('storeName', storeName);
   }
@@ -297,6 +303,7 @@ class AppProvider extends ChangeNotifier {
     taxRate = rate < 0 ? 0 : (rate > 100 ? 100 : rate);
     notifyListeners();
     _saveSettings();
+    _syncTokoSettingsToDb();
     showToast(taxRate > 0 ? 'PPN ${taxRate.toStringAsFixed(taxRate % 1 == 0 ? 0 : 1)}% diaktifkan' : 'PPN dinonaktifkan');
   }
 
@@ -323,6 +330,46 @@ class AppProvider extends ChangeNotifier {
     storeName = v.trim().isEmpty ? 'UGT MART' : v.trim();
     notifyListeners();
     _saveSettings();
+  }
+
+  void setNamaPemilik(String v) {
+    namaPemilik = v.trim();
+    notifyListeners();
+    _saveSettings();
+  }
+
+  void setNoHp(String v) {
+    noHp = v.trim();
+    notifyListeners();
+    _saveSettings();
+  }
+
+  void setInfoUsaha({
+    required String nama,
+    required String pemilik,
+    required String lokasi,
+    required String hp,
+  }) {
+    storeName   = nama.trim().isEmpty ? 'UGT MART' : nama.trim();
+    namaPemilik = pemilik.trim();
+    alamatToko  = lokasi.trim();
+    noHp        = hp.trim();
+    notifyListeners();
+    _saveSettings();
+    _syncTokoSettingsToDb();
+  }
+
+  void _syncTokoSettingsToDb() {
+    final idTokoInt = int.tryParse(idToko);
+    if (idTokoInt == null) return;
+    DbService.updateTokoSettings(
+      idToko:      idTokoInt,
+      namaToko:    storeName,
+      namaPemilik: namaPemilik,
+      alamat:      alamatToko,
+      noHp:        noHp,
+      ppnRate:     taxRate,
+    );
   }
 
   void selectMember(Member m) {
@@ -364,12 +411,13 @@ class AppProvider extends ChangeNotifier {
     required int stokMin,
     required String barcode,
     required String status,
+    required String satuan,
   }) async {
     final id = await DbService.saveProduct(
       nama: nama, kategori: kategori,
       hargaBeli: hargaBeli, hargaJual: hargaJual,
       stok: stok, stokMin: stokMin,
-      barcode: barcode, status: status,
+      barcode: barcode, status: status, satuan: satuan,
     );
     if (id == null || id.startsWith('ERROR:')) {
       lastError = id ?? 'id null (login mungkin belum selesai)';
@@ -378,7 +426,7 @@ class AppProvider extends ChangeNotifier {
     }
     dummyProducts.add(Product(
       id: id, nama: nama, kategori: kategori,
-      harga: hargaJual, stok: stok, stokMin: stokMin, barcode: barcode,
+      harga: hargaJual, stok: stok, stokMin: stokMin, barcode: barcode, satuan: satuan,
     ));
     if (kategori.isNotEmpty && !dummyKategori.contains(kategori)) {
       dummyKategori.add(kategori);
@@ -398,12 +446,13 @@ class AppProvider extends ChangeNotifier {
     required int stokMin,
     required String barcode,
     required String status,
+    required String satuan,
   }) async {
     final ok = await DbService.updateProduct(
       id: id, nama: nama, kategori: kategori,
       hargaBeli: hargaBeli, hargaJual: hargaJual,
       stok: stok, stokMin: stokMin,
-      barcode: barcode, status: status,
+      barcode: barcode, status: status, satuan: satuan,
     );
     if (!ok) { lastError = 'updateProduct returned false'; showToast('Gagal mengupdate produk'); return false; }
     final idx = dummyProducts.indexWhere((p) => p.id == id);
@@ -412,7 +461,7 @@ class AppProvider extends ChangeNotifier {
         dummyProducts[idx] = Product(
           id: id, nama: nama, kategori: kategori,
           harga: hargaJual, hargaBeli: hargaBeli,
-          stok: stok, stokMin: stokMin, barcode: barcode, status: status,
+          stok: stok, stokMin: stokMin, barcode: barcode, status: status, satuan: satuan,
         );
       } else {
         dummyProducts.removeAt(idx);
@@ -605,16 +654,29 @@ class AppProvider extends ChangeNotifier {
   Future<bool> login(String username, String password) async {
     final result = await DbService.validateLogin(username, password);
     if (result == null) return false;
-    kasirName     = result['nama'] ?? '';
+    kasirName     = result['nama'] as String? ?? '';
     kasirUsername = username;
-    kasirRole   = result['role'] ?? '';
-    idToko      = result['id_toko'] ?? '';
-    storeName   = result['nama_toko']?.isNotEmpty == true ? result['nama_toko']! : storeName;
-    planToko    = result['plan'] ?? 'free';
-    final exp   = result['expired_at'];
+    kasirRole   = result['role'] as String? ?? '';
+    idToko      = result['id_toko']?.toString() ?? '';
+    storeName   = (result['nama_toko'] as String?)?.isNotEmpty == true
+        ? result['nama_toko'] as String
+        : storeName;
+    planToko    = result['plan'] as String? ?? 'free';
+    final exp   = result['expired_at'] as String?;
     planExpired = exp != null ? DateTime.tryParse(exp) : null;
     isLoggedIn  = true;
     loginTime   = DateTime.now();
+
+    // Isi settings dari DB (override SharedPreferences dengan data terbaru)
+    final dbNamaPemilik = result['nama_pemilik'] as String? ?? '';
+    final dbPpnRate     = (result['ppn_rate'] as num?)?.toDouble() ?? 0.0;
+    final dbAlamat      = result['alamat'] as String? ?? '';
+    final dbNoHp        = result['no_hp'] as String? ?? '';
+    if (dbNamaPemilik.isNotEmpty) namaPemilik = dbNamaPemilik;
+    if (dbPpnRate > 0) taxRate = dbPpnRate;
+    if (dbAlamat.isNotEmpty) alamatToko = dbAlamat;
+    if (dbNoHp.isNotEmpty) noHp = dbNoHp;
+    await _saveSettings(); // sinkron SharedPreferences dengan data DB
 
     // Set id_toko ke DbService lalu load data milik toko ini
     final idTokoInt = int.tryParse(idToko);

@@ -6,6 +6,7 @@ import '../providers/app_provider.dart';
 import '../widgets/ugt_widgets.dart';
 import 'dashboard_screen.dart';
 import 'product_screen.dart';
+import 'usaha_screen.dart';
 import 'cart_screen.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
@@ -33,8 +34,8 @@ class _MainScaffoldState extends State<MainScaffold> {
     super.initState();
     _currentTab = widget.initialTab < 2 ? widget.initialTab : widget.initialTab - 1;
     _screens = [
-      DashboardScreen(onGoToProduct: () => setState(() => _currentTab = 1)),
-      const ProductScreen(),
+      const DashboardScreen(),
+      const UsahaScreen(),
       const HistoryScreen(),
       const ProfileScreen(),
     ];
@@ -52,7 +53,10 @@ class _MainScaffoldState extends State<MainScaffold> {
           .push(MaterialPageRoute(builder: (_) => const CartScreen()))
           .then((result) {
         if (result == 'goto_products' && mounted) {
-          setState(() => _currentTab = 1);
+          // ignore: use_build_context_synchronously
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ProductScreen()),
+          );
         }
       });
     } else {
@@ -127,9 +131,9 @@ class _SideNav extends StatelessWidget {
           label: Text('Beranda'),
         ),
         const NavigationRailDestination(
-          icon: Icon(Icons.inventory_2_outlined),
-          selectedIcon: Icon(Icons.inventory_2),
-          label: Text('Produk'),
+          icon: Icon(Icons.storefront_outlined),
+          selectedIcon: Icon(Icons.storefront),
+          label: Text('Usahaku'),
         ),
         NavigationRailDestination(
           icon: Stack(
@@ -200,7 +204,7 @@ class _BottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = [
       _NavItem(icon: Icons.home_outlined, activeIcon: Icons.home, label: 'Beranda'),
-      _NavItem(icon: Icons.inventory_2_outlined, activeIcon: Icons.inventory_2, label: 'Produk'),
+      _NavItem(icon: Icons.storefront_outlined, activeIcon: Icons.storefront, label: 'Usahaku'),
       null, // center FAB slot
       _NavItem(icon: Icons.access_time_outlined, activeIcon: Icons.access_time, label: 'Riwayat'),
       _NavItem(icon: Icons.person_outline, activeIcon: Icons.person, label: 'Profil'),
@@ -335,7 +339,7 @@ Route<dynamic>? generateRoute(RouteSettings settings) {
     case '/':
       return MaterialPageRoute(builder: (_) => const MainScaffold());
     case '/produk':
-      return MaterialPageRoute(builder: (_) => const MainScaffold(initialTab: 1));
+      return MaterialPageRoute(builder: (_) => const ProductScreen());
     case '/payment':
       return MaterialPageRoute(builder: (_) => const PaymentScreen());
     case '/member':
