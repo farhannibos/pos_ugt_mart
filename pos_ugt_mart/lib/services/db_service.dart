@@ -641,6 +641,13 @@ class DbService {
         'ppn_rate':     (row['ppn_rate'] as num?)?.toDouble() ?? 0.0,
         'alamat':       row['alamat']       as String? ?? '',
         'no_hp':        row['no_hp']        as String? ?? '',
+        'qris_provider':    row['qris_provider']    as String? ?? '',
+        'qris_atas_nama':   row['qris_atas_nama']   as String? ?? '',
+        'qris_no_hp':       row['qris_no_hp']       as String? ?? '',
+        'qris_image_url':   row['qris_image_url']   as String? ?? '',
+        'bank_nama':        row['bank_nama']        as String? ?? '',
+        'bank_no_rekening': row['bank_no_rekening'] as String? ?? '',
+        'bank_atas_nama':   row['bank_atas_nama']   as String? ?? '',
       };
     } catch (_) {
       return null;
@@ -667,6 +674,67 @@ class DbService {
       debugPrint('[DB] updateTokoSettings OK');
     } catch (e) {
       debugPrint('[DB] updateTokoSettings ERROR: $e');
+    }
+  }
+
+  // Upload gambar QRIS ke Supabase Storage (bucket 'qris'), return public URL.
+  static Future<String?> uploadQrisImage(Uint8List bytes, String fileExt) async {
+    if (_idToko == null) return null;
+    try {
+      final path = '$_idToko/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      await _db.storage.from('qris').uploadBinary(
+            path,
+            bytes,
+            fileOptions: const FileOptions(upsert: true),
+          );
+      return _db.storage.from('qris').getPublicUrl(path);
+    } catch (e) {
+      debugPrint('[DB] uploadQrisImage ERROR: $e');
+      return null;
+    }
+  }
+
+  static Future<bool> updateTokoQris({
+    required int idToko,
+    required String provider,
+    required String atasNama,
+    required String noHp,
+    required String imageUrl,
+  }) async {
+    try {
+      await _db.rpc('update_toko_qris', params: {
+        'p_id_toko':        idToko,
+        'p_qris_provider':  provider,
+        'p_qris_atas_nama': atasNama,
+        'p_qris_no_hp':     noHp,
+        'p_qris_image_url': imageUrl,
+      });
+      debugPrint('[DB] updateTokoQris OK');
+      return true;
+    } catch (e) {
+      debugPrint('[DB] updateTokoQris ERROR: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> updateTokoRekening({
+    required int idToko,
+    required String bankNama,
+    required String noRekening,
+    required String atasNama,
+  }) async {
+    try {
+      await _db.rpc('update_toko_rekening', params: {
+        'p_id_toko':          idToko,
+        'p_bank_nama':        bankNama,
+        'p_bank_no_rekening': noRekening,
+        'p_bank_atas_nama':   atasNama,
+      });
+      debugPrint('[DB] updateTokoRekening OK');
+      return true;
+    } catch (e) {
+      debugPrint('[DB] updateTokoRekening ERROR: $e');
+      return false;
     }
   }
 

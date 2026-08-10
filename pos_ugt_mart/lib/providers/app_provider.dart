@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/product.dart';
 import '../models/member.dart';
@@ -61,6 +60,15 @@ class AppProvider extends ChangeNotifier {
   String namaPemilik = '';
   String noHp = '';
 
+  // QRIS & Rekening Bank
+  String qrisProvider = '';
+  String qrisAtasNama = '';
+  String qrisNoHp = '';
+  String qrisImageUrl = '';
+  String bankNama = '';
+  String bankNoRekening = '';
+  String bankAtasNama = '';
+
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     roundUpEnabled = prefs.getBool('roundUp') ?? false;
@@ -70,6 +78,13 @@ class AppProvider extends ChangeNotifier {
     noHp           = prefs.getString('noHp') ?? '';
     taxRate        = prefs.getDouble('taxRate') ?? 0;
     storeName      = prefs.getString('storeName') ?? storeName;
+    qrisProvider   = prefs.getString('qrisProvider') ?? '';
+    qrisAtasNama   = prefs.getString('qrisAtasNama') ?? '';
+    qrisNoHp       = prefs.getString('qrisNoHp') ?? '';
+    qrisImageUrl   = prefs.getString('qrisImageUrl') ?? '';
+    bankNama       = prefs.getString('bankNama') ?? '';
+    bankNoRekening = prefs.getString('bankNoRekening') ?? '';
+    bankAtasNama   = prefs.getString('bankAtasNama') ?? '';
     notifyListeners();
   }
 
@@ -82,6 +97,13 @@ class AppProvider extends ChangeNotifier {
     await prefs.setString('noHp', noHp);
     await prefs.setDouble('taxRate', taxRate);
     await prefs.setString('storeName', storeName);
+    await prefs.setString('qrisProvider', qrisProvider);
+    await prefs.setString('qrisAtasNama', qrisAtasNama);
+    await prefs.setString('qrisNoHp', qrisNoHp);
+    await prefs.setString('qrisImageUrl', qrisImageUrl);
+    await prefs.setString('bankNama', bankNama);
+    await prefs.setString('bankNoRekening', bankNoRekening);
+    await prefs.setString('bankAtasNama', bankAtasNama);
   }
 
   // Last error (for debugging, accessible by UI)
@@ -370,6 +392,77 @@ class AppProvider extends ChangeNotifier {
       noHp:        noHp,
       ppnRate:     taxRate,
     );
+  }
+
+  Future<bool> saveQris({
+    required String provider,
+    required String atasNama,
+    required String noHp,
+    Uint8List? imageBytes,
+    String? imageExt,
+  }) async {
+    final idTokoInt = int.tryParse(idToko);
+    if (idTokoInt == null) {
+      showToast('Belum login (id_toko null)');
+      return false;
+    }
+    var imageUrl = qrisImageUrl;
+    if (imageBytes != null) {
+      final uploaded = await DbService.uploadQrisImage(imageBytes, imageExt ?? 'jpg');
+      if (uploaded == null) {
+        showToast('Gagal upload gambar QRIS');
+        return false;
+      }
+      imageUrl = uploaded;
+    }
+    final ok = await DbService.updateTokoQris(
+      idToko:   idTokoInt,
+      provider: provider,
+      atasNama: atasNama,
+      noHp:     noHp,
+      imageUrl: imageUrl,
+    );
+    if (!ok) {
+      showToast('Gagal menyimpan QRIS');
+      return false;
+    }
+    qrisProvider = provider.trim();
+    qrisAtasNama = atasNama.trim();
+    qrisNoHp     = noHp.trim();
+    qrisImageUrl = imageUrl;
+    notifyListeners();
+    await _saveSettings();
+    showToast('QRIS berhasil disimpan');
+    return true;
+  }
+
+  Future<bool> saveRekening({
+    required String bank,
+    required String noRekening,
+    required String atasNama,
+  }) async {
+    final idTokoInt = int.tryParse(idToko);
+    if (idTokoInt == null) {
+      showToast('Belum login (id_toko null)');
+      return false;
+    }
+    final ok = await DbService.updateTokoRekening(
+      idToko:     idTokoInt,
+      bankNama:   bank,
+      noRekening: noRekening,
+      atasNama:   atasNama,
+    );
+    if (!ok) {
+      showToast('Gagal menyimpan rekening');
+      return false;
+    }
+    bankNama       = bank.trim();
+    bankNoRekening = noRekening.trim();
+    bankAtasNama   = atasNama.trim();
+    notifyListeners();
+    await _saveSettings();
+    showToast('Rekening berhasil disimpan');
+    return true;
   }
 
   void selectMember(Member m) {
@@ -676,6 +769,22 @@ class AppProvider extends ChangeNotifier {
     if (dbPpnRate > 0) taxRate = dbPpnRate;
     if (dbAlamat.isNotEmpty) alamatToko = dbAlamat;
     if (dbNoHp.isNotEmpty) noHp = dbNoHp;
+
+    final dbQrisProvider  = result['qris_provider'] as String? ?? '';
+    final dbQrisAtasNama  = result['qris_atas_nama'] as String? ?? '';
+    final dbQrisNoHp      = result['qris_no_hp'] as String? ?? '';
+    final dbQrisImageUrl  = result['qris_image_url'] as String? ?? '';
+    final dbBankNama        = result['bank_nama'] as String? ?? '';
+    final dbBankNoRekening  = result['bank_no_rekening'] as String? ?? '';
+    final dbBankAtasNama    = result['bank_atas_nama'] as String? ?? '';
+    if (dbQrisProvider.isNotEmpty) qrisProvider = dbQrisProvider;
+    if (dbQrisAtasNama.isNotEmpty) qrisAtasNama = dbQrisAtasNama;
+    if (dbQrisNoHp.isNotEmpty) qrisNoHp = dbQrisNoHp;
+    if (dbQrisImageUrl.isNotEmpty) qrisImageUrl = dbQrisImageUrl;
+    if (dbBankNama.isNotEmpty) bankNama = dbBankNama;
+    if (dbBankNoRekening.isNotEmpty) bankNoRekening = dbBankNoRekening;
+    if (dbBankAtasNama.isNotEmpty) bankAtasNama = dbBankAtasNama;
+
     await _saveSettings(); // sinkron SharedPreferences dengan data DB
 
     // Set id_toko ke DbService lalu load data milik toko ini

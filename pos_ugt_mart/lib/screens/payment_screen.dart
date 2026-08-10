@@ -278,7 +278,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       case 'Tunai':
         return _TunaiPanel(prov: prov, cashCtrl: _cashCtrl);
       case 'QRIS':
-        return _QrisPanel(total: prov.total);
+        return _QrisPanel(prov: prov);
       case 'Kartu Debit/Kredit':
         return _KartuPanel();
       case 'Voucher':
@@ -383,17 +383,20 @@ class _TunaiPanel extends StatelessWidget {
 
 // ── QRIS ──
 class _QrisPanel extends StatelessWidget {
-  final int total;
-  const _QrisPanel({required this.total});
+  final AppProvider prov;
+  const _QrisPanel({required this.prov});
 
   @override
   Widget build(BuildContext context) {
+    final hasRealQris = prov.qrisImageUrl.isNotEmpty;
+    final merchantLabel = prov.qrisAtasNama.isNotEmpty ? prov.qrisAtasNama : prov.storeName;
+
     return UGTCard(
       borderRadius: 18,
       child: Column(
         children: [
           const SizedBox(height: 4),
-          // QR code nyata (CustomPainter)
+          // QR code (gambar QRIS asli jika sudah diatur, fallback ke contoh)
           Container(
             width: 200,
             height: 200,
@@ -403,10 +406,22 @@ class _QrisPanel extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.border),
             ),
-            child: CustomPaint(
-              painter: _QrPainter(),
-              size: const Size(176, 176),
-            ),
+            child: hasRealQris
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      prov.qrisImageUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => CustomPaint(
+                        painter: _QrPainter(),
+                        size: const Size(176, 176),
+                      ),
+                    ),
+                  )
+                : CustomPaint(
+                    painter: _QrPainter(),
+                    size: const Size(176, 176),
+                  ),
           ),
           const SizedBox(height: 14),
           // Label merchant
@@ -423,13 +438,29 @@ class _QrisPanel extends StatelessWidget {
                 child: const Icon(Icons.store, size: 13, color: Colors.white),
               ),
               const SizedBox(width: 7),
-              Text('UGT MART',
+              Text(merchantLabel,
                   style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.text)),
+              if (hasRealQris && prov.qrisProvider.isNotEmpty) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(prov.qrisProvider,
+                      style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.primaryDark)),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 6),
-          Text('Arahkan kamera ke kode QRIS di atas',
-              style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.textMuted)),
+          Text(
+            hasRealQris
+                ? 'Arahkan kamera ke kode QRIS di atas'
+                : 'QRIS belum diatur — atur di menu Usahaku',
+            style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.textMuted),
+          ),
           const SizedBox(height: 12),
           Container(
             width: double.infinity,
@@ -442,7 +473,7 @@ class _QrisPanel extends StatelessWidget {
               children: [
                 Text('Total', style: GoogleFonts.inter(fontSize: 11, color: AppColors.primaryDark)),
                 const SizedBox(height: 2),
-                Text(formatRp(total),
+                Text(formatRp(prov.total),
                     style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.primaryDark)),
               ],
             ),

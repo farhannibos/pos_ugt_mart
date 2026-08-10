@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
 import 'printer_screen.dart';
-import 'qr_scanner_screen.dart';
+import 'qris_screen.dart';
 import 'upgrade_screen.dart';
 
 class UsahaScreen extends StatelessWidget {
@@ -160,53 +160,34 @@ class UsahaScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // ── Card: Informasi QR Code ───────────────────────────────────
+            // ── Card: QRIS & Rekening ─────────────────────────────────────
             _TapCard(
-              onTap: () {
-                if (!isPremium) {
-                  Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const UpgradeScreen()));
-                  return;
-                }
-                Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const QrScannerScreen()));
-              },
+              onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const QrisScreen())),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Informasi QR Code',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.text,
-                    ),
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (!isPremium)
-                        Container(
-                          margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFF7ED),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            'Premium',
-                            style: GoogleFonts.inter(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFFF59E0B),
-                            ),
-                          ),
+                      Text(
+                        'QRIS & Rekening',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.text,
                         ),
-                      const Icon(Icons.chevron_right,
-                          color: AppColors.textDim, size: 20),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        prov.qrisImageUrl.isNotEmpty ? 'QRIS aktif' : 'Belum diatur',
+                        style: GoogleFonts.inter(
+                            fontSize: 13, color: AppColors.textDim),
+                      ),
                     ],
                   ),
+                  const Icon(Icons.chevron_right,
+                      color: AppColors.textDim, size: 20),
                 ],
               ),
             ),
