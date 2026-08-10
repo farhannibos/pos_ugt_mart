@@ -21,11 +21,17 @@ class UsahaScreen extends StatelessWidget {
         ? '${taxRate % 1 == 0 ? taxRate.toInt() : taxRate}%'
         : 'Tidak Aktif';
 
+    final isWide = MediaQuery.of(context).size.width > 600;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: ListView(
+          padding: EdgeInsets.fromLTRB(16, 20, 16, isWide ? 40 : 104),
           children: [
             // Judul
             Text(
@@ -273,6 +279,8 @@ class UsahaScreen extends StatelessWidget {
               ),
             ),
           ],
+        ),
+          ),
         ),
       ),
     );

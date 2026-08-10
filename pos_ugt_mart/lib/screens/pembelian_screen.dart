@@ -44,77 +44,107 @@ class _PembelianScreenState extends State<PembelianScreen> {
             color: AppColors.primary,
             child: SafeArea(
               bottom: false,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+                child: Builder(
+                  builder: (ctx) {
+                    return Stack(
                       children: [
-                        GestureDetector(
-                          onTap: () => Navigator.of(context).pop(),
-                          child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Pembelian Barang',
-                            style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                        // Full-width image background
+                        Positioned.fill(
+                          child: Image.asset(
+                            'assets/images/bg_pembelian_header.png',
+                            fit: BoxFit.cover,
+                            alignment: Alignment.centerRight,
                           ),
                         ),
-                        if (canAdd)
-                          GestureDetector(
-                            onTap: () async {
-                              await Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const SupplierScreen()),
-                              );
-                              setState(() {});
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.white30),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.storefront_outlined, size: 14, color: Colors.white),
-                                  const SizedBox(width: 4),
-                                  Text('Supplier',
-                                      style: GoogleFonts.inter(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white)),
-                                ],
+                        // Left overlay so text stays readable
+                        Positioned.fill(
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [Color(0xD0063E31), Color(0x40063E31), Colors.transparent],
+                                stops: [0.0, 0.45, 0.75],
                               ),
                             ),
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(child: _HeaderStat(label: 'Hari Ini', value: '$todayCount PO')),
-                        const SizedBox(width: 12),
-                        Expanded(child: _HeaderStat(label: 'Total Pembelian', value: formatRp(todayTotal))),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _HeaderStat(
-                            label: 'Hutang',
-                            value: formatRp(dummyPurchases
-                              .where((p) => p.status == 'Hutang')
-                              .fold(0, (s, p) => s + p.total)),
+                        ),
+                        // Content
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () => Navigator.of(context).pop(),
+                                    child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'Pembelian Barang',
+                                      style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                                    ),
+                                  ),
+                                  if (canAdd)
+                                    GestureDetector(
+                                      onTap: () async {
+                                        await Navigator.of(context).push(
+                                          MaterialPageRoute(builder: (_) => const SupplierScreen()),
+                                        );
+                                        setState(() {});
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: 0.2),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: Colors.white30),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.storefront_outlined, size: 14, color: Colors.white),
+                                            const SizedBox(width: 4),
+                                            Text('Supplier',
+                                                style: GoogleFonts.inter(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.white)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(child: _HeaderStat(label: 'Hari Ini', value: '$todayCount PO')),
+                                  const SizedBox(width: 12),
+                                  Expanded(child: _HeaderStat(label: 'Total Pembelian', value: formatRp(todayTotal))),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _HeaderStat(
+                                      label: 'Hutang',
+                                      value: formatRp(dummyPurchases
+                                        .where((p) => p.status == 'Hutang')
+                                        .fold(0, (s, p) => s + p.total)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       ],
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -166,7 +196,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.receipt_long_outlined, size: 48, color: AppColors.placeholder),
+                              Image.asset('assets/icons/ic_pembelian.png', width: 80, fit: BoxFit.contain),
                               const SizedBox(height: 12),
                               Text('Belum ada data pembelian', style: GoogleFonts.inter(fontSize: 13, color: AppColors.textDim)),
                             ],
@@ -255,15 +285,7 @@ class _PurchaseCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           child: Row(
             children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: const Icon(Icons.local_shipping_outlined, size: 20, color: AppColors.primary),
-              ),
+              Image.asset('assets/icons/ic_pembelian.png', width: 48, fit: BoxFit.contain),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

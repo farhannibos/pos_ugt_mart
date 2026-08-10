@@ -16,6 +16,7 @@ import 'payment_screen.dart';
 import 'pembelian_screen.dart';
 import 'shift_screen.dart';
 import 'upgrade_screen.dart';
+import '../services/tour_service.dart';
 
 class MainScaffold extends StatefulWidget {
   final int initialTab;
@@ -29,6 +30,13 @@ class _MainScaffoldState extends State<MainScaffold> {
   late int _currentTab;
   late List<Widget> _screens;
 
+  // GlobalKeys untuk coach mark tour
+  final _keyBeranda = GlobalKey();
+  final _keyUsahaku = GlobalKey();
+  final _keyKasir   = GlobalKey();
+  final _keyRiwayat = GlobalKey();
+  final _keyProfil  = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -39,11 +47,29 @@ class _MainScaffoldState extends State<MainScaffold> {
       const HistoryScreen(),
       const ProfileScreen(),
     ];
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final prov = context.read<AppProvider>();
       if (prov.isPremium && prov.activeShift == null) {
         showBukaShiftDialog(context, prov);
       }
+      // Tunjukkan tour kalau user baru
+      if (await TourService.shouldShow()) {
+        if (mounted) _startTour();
+      }
+    });
+  }
+
+  void _startTour() {
+    Future.delayed(const Duration(milliseconds: 1200), () {
+      if (!mounted) return;
+      TourService.show(
+        context:    context,
+        keyBeranda: _keyBeranda,
+        keyUsahaku: _keyUsahaku,
+        keyKasir:   _keyKasir,
+        keyRiwayat: _keyRiwayat,
+        keyProfil:  _keyProfil,
+      );
     });
   }
 
@@ -95,9 +121,14 @@ class _MainScaffoldState extends State<MainScaffold> {
     return Scaffold(
       body: stack,
       bottomNavigationBar: _BottomNav(
-        currentTab: _currentTab,
-        cartCount: prov.cartItemCount,
-        onTap: (i) => _handleTabTap(i, context),
+        currentTab:  _currentTab,
+        cartCount:   prov.cartItemCount,
+        onTap:       (i) => _handleTabTap(i, context),
+        keyBeranda:  _keyBeranda,
+        keyUsahaku:  _keyUsahaku,
+        keyKasir:    _keyKasir,
+        keyRiwayat:  _keyRiwayat,
+        keyProfil:   _keyProfil,
       ),
     );
   }
@@ -125,15 +156,15 @@ class _SideNav extends StatelessWidget {
       unselectedIconTheme: const IconThemeData(color: AppColors.textDim),
       unselectedLabelTextStyle: GoogleFonts.inter(fontSize: 10, color: AppColors.textDim),
       destinations: [
-        const NavigationRailDestination(
-          icon: Icon(Icons.home_outlined),
-          selectedIcon: Icon(Icons.home),
-          label: Text('Beranda'),
+        NavigationRailDestination(
+          icon: Opacity(opacity: 0.38, child: Image.asset('assets/icons/ic_home.png', width: 28, fit: BoxFit.contain)),
+          selectedIcon: Image.asset('assets/icons/ic_home.png', width: 28, fit: BoxFit.contain),
+          label: const Text('Beranda'),
         ),
-        const NavigationRailDestination(
-          icon: Icon(Icons.storefront_outlined),
-          selectedIcon: Icon(Icons.storefront),
-          label: Text('Usahaku'),
+        NavigationRailDestination(
+          icon: Opacity(opacity: 0.38, child: Image.asset('assets/icons/ic_store.png', width: 28, fit: BoxFit.contain)),
+          selectedIcon: Image.asset('assets/icons/ic_store.png', width: 28, fit: BoxFit.contain),
+          label: const Text('Usahaku'),
         ),
         NavigationRailDestination(
           icon: Stack(
@@ -153,7 +184,7 @@ class _SideNav extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 20),
+                child: Center(child: Image.asset('assets/icons/ic_cart.png', width: 28, fit: BoxFit.contain)),
               ),
               if (cartCount > 0)
                 Positioned(
@@ -178,15 +209,15 @@ class _SideNav extends StatelessWidget {
           ),
           label: const Text('Kasir'),
         ),
-        const NavigationRailDestination(
-          icon: Icon(Icons.access_time_outlined),
-          selectedIcon: Icon(Icons.access_time),
-          label: Text('Riwayat'),
+        NavigationRailDestination(
+          icon: Opacity(opacity: 0.38, child: Image.asset('assets/icons/ic_riwayat.png', width: 28, fit: BoxFit.contain)),
+          selectedIcon: Image.asset('assets/icons/ic_riwayat.png', width: 28, fit: BoxFit.contain),
+          label: const Text('Riwayat'),
         ),
-        const NavigationRailDestination(
-          icon: Icon(Icons.person_outline),
-          selectedIcon: Icon(Icons.person),
-          label: Text('Profil'),
+        NavigationRailDestination(
+          icon: Opacity(opacity: 0.38, child: Image.asset('assets/icons/ic_profil.png', width: 28, fit: BoxFit.contain)),
+          selectedIcon: Image.asset('assets/icons/ic_profil.png', width: 28, fit: BoxFit.contain),
+          label: const Text('Profil'),
         ),
       ],
     );
@@ -197,17 +228,31 @@ class _BottomNav extends StatelessWidget {
   final int currentTab;
   final int cartCount;
   final ValueChanged<int> onTap;
+  final GlobalKey keyBeranda;
+  final GlobalKey keyUsahaku;
+  final GlobalKey keyKasir;
+  final GlobalKey keyRiwayat;
+  final GlobalKey keyProfil;
 
-  const _BottomNav({required this.currentTab, required this.cartCount, required this.onTap});
+  const _BottomNav({
+    required this.currentTab,
+    required this.cartCount,
+    required this.onTap,
+    required this.keyBeranda,
+    required this.keyUsahaku,
+    required this.keyKasir,
+    required this.keyRiwayat,
+    required this.keyProfil,
+  });
 
   @override
   Widget build(BuildContext context) {
     final items = [
-      _NavItem(icon: Icons.home_outlined, activeIcon: Icons.home, label: 'Beranda'),
-      _NavItem(icon: Icons.storefront_outlined, activeIcon: Icons.storefront, label: 'Usahaku'),
+      _NavItem(asset: 'assets/icons/ic_home.png',    label: 'Beranda', tourKey: keyBeranda),
+      _NavItem(asset: 'assets/icons/ic_store.png',   label: 'Usahaku', tourKey: keyUsahaku),
       null, // center FAB slot
-      _NavItem(icon: Icons.access_time_outlined, activeIcon: Icons.access_time, label: 'Riwayat'),
-      _NavItem(icon: Icons.person_outline, activeIcon: Icons.person, label: 'Profil'),
+      _NavItem(asset: 'assets/icons/ic_riwayat.png', label: 'Riwayat', tourKey: keyRiwayat),
+      _NavItem(asset: 'assets/icons/ic_profil.png',  label: 'Profil',  tourKey: keyProfil),
     ];
 
     return Container(
@@ -225,13 +270,14 @@ class _BottomNav extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 64,
+          height: 68,
           child: Row(
             children: List.generate(items.length, (i) {
               if (items[i] == null) {
-                // Center cart FAB
+                // Center Kasir FAB — icon 3D cart
                 return Expanded(
                   child: GestureDetector(
+                    key: keyKasir,
                     onTap: () => onTap(2),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -240,21 +286,10 @@ class _BottomNav extends StatelessWidget {
                         Stack(
                           clipBehavior: Clip.none,
                           children: [
-                            Container(
-                              width: 46,
-                              height: 46,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(17),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primary.withValues(alpha: 0.34),
-                                    blurRadius: 18,
-                                    offset: const Offset(0, 8),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 23),
+                            Image.asset(
+                              'assets/icons/ic_cart.png',
+                              width: 54,
+                              fit: BoxFit.contain,
                             ),
                             if (cartCount > 0)
                               Positioned(
@@ -277,10 +312,10 @@ class _BottomNav extends StatelessWidget {
                               ),
                           ],
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 2),
                         Text(
                           'Kasir',
-                          style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w600, color: AppColors.primary),
+                          style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.primary),
                         ),
                       ],
                     ),
@@ -295,17 +330,21 @@ class _BottomNav extends StatelessWidget {
 
               return Expanded(
                 child: GestureDetector(
+                  key: item.tourKey,
                   onTap: () => onTap(i),
                   behavior: HitTestBehavior.opaque,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        isActive ? item.activeIcon : item.icon,
-                        size: 21,
-                        color: isActive ? AppColors.primary : AppColors.textDim,
+                      Opacity(
+                        opacity: isActive ? 1.0 : 0.38,
+                        child: Image.asset(
+                          item.asset,
+                          width: 38,
+                          fit: BoxFit.contain,
+                        ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Text(
                         item.label,
                         style: GoogleFonts.inter(
@@ -327,10 +366,10 @@ class _BottomNav extends StatelessWidget {
 }
 
 class _NavItem {
-  final IconData icon;
-  final IconData activeIcon;
+  final String asset;
   final String label;
-  const _NavItem({required this.icon, required this.activeIcon, required this.label});
+  final GlobalKey tourKey;
+  const _NavItem({required this.asset, required this.label, required this.tourKey});
 }
 
 // Route generator for named routes

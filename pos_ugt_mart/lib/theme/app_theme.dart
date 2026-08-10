@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  static const Color primary = Color(0xFF16A34A);
-  static const Color primaryDark = Color(0xFF128A3E);
-  static const Color primaryDeep = Color(0xFF0F6E30);
-  static const Color primaryLight = Color(0xFFDCFCE7);
-  static const Color primaryMid = Color(0xFFBBF3D4);
-  static const Color primaryGlow = Color(0x2616A34A);
+  static const Color primary      = Color(0xFF00A53D); // brand utama
+  static const Color secondary    = Color(0xFF00B55F); // aksen lebih terang
+  static const Color primaryDark  = Color(0xFF008A33); // hover / pressed
+  static const Color primaryDeep  = Color(0xFF006D28); // header gelap
+  static const Color primaryLight = Color(0xFFDEF7EB); // bg chip / badge
+  static const Color primaryMid   = Color(0xFFB3EDD0); // divider / mid
+  static const Color primaryGlow  = Color(0x2600A53D); // shadow hijau;
 
   static const Color bg = Color(0xFFF7F8F7);
   static const Color surface = Color(0xFFFFFFFF);
@@ -43,6 +44,7 @@ class AppTheme {
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         primary: AppColors.primary,
+        secondary: AppColors.secondary,
         surface: AppColors.bg,
       ),
       scaffoldBackgroundColor: AppColors.bg,

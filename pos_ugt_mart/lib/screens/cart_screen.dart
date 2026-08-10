@@ -103,7 +103,7 @@ class _CartScreenState extends State<CartScreen> {
                   children: [
                     Expanded(
                       child: _InfoChip(
-                        icon: Icons.person_outline,
+                        asset: 'assets/icons/ic_premium.png',
                         label: 'Pelanggan',
                         value: prov.selectedCustomer ?? 'Umum',
                         onTap: () async {
@@ -116,7 +116,7 @@ class _CartScreenState extends State<CartScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: _InfoChip(
-                        icon: Icons.sell_outlined,
+                        asset: 'assets/icons/ic_diskon.png',
                         label: 'Diskon',
                         value: prov.discount > 0 ? formatRp(prov.discount) : 'Tambah',
                         onTap: () => _showDiscountDialog(context, prov),
@@ -239,12 +239,12 @@ class _CartAppBar extends StatelessWidget {
 }
 
 class _InfoChip extends StatelessWidget {
-  final IconData icon;
+  final String? asset;
   final String label;
   final String value;
   final VoidCallback onTap;
 
-  const _InfoChip({required this.icon, required this.label, required this.value, required this.onTap});
+  const _InfoChip({this.asset, required this.label, required this.value, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -268,15 +268,7 @@ class _InfoChip extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Icon(icon, size: 14, color: AppColors.primary),
-              ),
+              Image.asset(asset ?? 'assets/icons/ic_diskon.png', width: 28, fit: BoxFit.contain),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -360,15 +352,7 @@ class _EmptyCart extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 38),
       child: Column(
         children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: AppColors.grayLight,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(Icons.shopping_cart_outlined, size: 24, color: AppColors.placeholder),
-          ),
+          Image.asset('assets/icons/ic_cart.png', width: 72, fit: BoxFit.contain),
           const SizedBox(height: 12),
           Text('Keranjang kosong', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.text)),
           const SizedBox(height: 4),

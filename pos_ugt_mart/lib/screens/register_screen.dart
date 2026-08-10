@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
 import '../services/db_service.dart';
 import 'main_scaffold.dart';
+import '../services/tour_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -68,6 +69,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (loginOk) {
+      await TourService.markNewUser(); // tandai user baru → tour akan muncul
+      if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const MainScaffold()),
         (route) => false,

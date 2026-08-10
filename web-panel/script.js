@@ -3771,15 +3771,19 @@ function renderLangganan() {
             } else {
                 statusHtml = '<span class="badge badge-green">Aktif</span>';
             }
+            const namaSafe = r.nama_toko.replace(/'/g,"\\'");
             return `<tr>
                 <td><strong>${r.nama_toko}</strong></td>
                 <td>${r.no_hp || '—'}</td>
                 <td><span class="badge ${isPremium ? 'badge-purple' : 'badge-gray'}">${isPremium ? 'Premium' : 'Free'}</span></td>
                 <td>${expStr}</td>
                 <td>${statusHtml}</td>
-                <td>
-                    <button class="btn btn-sm btn-primary" onclick="showModalAktivasiPremiumFor('${r.id}','${r.nama_toko.replace(/'/g,"\\'")}')">
+                <td style="display:flex;gap:6px;flex-wrap:wrap">
+                    <button class="btn btn-sm btn-primary" onclick="showModalAktivasiPremiumFor('${r.id}','${namaSafe}')">
                         <i data-lucide="badge-check" style="width:12px;height:12px"></i> Aktifkan
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="showModalHapusToko('${r.id}','${namaSafe}')">
+                        <i data-lucide="trash-2" style="width:12px;height:12px"></i> Hapus
                     </button>
                 </td>
             </tr>`;
@@ -3806,6 +3810,69 @@ function renderLangganan() {
 
 function filterLangganan() {
     renderLangganan();
+}
+
+// ── Hapus Toko ────────────────────────────────────────────────────────────────
+let _hapusTokoId   = null;
+let _hapusTokoNama = '';
+
+function showModalHapusToko(id, nama) {
+    _hapusTokoId   = parseInt(id);
+    _hapusTokoNama = nama;
+
+    document.getElementById('hapus-toko-nama-label').textContent = `"${nama}"`;
+    document.getElementById('hapus-toko-konfirm').value = '';
+    document.getElementById('btn-hapus-toko').disabled = true;
+
+    // Tampilkan info data toko
+    const r = _lanData.find(x => x.id == id) || {};
+    document.getElementById('hapus-toko-info').innerHTML = `
+        <div style="font-weight:700;margin-bottom:6px;color:#374151">📋 Toko: ${escapeHtml(nama)}</div>
+        <div>📞 No. HP: ${r.no_hp || '—'}</div>
+        <div>💳 Plan: ${r.plan === 'premium' ? 'Premium' : 'Free'}</div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #E2E8F0;color:#DC2626;font-weight:600">
+            Semua data toko ini akan dihapus permanen.
+        </div>`;
+
+    document.getElementById('modal-hapus-toko').style.display = 'flex';
+    lucide.createIcons();
+}
+
+function closeModalHapusToko() {
+    document.getElementById('modal-hapus-toko').style.display = 'none';
+    _hapusTokoId   = null;
+    _hapusTokoNama = '';
+}
+
+function cekKonfirmasiHapusToko() {
+    const input = document.getElementById('hapus-toko-konfirm').value.trim();
+    const match = input.toLowerCase() === _hapusTokoNama.toLowerCase();
+    document.getElementById('btn-hapus-toko').disabled = !match;
+}
+
+async function doHapusToko() {
+    if (!_hapusTokoId) return;
+    const btn = document.getElementById('btn-hapus-toko');
+    btn.disabled = true;
+    btn.textContent = 'Menghapus...';
+
+    try {
+        const { data, error } = await _sb.rpc('delete_toko_complete', {
+            p_id_toko: _hapusTokoId,
+        });
+        if (error) throw error;
+        const res = data;
+        if (!res.ok) throw new Error(res.pesan || 'Gagal menghapus');
+
+        closeModalHapusToko();
+        showToast('success', `Toko "${res.nama_toko}" berhasil dihapus (${res.transaksi} transaksi, ${res.produk} produk, ${res.users} user)`);
+        await loadLangganan();
+    } catch (err) {
+        showToast('error', `Gagal: ${err.message}`);
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="trash-2" style="width:14px;height:14px"></i> Hapus Permanen';
+        lucide.createIcons();
+    }
 }
 
 function populateTokoSelect() {

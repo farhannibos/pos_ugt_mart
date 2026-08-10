@@ -19,12 +19,8 @@ class DashboardScreen extends StatelessWidget {
     final lowStockProducts = dummyProducts.where((p) => p.isLowStock).take(3).toList();
 
     // Real stat calculations
-    final penjualanHariIni = prov.todayTotalPenjualan;
-    final kemarinTotal = prov.kemarinTotalPenjualan;
     final trxCount = prov.todayTrxCount;
-    final rataRata = trxCount > 0 ? penjualanHariIni ~/ trxCount : 0;
-    final itemsTerjual = prov.todayItemsCount;
-    final skuTerjual = prov.todaySkuCount;
+    final rataRata = trxCount > 0 ? prov.todayTotalPenjualan ~/ trxCount : 0;
 
     final modalAwal    = prov.activeShift?.modalAwal ?? 0;
     final tunaiJual    = prov.todayTunaiTotal;
@@ -44,18 +40,6 @@ class DashboardScreen extends StatelessWidget {
       kasTunaiTrend = parts.join(' ');
     }
 
-    String trendPenjualan;
-    bool? trendPositive;
-    if (kemarinTotal == 0) {
-      trendPenjualan = 'belum ada data kemarin';
-      trendPositive = null;
-    } else {
-      final pct = ((penjualanHariIni - kemarinTotal) / kemarinTotal * 100);
-      final sign = pct >= 0 ? '+' : '';
-      trendPenjualan = '$sign${pct.toStringAsFixed(1)}% vs kemarin';
-      trendPositive = pct >= 0;
-    }
-
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: RefreshIndicator(
@@ -65,66 +49,46 @@ class DashboardScreen extends StatelessWidget {
         slivers: [
           // Green header
           SliverToBoxAdapter(child: _DashHeader(kasir: prov.kasirName)),
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(
-              16,
-              14,
-              16,
-              isWide ? 24 : 104,
-            ),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                // Stat grid
-                isWide
-                    ? Row(
+          SliverToBoxAdapter(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(16, 14, 16, isWide ? 24 : 104),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Expanded(child: _StatCard(label: 'Penjualan Hari Ini', value: formatRp(penjualanHariIni), trend: trendPenjualan, trendPositive: trendPositive)),
-                          const SizedBox(width: 12),
-                          Expanded(child: _StatCard(label: 'Total Transaksi', value: '$trxCount', trend: rataRata > 0 ? 'rata-rata ${formatRp(rataRata)}' : 'belum ada transaksi', trendPositive: null)),
-                          const SizedBox(width: 12),
                           Expanded(child: _StatCard(label: 'Kas Tunai', value: formatRp(kasTunai), trend: kasTunaiTrend, trendPositive: null)),
                           const SizedBox(width: 12),
-                          Expanded(child: _StatCard(label: 'Produk Terjual', value: '$itemsTerjual pcs', trend: '$skuTerjual SKU berbeda', trendPositive: null)),
-                        ],
-                      )
-                    : GridView.count(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 1.55,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: [
-                          _StatCard(label: 'Penjualan Hari Ini', value: formatRp(penjualanHariIni), trend: trendPenjualan, trendPositive: trendPositive),
-                          _StatCard(label: 'Total Transaksi', value: '$trxCount', trend: rataRata > 0 ? 'rata-rata ${formatRp(rataRata)}' : 'belum ada transaksi', trendPositive: null),
-                          _StatCard(label: 'Kas Tunai', value: formatRp(kasTunai), trend: kasTunaiTrend, trendPositive: null),
-                          _StatCard(label: 'Produk Terjual', value: '$itemsTerjual pcs', trend: '$skuTerjual SKU berbeda', trendPositive: null),
+                          Expanded(child: _StatCard(label: 'Total Transaksi', value: '$trxCount', trend: rataRata > 0 ? 'rata-rata ${formatRp(rataRata)}' : 'belum ada transaksi', trendPositive: null)),
                         ],
                       ),
-                const SizedBox(height: 14),
-                // Transaksi Baru CTA
-                _NewTransactionButton(onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ProductScreen()))),
-                const SizedBox(height: 16),
-                // Chart
-                _SalesChart(),
-                const SizedBox(height: 18),
-                // Quick menu
-                Text(
-                  'Menu Cepat',
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+                      const SizedBox(height: 14),
+                      _NewTransactionButton(onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ProductScreen()))),
+                      const SizedBox(height: 16),
+                      _SalesChart(),
+                      const SizedBox(height: 18),
+                      Text(
+                        'Menu Cepat',
+                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+                      ),
+                      const SizedBox(height: 10),
+                      const _QuickMenu(),
+                      const SizedBox(height: 18),
+                      Text(
+                        'Stok Menipis',
+                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+                      ),
+                      const SizedBox(height: 10),
+                      _LowStockList(products: lowStockProducts),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 10),
-                _QuickMenu(),
-                const SizedBox(height: 18),
-                // Low stock
-                Text(
-                  'Stok Menipis',
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted),
-                ),
-                const SizedBox(height: 10),
-                _LowStockList(products: lowStockProducts),
-              ]),
+              ),
             ),
           ),
         ],
@@ -142,80 +106,111 @@ class _DashHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isWide = MediaQuery.of(context).size.width > 600;
     return Container(
       color: AppColors.primary,
       child: SafeArea(
         bottom: false,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-          decoration: const BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(26)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  kasir.split(' ').map((w) => w[0]).take(2).join().toUpperCase(),
-                  style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
-                ),
-              ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Shift Pagi · 08:00–16:00',
-                      style: GoogleFonts.inter(fontSize: 11, color: Colors.white.withValues(alpha: 0.78)),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      kasir,
-                      style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              GestureDetector(
-                onTap: () => context.read<AppProvider>().showToast('Belum ada notifikasi baru'),
-                child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.16),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 18),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(26)),
+          child: SizedBox(
+            height: isWide ? 150 : 118,
+            child: Stack(
+              children: [
+                // Full-width image background
+                Positioned.fill(
+                  child: Image.asset(
+                    'assets/images/bg_dashboard_header.png',
+                    fit: BoxFit.cover,
+                    alignment: Alignment.centerRight,
                   ),
-                  Positioned(
-                    top: 8,
-                    right: 9,
-                    child: Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFDE047),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.primary, width: 1.5),
+                ),
+                // Left overlay so text stays readable
+                Positioned.fill(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [Color(0xD0063E31), Color(0x40063E31), Colors.transparent],
+                        stops: [0.0, 0.45, 0.75],
                       ),
                     ),
                   ),
-                ],
-              ),
-              ),
-            ],
+                ),
+                // Content row
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(13),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          kasir.split(' ').map((w) => w[0]).take(2).join().toUpperCase(),
+                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                        ),
+                      ),
+                      const SizedBox(width: 11),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Shift Pagi · 08:00–16:00',
+                              style: GoogleFonts.inter(fontSize: 11, color: Colors.white.withValues(alpha: 0.78)),
+                            ),
+                            const SizedBox(height: 1),
+                            Text(
+                              kasir,
+                              style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => context.read<AppProvider>().showToast('Belum ada notifikasi baru'),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.16),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 18),
+                            ),
+                            Positioned(
+                              top: 8,
+                              right: 9,
+                              child: Container(
+                                width: 7,
+                                height: 7,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFDE047),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: AppColors.primary, width: 1.5),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -300,15 +295,7 @@ class _NewTransactionButton extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: const Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 18),
-              ),
+              Image.asset('assets/icons/ic_transaksi_baru.png', width: 40, fit: BoxFit.contain),
               const SizedBox(width: 11),
               Expanded(
                 child: Column(
@@ -437,32 +424,46 @@ class _ChartFilterChip extends StatelessWidget {
 }
 
 class _QuickMenu extends StatelessWidget {
+  const _QuickMenu();
+
   @override
   Widget build(BuildContext context) {
     final prov = context.watch<AppProvider>();
     final isOwnerOrAdmin = prov.kasirRole == 'Owner' || prov.kasirRole == 'Admin';
     final items = [
       _QuickItem(
-        icon: Icons.inventory_2_outlined,
+        asset: 'assets/icons/ic_produk.png',
         label: 'Produk',
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const ProductScreen()),
         ),
       ),
-      _QuickItem(icon: Icons.arrow_upward, label: 'Kas Masuk', onTap: () => _go(context, '/kas-masuk')),
-      _QuickItem(icon: Icons.arrow_downward, label: 'Kas Keluar', onTap: () => _go(context, '/kas-keluar')),
+      _QuickItem(asset: 'assets/icons/ic_kas_masuk.png', label: 'Kas Masuk', onTap: () => _go(context, '/kas-masuk')),
+      _QuickItem(asset: 'assets/icons/ic_kas_keluar.png', label: 'Kas Keluar', onTap: () => _go(context, '/kas-keluar')),
       if (isOwnerOrAdmin)
-        _QuickItem(icon: Icons.local_shipping_outlined, label: 'Pembelian', onTap: () => _go(context, '/pembelian')),
-      _QuickItem(icon: Icons.person_outline, label: 'Member', onTap: () => _go(context, '/member')),
+        _QuickItem(asset: 'assets/icons/ic_pembelian.png', label: 'Pembelian', onTap: () => _go(context, '/pembelian')),
+      _QuickItem(asset: 'assets/icons/ic_member.png', label: 'Member', onTap: () => _go(context, '/member')),
     ];
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 10,
-      runSpacing: 10,
-      children: items.map((item) => SizedBox(
-        width: 88,
-        child: _QuickMenuItem(item: item),
-      )).toList(),
+    final isWide = MediaQuery.of(context).size.width > 600;
+    if (isWide) {
+      return Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: items.map((item) => SizedBox(
+          width: 90,
+          child: _QuickMenuItem(item: item),
+        )).toList(),
+      );
+    }
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: items.map((item) => SizedBox(
+          width: 80,
+          child: _QuickMenuItem(item: item),
+        )).toList(),
+      ),
     );
   }
 
@@ -472,10 +473,10 @@ class _QuickMenu extends StatelessWidget {
 }
 
 class _QuickItem {
-  final IconData icon;
+  final String asset;
   final String label;
   final VoidCallback onTap;
-  const _QuickItem({required this.icon, required this.label, required this.onTap});
+  const _QuickItem({required this.asset, required this.label, required this.onTap});
 }
 
 class _QuickMenuItem extends StatelessWidget {
@@ -491,7 +492,7 @@ class _QuickMenuItem extends StatelessWidget {
         onTap: item.onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
@@ -505,21 +506,17 @@ class _QuickMenuItem extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: Icon(item.icon, size: 18, color: AppColors.primary),
+              Image.asset(
+                item.asset,
+                width: 64,
+                fit: BoxFit.contain,
               ),
               const SizedBox(height: 6),
               Text(
                 item.label,
                 textAlign: TextAlign.center,
                 maxLines: 2,
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
+                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
               ),
             ],
           ),

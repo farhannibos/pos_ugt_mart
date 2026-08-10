@@ -112,47 +112,36 @@ class _LoginScreenState extends State<LoginScreen>
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            // Logo dalam lingkaran putih — tanpa kotak
-                            Container(
-                              width: 92,
-                              height: 92,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.12),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                ],
-                              ),
-                              padding: const EdgeInsets.all(14),
+                            // Logo — sudut sedikit melengkung, tanpa container
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
                               child: Image.asset(
                                 'assets/images/logo_bmt.png',
-                                fit: BoxFit.contain,
+                                width: 90,
+                                height: 90,
+                                fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => const Icon(
                                   Icons.store_rounded,
-                                  size: 40,
-                                  color: AppColors.primary,
+                                  size: 52,
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 12),
                             Text(
                               'UGT MART',
                               style: GoogleFonts.poppins(
-                                fontSize: 24,
+                                fontSize: 22,
                                 fontWeight: FontWeight.w800,
                                 color: Colors.white,
-                                letterSpacing: 1.4,
+                                letterSpacing: 1.2,
                               ),
                             ),
-                            const SizedBox(height: 3),
+                            const SizedBox(height: 2),
                             Text(
                               'Sistem Kasir Modern',
                               style: GoogleFonts.inter(
-                                fontSize: 12.5,
+                                fontSize: 12,
                                 color: Colors.white.withValues(alpha: 0.78),
                               ),
                             ),

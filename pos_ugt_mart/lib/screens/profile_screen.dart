@@ -45,81 +45,116 @@ class ProfileScreen extends StatelessWidget {
               color: AppColors.primary,
               child: SafeArea(
                 bottom: false,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 22),
-                  decoration: const BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(26)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Profil',
-                        style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.18),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              initials,
-                              style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(26)),
+                  child: SizedBox(
+                    height: isWide ? 180 : 148,
+                    child: Stack(
+                      children: [
+                        // Full-width image background
+                        Positioned.fill(
+                          child: Image.asset(
+                            'assets/images/bg_profile_header.png',
+                            fit: BoxFit.cover,
+                            alignment: Alignment.centerRight,
+                          ),
+                        ),
+                        // Left overlay so text stays readable
+                        Positioned.fill(
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [Color(0xD0063E31), Color(0x40063E31), Colors.transparent],
+                                stops: [0.0, 0.45, 0.75],
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 14),
-                          Column(
+                        ),
+                        // Content
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                prov.kasirName,
-                                style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.white),
+                                'Profil',
+                                style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 14),
                               Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    width: 60,
+                                    height: 60,
                                     decoration: BoxDecoration(
-                                      color: roleColor.withValues(alpha: 0.25),
-                                      borderRadius: BorderRadius.circular(100),
-                                      border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
+                                      color: Colors.white.withValues(alpha: 0.18),
+                                      borderRadius: BorderRadius.circular(20),
                                     ),
+                                    alignment: Alignment.center,
                                     child: Text(
-                                      role,
-                                      style: GoogleFonts.inter(fontSize: 10.5, fontWeight: FontWeight.w700, color: Colors.white),
+                                      initials,
+                                      style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
                                     ),
                                   ),
-                                  if (loginStr.isNotEmpty) ...[
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      loginStr,
-                                      style: GoogleFonts.inter(fontSize: 11, color: Colors.white.withValues(alpha: 0.75)),
-                                    ),
-                                  ],
+                                  const SizedBox(width: 14),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        prov.kasirName,
+                                        style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.white),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: roleColor.withValues(alpha: 0.25),
+                                              borderRadius: BorderRadius.circular(100),
+                                              border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
+                                            ),
+                                            child: Text(
+                                              role,
+                                              style: GoogleFonts.inter(fontSize: 10.5, fontWeight: FontWeight.w700, color: Colors.white),
+                                            ),
+                                          ),
+                                          if (loginStr.isNotEmpty) ...[
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              loginStr,
+                                              style: GoogleFonts.inter(fontSize: 11, color: Colors.white.withValues(alpha: 0.75)),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(16, 14, 16, isWide ? 24 : 104),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
+          SliverToBoxAdapter(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(16, 14, 16, isWide ? 24 : 104),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                 // Stat row
                 Row(
                   children: [
@@ -156,19 +191,10 @@ class ProfileScreen extends StatelessWidget {
                 UGTCard(
                   child: Row(
                     children: [
-                      Container(
+                      Image.asset(
+                        'assets/icons/ic_store.png',
                         width: 46,
-                        height: 46,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        padding: const EdgeInsets.all(8),
-                        child: Image.asset(
-                          'assets/images/logo_bmt.png',
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Icon(Icons.store, size: 24, color: AppColors.primary),
-                        ),
+                        fit: BoxFit.contain,
                       ),
                       const SizedBox(width: 13),
                       Expanded(
@@ -192,18 +218,10 @@ class ProfileScreen extends StatelessWidget {
                   child: UGTCard(
                     child: Row(
                       children: [
-                        Container(
+                        Image.asset(
+                          'assets/icons/ic_premium.png',
                           width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: prov.isPremium ? const Color(0xFFEDE9FE) : AppColors.primaryLight,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Icon(
-                            prov.isPremium ? Icons.workspace_premium : Icons.upgrade_outlined,
-                            size: 22,
-                            color: prov.isPremium ? const Color(0xFF7C3AED) : AppColors.primary,
-                          ),
+                          fit: BoxFit.contain,
                         ),
                         const SizedBox(width: 13),
                         Expanded(
@@ -235,7 +253,7 @@ class ProfileScreen extends StatelessWidget {
                   child: Column(
                     children: [
                       _SettingItem(
-                        icon: Icons.access_time_outlined,
+                        asset: 'assets/icons/ic_shift.png',
                         label: 'Shift Kasir',
                         trailing: prov.isPremium
                             ? Row(mainAxisSize: MainAxisSize.min, children: [
@@ -271,7 +289,7 @@ class ProfileScreen extends StatelessWidget {
                         },
                       ),
                       _SettingItem(
-                        icon: Icons.qr_code_scanner_outlined,
+                        asset: 'assets/icons/ic_web_login.png',
                         label: 'Login Web Panel (Scan QR)',
                         trailing: prov.isPremium
                             ? const Icon(Icons.chevron_right, size: 16, color: AppColors.placeholder)
@@ -293,21 +311,21 @@ class ProfileScreen extends StatelessWidget {
                         },
                       ),
                       _SettingItem(
-                        icon: Icons.print_outlined,
+                        asset: 'assets/icons/ic_struk.png',
                         label: 'Printer Struk',
                         trailing: const Icon(Icons.chevron_right, size: 18, color: AppColors.textDim),
                         showBorder: true,
                         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrinterScreen())),
                       ),
                       _SettingItem(
-                        icon: Icons.settings_outlined,
+                        asset: 'assets/icons/ic_settings.png',
                         label: 'Pengaturan Aplikasi',
                         trailing: const Icon(Icons.chevron_right, size: 16, color: AppColors.placeholder),
                         showBorder: true,
                         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
                       ),
                       _SettingItem(
-                        icon: Icons.help_outline,
+                        asset: 'assets/icons/ic_bantuan.png',
                         label: 'Bantuan & Panduan',
                         trailing: const Icon(Icons.chevron_right, size: 16, color: AppColors.placeholder),
                         showBorder: false,
@@ -340,7 +358,7 @@ class ProfileScreen extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.logout, size: 16, color: AppColors.red),
+                          Image.asset('assets/icons/ic_logout.png', width: 22, fit: BoxFit.contain),
                           const SizedBox(width: 9),
                           Text(
                             'Keluar / Logout',
@@ -357,7 +375,10 @@ class ProfileScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.placeholder),
                 ),
-              ]),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -367,14 +388,14 @@ class ProfileScreen extends StatelessWidget {
 }
 
 class _SettingItem extends StatelessWidget {
-  final IconData icon;
+  final String asset;
   final String label;
   final Widget trailing;
   final bool showBorder;
   final VoidCallback? onTap;
 
   const _SettingItem({
-    required this.icon,
+    required this.asset,
     required this.label,
     required this.trailing,
     required this.showBorder,
@@ -386,20 +407,16 @@ class _SettingItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           border: showBorder ? const Border(bottom: BorderSide(color: AppColors.borderLight)) : null,
         ),
         child: Row(
           children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0FDF4),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, size: 15, color: AppColors.primary),
+            Image.asset(
+              asset,
+              width: 36,
+              fit: BoxFit.contain,
             ),
             const SizedBox(width: 12),
             Expanded(

@@ -1433,6 +1433,39 @@
         </main>
     </div>
 
+    <!-- MODAL HAPUS TOKO -->
+    <div id="modal-hapus-toko" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModalHapusToko()">
+        <div class="modal-dialog" style="max-width:460px">
+            <div class="modal-header" style="background:#FEF2F2;border-bottom:1px solid #FECACA">
+                <h3 class="modal-title" style="color:#DC2626;display:flex;align-items:center;gap:8px">
+                    <i data-lucide="triangle-alert" style="width:18px;height:18px"></i> Hapus Toko Permanen
+                </h3>
+                <button class="modal-close" onclick="closeModalHapusToko()"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:14px;margin-bottom:16px">
+                    <p style="margin:0;font-size:13px;color:#991B1B;line-height:1.6">
+                        ⚠️ Tindakan ini <strong>tidak dapat dibatalkan</strong>. Semua data toko akan dihapus permanen termasuk:
+                        produk, transaksi, member, supplier, kasir, shift, dan log keuangan.
+                    </p>
+                </div>
+                <div id="hapus-toko-info" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px;line-height:1.8">
+                    <!-- diisi JS -->
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                    <label style="font-size:13px;color:#374151">Ketik nama toko <strong id="hapus-toko-nama-label" style="color:#DC2626"></strong> untuk konfirmasi:</label>
+                    <input type="text" id="hapus-toko-konfirm" class="form-control" placeholder="Nama toko..." oninput="cekKonfirmasiHapusToko()" style="margin-top:6px;border-color:#FECACA">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModalHapusToko()">Batal</button>
+                <button id="btn-hapus-toko" class="btn btn-danger" onclick="doHapusToko()" disabled>
+                    <i data-lucide="trash-2" style="width:14px;height:14px"></i> Hapus Permanen
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL AKTIVASI PREMIUM -->
     <div id="modal-aktivasi" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModalAktivasi()">
         <div class="modal-dialog" style="max-width:440px">

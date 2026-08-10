@@ -828,8 +828,8 @@ class _ProductScreenState extends State<ProductScreen> {
                       ),
                       child: Row(
                         children: [
-                          const SizedBox(width: 13),
-                          const Icon(Icons.search, size: 16, color: AppColors.textDim),
+                          const SizedBox(width: 8),
+                          Image.asset('assets/icons/ic_search.png', width: 22, fit: BoxFit.contain),
                           Expanded(
                             child: TextField(
                               controller: _searchCtrl,
