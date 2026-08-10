@@ -1,0 +1,41 @@
+# Flutter / Dart
+pos_ugt_mart/.dart_tool/
+pos_ugt_mart/.flutter-plugins
+pos_ugt_mart/.flutter-plugins-dependencies
+pos_ugt_mart/build/
+pos_ugt_mart/.packages
+pos_ugt_mart/.pub-cache/
+pos_ugt_mart/.pub/
+pos_ugt_mart/android/.gradle/
+pos_ugt_mart/android/local.properties
+pos_ugt_mart/android/key.properties
+pos_ugt_mart/android/app/google-services.json
+pos_ugt_mart/ios/Pods/
+pos_ugt_mart/ios/.symlinks/
+pos_ugt_mart/ios/Flutter/flutter_export_environment.sh
+pos_ugt_mart/ios/Runner.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+pos_ugt_mart/macos/Flutter/ephemeral/
+pos_ugt_mart/linux/flutter/ephemeral/
+pos_ugt_mart/windows/flutter/ephemeral/
+
+# Generated files
+*.g.dart
+*.freezed.dart
+
+# Environment / secrets
+.env
+.env.*
+*.env
+!*.env.example
+
+# Claude Code
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/settings.json
+*.iml

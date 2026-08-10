@@ -1,0 +1,2142 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel — POS UGT MART</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- ========== LOGIN SCREEN ========== -->
+    <div id="login-screen">
+        <canvas id="login-canvas" aria-hidden="true"></canvas>
+        <div class="login-card">
+            <div class="login-logo">
+                <div class="logo-icon" style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#16A34A,#22C55E);display:flex;align-items:center;justify-content:center;font-family:Poppins,sans-serif;font-weight:800;font-size:16px;color:#fff;box-shadow:0 4px 16px rgba(22,163,74,0.4)">UGT</div>
+                <div class="logo-text">
+                    <h1 style="font-family:Poppins,sans-serif;font-size:22px;font-weight:700;color:#0F172A">UGT MART</h1>
+                    <span style="font-size:12px;color:#64748B">Sistem Point of Sale</span>
+                </div>
+            </div>
+            <div class="login-title">Selamat Datang</div>
+            <div class="login-sub">Masuk ke panel administrasi POS UGT MART</div>
+
+            <!-- Tab switcher -->
+            <div class="login-tabs">
+                <button class="login-tab active" id="tab-password" onclick="switchLoginTab('password')">
+                    Username & Password
+                </button>
+                <button class="login-tab" id="tab-qr" onclick="switchLoginTab('qr')">
+                    Scan QR Code
+                </button>
+            </div>
+
+            <!-- Panel: Username & Password -->
+            <div id="login-panel-password" class="login-form">
+                <div class="form-group">
+                    <label>Username</label>
+                    <div class="input-icon-wrap">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="input-icon"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <input id="login-user" type="text" class="form-control" placeholder="Masukkan username">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <div class="input-icon-wrap">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="input-icon"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        <input id="login-pass" type="password" class="form-control" placeholder="Masukkan password">
+                    </div>
+                </div>
+                <div id="login-err" style="display:none;padding:10px 14px;background:#FEE2E2;border-radius:8px;font-size:12.5px;color:#DC2626;margin-bottom:12px"></div>
+                <button class="login-btn" onclick="doLogin()">Masuk ke Dashboard</button>
+            </div>
+
+            <!-- Panel: QR Code -->
+            <div id="login-panel-qr" style="display:none;text-align:center;padding:8px 0">
+                <p style="font-size:12.5px;color:#64748B;margin-bottom:16px">
+                    Buka aplikasi mobile UGT MART, lalu scan QR di bawah ini
+                </p>
+                <div id="qr-wrap" style="display:inline-block;padding:12px;border:2px solid #E2E8F0;border-radius:16px;background:#fff;margin-bottom:12px;position:relative">
+                    <div id="qr-canvas"></div>
+                    <div id="qr-overlay" style="display:none;position:absolute;inset:0;border-radius:14px;background:rgba(255,255,255,0.92);flex-direction:column;align-items:center;justify-content:center;gap:8px">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        <span style="font-size:13px;font-weight:600;color:#16A34A">QR Berhasil Di-scan!</span>
+                        <span style="font-size:11px;color:#64748B">Sedang masuk...</span>
+                    </div>
+                </div>
+                <div id="qr-status" style="font-size:12px;color:#64748B">Menunggu scan...</div>
+                <div id="qr-timer" style="font-size:11px;color:#94A3B8;margin-top:4px"></div>
+                <button class="btn btn-secondary btn-sm" style="margin-top:12px;width:100%" onclick="refreshQR()">
+                    Perbarui QR
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MOBILE SIDEBAR OVERLAY ========== -->
+    <div id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+    <!-- ========== SIDEBAR ========== -->
+    <aside id="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">UGT</div>
+            <div class="logo-text">
+                <h1>UGT MART</h1><span>Admin Panel v1.0</span></div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard',this,'Dashboard')">
+                <i data-lucide="layout-dashboard" class="nav-icon"></i><span class="nav-label">Dashboard</span>
+            </div>
+
+            <div class="nav-section-label">MASTER DATA</div>
+            <div class="nav-item" onclick="toggleSubMenu('sub-master',this)">
+                <i data-lucide="database" class="nav-icon"></i><span class="nav-label">Master Data</span>
+                <i data-lucide="chevron-right" class="nav-chevron" id="chev-sub-master"></i>
+            </div>
+            <div class="nav-sub" id="sub-master">
+                <div class="nav-sub-item" data-page="kategori" onclick="navigate('kategori',this,'Master Data > Kategori Barang')"><i data-lucide="tag" style="width:14px;height:14px;flex-shrink:0"></i> Kategori Barang</div>
+                <div class="nav-sub-item" data-page="barang" onclick="navigate('barang',this,'Master Data > Barang')"><i data-lucide="package" style="width:14px;height:14px;flex-shrink:0"></i> Barang</div>
+                <div class="nav-sub-item" data-page="supplier" onclick="navigate('supplier',this,'Master Data > Supplier')"><i data-lucide="truck" style="width:14px;height:14px;flex-shrink:0"></i> Supplier</div>
+                <div class="nav-sub-item" onclick="toggleSubSubMenu('sub-pelanggan',this)" style="justify-content:space-between">
+                    <span style="display:flex;align-items:center;gap:10px"><i data-lucide="users" style="width:14px;height:14px;flex-shrink:0"></i> Pelanggan</span>
+                    <i data-lucide="chevron-right" class="nav-chevron" id="chev-sub-pelanggan" style="width:12px;height:12px;flex-shrink:0"></i>
+                </div>
+                <div class="nav-sub-sub" id="sub-pelanggan">
+                    <div class="nav-sub-sub-item" data-page="member" onclick="navigate('member',this,'Pelanggan > Member')">Member</div>
+                    <div class="nav-sub-sub-item" data-page="cabang" onclick="navigate('cabang',this,'Pelanggan > Cabang')">Cabang</div>
+                    <div class="nav-sub-sub-item" data-page="reseller" onclick="navigate('reseller',this,'Pelanggan > Reseller')">Reseller</div>
+                </div>
+            </div>
+
+            <div class="nav-section-label">TRANSAKSI</div>
+            <div class="nav-item" onclick="toggleSubMenu('sub-trx',this)">
+                <i data-lucide="receipt" class="nav-icon"></i><span class="nav-label">Transaksi</span>
+                <i data-lucide="chevron-right" class="nav-chevron" id="chev-sub-trx"></i>
+            </div>
+            <div class="nav-sub" id="sub-trx">
+                <div class="nav-sub-item" data-page="pembelian" onclick="navigate('pembelian',this,'Transaksi > Pembelian')"><i data-lucide="shopping-cart" style="width:14px;height:14px;flex-shrink:0"></i> Pembelian</div>
+                <div class="nav-sub-item" data-page="retur-beli" onclick="navigate('retur-beli',this,'Transaksi > Retur Pembelian')"><i data-lucide="undo-2" style="width:14px;height:14px;flex-shrink:0"></i> Retur Pembelian</div>
+                <div class="nav-sub-item" data-page="penjualan" onclick="navigate('penjualan',this,'Transaksi > Penjualan')"><i data-lucide="shopping-bag" style="width:14px;height:14px;flex-shrink:0"></i> Penjualan</div>
+                <div class="nav-sub-item" data-page="retur-jual" onclick="navigate('retur-jual',this,'Transaksi > Retur Penjualan')"><i data-lucide="rotate-ccw" style="width:14px;height:14px;flex-shrink:0"></i> Retur Penjualan</div>
+                <div class="nav-sub-item" data-page="piutang" onclick="navigate('piutang',this,'Transaksi > Pelunasan Piutang')"><i data-lucide="credit-card" style="width:14px;height:14px;flex-shrink:0"></i> Pelunasan Piutang</div>
+                <div class="nav-sub-item" data-page="hutang" onclick="navigate('hutang',this,'Transaksi > Pelunasan Hutang')"><i data-lucide="landmark" style="width:14px;height:14px;flex-shrink:0"></i> Pelunasan Hutang</div>
+                <div class="nav-sub-item" data-page="kas-kasir" onclick="navigate('kas-kasir',this,'Transaksi > Kas Kasir')"><i data-lucide="wallet" style="width:14px;height:14px;flex-shrink:0"></i> Kas Kasir</div>
+                <div class="nav-sub-item" data-page="stock-opname" onclick="navigate('stock-opname',this,'Transaksi > Stock Opname')"><i data-lucide="clipboard-list" style="width:14px;height:14px;flex-shrink:0"></i> Stock Opname</div>
+                <div class="nav-sub-item" data-page="adj-stok" onclick="navigate('adj-stok',this,'Transaksi > Penyesuaian Stok')"><i data-lucide="sliders-horizontal" style="width:14px;height:14px;flex-shrink:0"></i> Penyesuaian Stok</div>
+            </div>
+
+            <div class="nav-section-label">LAPORAN</div>
+            <div class="nav-item" onclick="toggleSubMenu('sub-lap',this)">
+                <i data-lucide="bar-chart-2" class="nav-icon"></i><span class="nav-label">Laporan</span>
+                <i data-lucide="chevron-right" class="nav-chevron" id="chev-sub-lap"></i>
+            </div>
+            <div class="nav-sub" id="sub-lap">
+                <div class="nav-sub-item" data-page="lap-penjualan" onclick="navigate('lap-penjualan',this,'Laporan > Penjualan')"><i data-lucide="trending-up" style="width:14px;height:14px;flex-shrink:0"></i> Penjualan</div>
+                <div class="nav-sub-item" data-page="lap-pembelian" onclick="navigate('lap-pembelian',this,'Laporan > Pembelian')"><i data-lucide="trending-down" style="width:14px;height:14px;flex-shrink:0"></i> Pembelian</div>
+                <div class="nav-sub-item" data-page="lap-piutang" onclick="navigate('lap-piutang',this,'Laporan > Piutang')"><i data-lucide="file-text" style="width:14px;height:14px;flex-shrink:0"></i> Piutang</div>
+                <div class="nav-sub-item" data-page="lap-hutang" onclick="navigate('lap-hutang',this,'Laporan > Hutang')"><i data-lucide="file-minus" style="width:14px;height:14px;flex-shrink:0"></i> Hutang</div>
+                <div class="nav-sub-item" data-page="lap-kas" onclick="navigate('lap-kas',this,'Laporan > Kas')"><i data-lucide="banknote" style="width:14px;height:14px;flex-shrink:0"></i> Kas</div>
+                <div class="nav-sub-item" data-page="lap-stok" onclick="navigate('lap-stok',this,'Laporan > Stok')"><i data-lucide="boxes" style="width:14px;height:14px;flex-shrink:0"></i> Stok</div>
+                <div class="nav-sub-item" data-page="lap-log-stok" onclick="navigate('lap-log-stok',this,'Laporan > Log Stok')"><i data-lucide="activity" style="width:14px;height:14px;flex-shrink:0"></i> Log Stok</div>
+            </div>
+
+            <div class="nav-section-label">SISTEM</div>
+            <div class="nav-item" data-page="shift-kasir" onclick="navigate('shift-kasir',this,'Shift Kasir')"><i data-lucide="clock" class="nav-icon"></i><span class="nav-label">Shift Kasir</span></div>
+            <div class="nav-item owner-only" data-page="users" onclick="navigate('users',this,'Manajemen User')"><i data-lucide="users-2" class="nav-icon"></i><span class="nav-label">Manajemen User</span></div>
+            <div class="nav-item owner-only" data-page="pengaturan" onclick="navigate('pengaturan',this,'Pengaturan')"><i data-lucide="settings" class="nav-icon"></i><span class="nav-label">Pengaturan</span></div>
+            <div class="nav-item owner-only" data-page="langganan" onclick="navigate('langganan',this,'Manajemen Langganan')"><i data-lucide="badge-check" class="nav-icon"></i><span class="nav-label">Langganan</span></div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="user-avatar">A</div>
+                <div class="user-info">
+                    <div class="u-name">Administrator</div>
+                    <div class="u-role">Owner</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ========== MAIN WRAPPER ========== -->
+    <div id="main-wrapper">
+        <header id="topbar">
+            <button id="toggle-sidebar" onclick="toggleSidebar()" aria-label="Buka/Tutup Menu"><i data-lucide="menu"></i></button>
+            <div class="breadcrumb">
+                <span>POS UGT MART</span><i data-lucide="chevron-right"></i>
+                <span class="bc-active" id="breadcrumb-label">Dashboard</span>
+            </div>
+            <div class="topbar-right">
+                <span class="topbar-date" id="topbar-date"></span>
+                <span id="shift-badge" class="shift-badge shift-tutup" onclick="DATA_SHIFT_AKTIF ? openTutupShift() : openBukaShift()" title="Klik untuk buka/tutup shift" style="cursor:pointer">Shift Belum Dibuka</span>
+                <button class="topbar-btn" onclick="toggleDarkMode()" id="btn-dark" title="Dark Mode" aria-label="Toggle Dark Mode"><i data-lucide="moon" id="dark-icon"></i></button>
+                <button class="topbar-btn" onclick="toggleNotifPanel()" title="Notifikasi" aria-label="Notifikasi" style="position:relative"><i data-lucide="bell"></i><span class="badge-dot" id="notif-dot"></span></button>
+                <button class="topbar-btn" onclick="refreshAllData()" title="Refresh Data" aria-label="Refresh Data" id="btn-refresh"><i data-lucide="refresh-cw"></i></button>
+                <button class="topbar-btn" onclick="toggleFullscreen()" title="Layar Penuh" aria-label="Layar Penuh"><i data-lucide="maximize-2"></i></button>
+                <button class="topbar-btn" onclick="doLogout()" title="Keluar" aria-label="Keluar" style="color:var(--danger)"><i data-lucide="log-out"></i></button>
+            </div>
+        </header>
+
+        <main id="content-area">
+
+            <!-- ===== DASHBOARD ===== -->
+            <div id="page-dashboard" class="page active">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Dashboard</h2>
+                        <p>Selamat datang kembali! Berikut ringkasan bisnis hari ini.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="showToast('info','Filter periode belum tersedia.')"><i data-lucide="calendar"></i> <span id="dash-bulan">Juli 2026</span></button>
+                        <button class="btn btn-primary btn-sm" onclick="refreshDashboard()"><i data-lucide="refresh-cw"></i> Refresh</button>
+                    </div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card" style="--stat-color:#16A34A;--stat-bg:#DCFCE7">
+                        <div class="stat-icon"><i data-lucide="shopping-bag"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Total Penjualan</div>
+                            <div class="stat-value" id="dash-penjualan">—</div>
+                            <div class="stat-trend" id="dash-trend-penjualan">bulan ini</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="--stat-color:#3B82F6;--stat-bg:#DBEAFE">
+                        <div class="stat-icon"><i data-lucide="shopping-cart"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Total Pembelian</div>
+                            <div class="stat-value" id="dash-pembelian">—</div>
+                            <div class="stat-trend" id="dash-trend-pembelian">bulan ini</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="--stat-color:#F59E0B;--stat-bg:#FEF3C7">
+                        <div class="stat-icon"><i data-lucide="credit-card"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Total Piutang</div>
+                            <div class="stat-value" id="dash-piutang">—</div>
+                            <div class="stat-sub" id="dash-piutang-count">0 tagihan aktif</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="--stat-color:#8B5CF6;--stat-bg:#EDE9FE">
+                        <div class="stat-icon"><i data-lucide="boxes"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Total Item Stok</div>
+                            <div class="stat-value" id="dash-stok">—</div>
+                            <div class="stat-sub" id="dash-kat-info">Dari — kategori</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="--stat-color:#EF4444;--stat-bg:#FEE2E2">
+                        <div class="stat-icon"><i data-lucide="landmark"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Total Hutang</div>
+                            <div class="stat-value" id="dash-hutang">—</div>
+                            <div class="stat-sub">Kepada <span id="dash-supplier-aktif">—</span> supplier aktif</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="--stat-color:#10B981;--stat-bg:#D1FAE5">
+                        <div class="stat-icon"><i data-lucide="wallet"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Kas Kasir</div>
+                            <div class="stat-value" id="dash-kas">—</div>
+                            <div class="stat-sub">Saldo hari ini</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="charts-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title"><i data-lucide="line-chart"></i> Grafik Penjualan & Pembelian</div>
+                            <div style="display:flex;gap:8px"><button class="btn btn-secondary btn-sm" onclick="showToast('info','Filter grafik mingguan belum tersedia.')">Mingguan</button><button class="btn btn-primary btn-sm" onclick="showToast('info','Filter grafik bulanan belum tersedia.')">Bulanan</button></div>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container"><canvas id="chartSales"></canvas></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title"><i data-lucide="pie-chart"></i> Kategori Barang</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" style="height:220px"><canvas id="chartCategory"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="dashboard-grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title"><i data-lucide="clock"></i> Transaksi Terbaru</div><button class="btn btn-secondary btn-sm" onclick="navigate('penjualan',null,'Transaksi > Penjualan')">Lihat Semua</button></div>
+                        <div class="card-body" style="padding:0">
+                            <table class="data-table" id="tbl-dash-trx">
+                                <thead>
+                                    <tr>
+                                        <th>No. Faktur</th>
+                                        <th>Pelanggan</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title"><i data-lucide="alert-triangle"></i> Stok Hampir Habis</div><button class="btn btn-secondary btn-sm" onclick="navigate('barang',null,'Master Data > Barang')">Kelola</button></div>
+                        <div class="card-body" style="padding:0">
+                            <table class="data-table" id="tbl-dash-stok">
+                                <thead>
+                                    <tr>
+                                        <th>Barang</th>
+                                        <th>Stok</th>
+                                        <th>Min</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== KATEGORI ===== -->
+            <div id="page-kategori" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Kategori Barang</h2>
+                        <p>Kelola kategori produk yang tersedia di toko</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-primary" onclick="openTambahKategori()"><i data-lucide="plus"></i> Tambah Kategori</button></div>
+                </div>
+                <div class="card">
+                    <div class="table-toolbar">
+                        <div class="search-box"><i data-lucide="search"></i><input type="text" placeholder="Cari kategori..." oninput="filterTable(this,'tbl-kategori',1)"></div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-kategori">
+                            <thead>
+                                <tr>
+                                    <th>Kode</th>
+                                    <th>Nama Kategori</th>
+                                    <th>Deskripsi</th>
+                                    <th>Jml. Barang</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-kategori">Menampilkan data...</span>
+                        <div class="pagination-controls" id="pag-kategori"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== BARANG ===== -->
+            <div id="page-barang" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Data Barang</h2>
+                        <p>Manajemen produk dan inventaris toko</p>
+                    </div>
+                    <div class="page-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="exportCSV('tbl-barang','data-barang')"><i data-lucide="upload"></i> Export</button>
+                        <button class="btn btn-primary" onclick="openTambahBarang()"><i data-lucide="plus"></i> Tambah Barang</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="table-toolbar">
+                        <div class="search-box"><i data-lucide="search"></i><input type="text" placeholder="Cari barang..." oninput="filterTable(this,'tbl-barang',1)"></div>
+                        <div class="table-filter"><select id="filter-kategori-barang" onchange="filterBarangKategori(this.value)"><option value="">Semua Kategori</option></select></div>
+                        <div class="table-filter"><select onchange="filterBarangStatus(this.value)"><option value="">Semua Status</option><option value="Aktif">Aktif</option><option value="Non-aktif">Non-aktif</option></select></div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-barang">
+                            <thead>
+                                <tr>
+                                    <th>Kode</th>
+                                    <th>Nama Barang</th>
+                                    <th>Kategori</th>
+                                    <th>Satuan</th>
+                                    <th>Harga Beli</th>
+                                    <th>Harga Jual</th>
+                                    <th>Stok</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-barang">Menampilkan data...</span>
+                        <div class="pagination-controls" id="pag-barang"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== SUPPLIER ===== -->
+            <div id="page-supplier" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Data Supplier</h2>
+                        <p>Kelola daftar pemasok / supplier toko</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-primary" onclick="openTambahSupplier()"><i data-lucide="plus"></i> Tambah Supplier</button></div>
+                </div>
+                <div class="card">
+                    <div class="table-toolbar">
+                        <div class="search-box"><i data-lucide="search"></i><input type="text" placeholder="Cari supplier..." oninput="filterTable(this,'tbl-supplier',1)"></div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-supplier">
+                            <thead>
+                                <tr>
+                                    <th>Kode</th>
+                                    <th>Nama Supplier</th>
+                                    <th>Kontak</th>
+                                    <th>Alamat</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-supplier">Menampilkan data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== MEMBER ===== -->
+            <div id="page-member" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Data Member</h2>
+                        <p>Kelola pelanggan member toko</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-primary" onclick="openTambahMember()"><i data-lucide="plus"></i> Tambah Member</button></div>
+                </div>
+                <div class="card">
+                    <div class="table-toolbar">
+                        <div class="search-box"><i data-lucide="search"></i><input type="text" placeholder="Cari member..." oninput="filterTable(this,'tbl-member',1)"></div>
+                        <div class="table-filter"><select onchange="filterTable({value:this.value},'tbl-member',5)"><option value="">Semua Status</option><option>Aktif</option><option>Non-aktif</option></select></div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-member">
+                            <thead>
+                                <tr>
+                                    <th>Kode</th>
+                                    <th>Nama</th>
+                                    <th>No. HP</th>
+                                    <th>Total Belanja</th>
+                                    <th>Poin</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-member">Menampilkan data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== CABANG ===== -->
+            <div id="page-cabang" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Data Cabang</h2>
+                        <p>Kelola daftar cabang toko</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-primary" onclick="openTambahCabang()"><i data-lucide="plus"></i> Tambah Cabang</button></div>
+                </div>
+                <div class="card">
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-cabang">
+                            <thead>
+                                <tr>
+                                    <th>Kode</th>
+                                    <th>Nama Cabang</th>
+                                    <th>Alamat</th>
+                                    <th>Kontak</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-cabang">Menampilkan data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== RESELLER ===== -->
+            <div id="page-reseller" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Data Reseller</h2>
+                        <p>Kelola daftar reseller / mitra dagang</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-primary" onclick="openTambahReseller()"><i data-lucide="plus"></i> Tambah Reseller</button></div>
+                </div>
+                <div class="card">
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-reseller">
+                            <thead>
+                                <tr>
+                                    <th>Kode</th>
+                                    <th>Nama Reseller</th>
+                                    <th>No. HP</th>
+                                    <th>Diskon Khusus</th>
+                                    <th>Total Belanja</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-reseller">Menampilkan data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== PEMBELIAN ===== -->
+            <div id="page-pembelian" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Pembelian</h2>
+                        <p>Kelola transaksi pembelian dari supplier</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-primary" onclick="openTambahPembelian()"><i data-lucide="plus"></i> Buat PO Baru</button></div>
+                </div>
+                <div class="card">
+                    <div class="table-toolbar">
+                        <div class="search-box"><i data-lucide="search"></i><input type="text" placeholder="Cari no. PO / supplier..." oninput="filterTable(this,'tbl-pembelian',0)"></div>
+                        <div class="table-filter"><select id="filter-status-pembelian" onchange="filterPembelian()"><option value="">Semua Status</option><option>Lunas</option><option>Hutang</option><option>Pending</option></select></div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-pembelian">
+                            <thead>
+                                <tr>
+                                    <th>No. PO</th>
+                                    <th>Supplier</th>
+                                    <th>Tgl. PO</th>
+                                    <th>Jatuh Tempo</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-pembelian">Menampilkan data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== RETUR PEMBELIAN ===== -->
+            <div id="page-retur-beli" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Retur Pembelian</h2>
+                        <p>Pengembalian barang ke supplier</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-primary" onclick="openTambahReturBeli()"><i data-lucide="plus"></i> Buat Retur</button></div>
+                </div>
+                <div class="card">
+                    <div class="table-toolbar">
+                        <div class="search-box"><i data-lucide="search"></i><input type="text" placeholder="Cari retur..." oninput="filterTable(this,'tbl-retur-beli',0)"></div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-retur-beli">
+                            <thead>
+                                <tr>
+                                    <th>No. Retur</th>
+                                    <th>Ref. PO</th>
+                                    <th>Supplier</th>
+                                    <th>Tanggal</th>
+                                    <th>Total</th>
+                                    <th>Alasan</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-retur-beli">Menampilkan data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== PENJUALAN ===== -->
+            <div id="page-penjualan" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Data Penjualan</h2>
+                        <p>Monitoring semua transaksi penjualan kasir</p>
+                    </div>
+                    <div class="page-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="exportCSV('tbl-penjualan','data-penjualan')"><i data-lucide="upload"></i> Export</button>
+                        <button class="btn btn-primary" onclick="openTambahPenjualan()"><i data-lucide="plus"></i> Tambah Penjualan</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="table-toolbar">
+                        <div class="search-box"><i data-lucide="search"></i><input type="text" placeholder="Cari no. faktur / pelanggan..." oninput="filterTable(this,'tbl-penjualan',0)"></div>
+                        <div class="table-filter"><select id="filter-status-jual" onchange="filterPenjualan()"><option value="">Semua Status</option><option>Lunas</option><option>Piutang</option><option>Proses</option></select></div>
+                        <div class="table-filter"><select id="filter-metode-jual" onchange="filterPenjualan()"><option value="">Semua Metode</option><option>Tunai</option><option>QRIS</option><option>Kartu Debit/Kredit</option></select></div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-penjualan">
+                            <thead>
+                                <tr>
+                                    <th>No. Faktur</th>
+                                    <th>Tanggal</th>
+                                    <th>Kasir</th>
+                                    <th>Pelanggan</th>
+                                    <th>Metode</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-penjualan">Menampilkan data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== RETUR PENJUALAN ===== -->
+            <div id="page-retur-jual" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Retur Penjualan</h2>
+                        <p>Pengembalian barang dari pelanggan</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-primary" onclick="openTambahReturJual()"><i data-lucide="plus"></i> Buat Retur</button></div>
+                </div>
+                <div class="card">
+                    <div class="table-toolbar">
+                        <div class="search-box"><i data-lucide="search"></i><input type="text" placeholder="Cari retur..." oninput="filterTable(this,'tbl-retur-jual',0)"></div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-retur-jual">
+                            <thead>
+                                <tr>
+                                    <th>No. Retur</th>
+                                    <th>Ref. Faktur</th>
+                                    <th>Pelanggan</th>
+                                    <th>Tanggal</th>
+                                    <th>Total</th>
+                                    <th>Alasan</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-retur-jual">Menampilkan data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== PIUTANG ===== -->
+            <div id="page-piutang" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Pelunasan Piutang</h2>
+                        <p>Tagihan yang belum dilunasi oleh pelanggan</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-primary" onclick="openBayarPiutang()"><i data-lucide="plus"></i> Catat Pelunasan</button></div>
+                </div>
+                <div class="card">
+                    <div class="table-toolbar">
+                        <div class="search-box"><i data-lucide="search"></i><input type="text" placeholder="Cari pelanggan..." oninput="filterTable(this,'tbl-piutang',1)"></div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-piutang">
+                            <thead>
+                                <tr>
+                                    <th>No. Faktur</th>
+                                    <th>Pelanggan</th>
+                                    <th>Tgl. Transaksi</th>
+                                    <th>Jatuh Tempo</th>
+                                    <th>Nilai Piutang</th>
+                                    <th>Terbayar</th>
+                                    <th>Sisa</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-piutang">Menampilkan data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== HUTANG ===== -->
+            <div id="page-hutang" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Pelunasan Hutang</h2>
+                        <p>Tagihan kepada supplier yang belum dilunasi</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-primary" onclick="openBayarHutang()"><i data-lucide="plus"></i> Catat Pembayaran</button></div>
+                </div>
+                <div class="card">
+                    <div class="table-toolbar">
+                        <div class="search-box"><i data-lucide="search"></i><input type="text" placeholder="Cari supplier..." oninput="filterTable(this,'tbl-hutang',1)"></div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-hutang">
+                            <thead>
+                                <tr>
+                                    <th>No. PO</th>
+                                    <th>Supplier</th>
+                                    <th>Tgl. PO</th>
+                                    <th>Jatuh Tempo</th>
+                                    <th>Nilai Hutang</th>
+                                    <th>Terbayar</th>
+                                    <th>Sisa</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-hutang">Menampilkan data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== KAS KASIR ===== -->
+            <div id="page-kas-kasir" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Kas Kasir</h2>
+                        <p>Monitor semua mutasi kas dari semua kasir</p>
+                    </div>
+                    <div class="page-actions">
+                        <div class="table-filter"><select id="filter-kas-kasir" onchange="renderKas()"><option value="">Semua Kasir</option></select></div>
+                        <button class="btn btn-primary" onclick="openTambahKas()"><i data-lucide="plus"></i> Catat Kas</button>
+                    </div>
+                </div>
+                <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+                    <div class="stat-card" style="--stat-color:#16A34A;--stat-bg:#DCFCE7">
+                        <div class="stat-icon"><i data-lucide="arrow-down-circle"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Total Kas Masuk</div>
+                            <div class="stat-value" id="kas-total-masuk">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="--stat-color:#EF4444;--stat-bg:#FEE2E2">
+                        <div class="stat-icon"><i data-lucide="arrow-up-circle"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Total Kas Keluar</div>
+                            <div class="stat-value" id="kas-total-keluar">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="--stat-color:#3B82F6;--stat-bg:#DBEAFE">
+                        <div class="stat-icon"><i data-lucide="wallet"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Saldo Kas</div>
+                            <div class="stat-value" id="kas-saldo">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="table-toolbar">
+                        <div class="search-box"><i data-lucide="search"></i><input type="text" placeholder="Cari keterangan..." oninput="filterTable(this,'tbl-kas',0)"></div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-kas">
+                            <thead>
+                                <tr>
+                                    <th>Waktu</th>
+                                    <th>Kasir</th>
+                                    <th>Keterangan</th>
+                                    <th>Masuk</th>
+                                    <th>Keluar</th>
+                                    <th>Saldo</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-kas">Menampilkan data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== STOCK OPNAME ===== -->
+            <div id="page-stock-opname" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Stock Opname</h2>
+                        <p>Pengecekan dan pencatatan stok fisik barang</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-primary" onclick="openTambahOpname()"><i data-lucide="plus"></i> Mulai Opname</button></div>
+                </div>
+                <div class="card">
+                    <div class="table-toolbar">
+                        <div class="search-box"><i data-lucide="search"></i><input type="text" placeholder="Cari no. opname..." oninput="filterTable(this,'tbl-opname',0)"></div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-opname">
+                            <thead>
+                                <tr>
+                                    <th>No. Opname</th>
+                                    <th>Tanggal</th>
+                                    <th>Petugas</th>
+                                    <th>Jml. Item</th>
+                                    <th>Selisih</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-opname">Menampilkan data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== PENYESUAIAN STOK ===== -->
+            <div id="page-adj-stok" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Penyesuaian Stok</h2>
+                        <p>Koreksi stok barang secara manual</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-primary" onclick="openTambahAdjStok()"><i data-lucide="plus"></i> Buat Penyesuaian</button></div>
+                </div>
+                <div class="card">
+                    <div class="table-toolbar">
+                        <div class="search-box"><i data-lucide="search"></i><input type="text" placeholder="Cari barang..." oninput="filterTable(this,'tbl-adj',1)"></div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-adj">
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Nama Barang</th>
+                                    <th>Stok Sistem</th>
+                                    <th>Stok Fisik</th>
+                                    <th>Selisih</th>
+                                    <th>Keterangan</th>
+                                    <th>Petugas</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-adj">Menampilkan data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== LAPORAN PENJUALAN ===== -->
+            <div id="page-lap-penjualan" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Laporan Penjualan</h2>
+                        <p>Rekap dan analisis data penjualan</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-secondary btn-sm" onclick="cetakLaporan('page-lap-penjualan')"><i data-lucide="printer"></i> Cetak / PDF</button></div>
+                </div>
+                <div class="card" style="margin-bottom:16px">
+                    <div class="laporan-filter">
+                        <div class="form-group"><label>Dari Tanggal</label><input type="date" id="lap-tgl-dari" class="form-control"></div>
+                        <div class="form-group"><label>Sampai Tanggal</label><input type="date" id="lap-tgl-sampai" class="form-control"></div>
+                        <div class="form-group"><label>Kasir</label><select id="lap-kasir" class="form-control"><option value="">Semua Kasir</option><option>Kasir 1</option><option>Kasir 2</option></select></div>
+                        <div class="form-group"><label>Metode Bayar</label><select id="lap-metode" class="form-control"><option value="">Semua</option><option>Tunai</option><option>QRIS</option><option>Kartu Debit/Kredit</option><option>Voucher</option></select></div>
+                        <button class="btn btn-primary" style="margin-top:20px" onclick="filterLaporanPenjualan()">Filter</button>
+                    </div>
+                </div>
+                <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+                    <div class="stat-card" style="--stat-color:#16A34A;--stat-bg:#DCFCE7">
+                        <div class="stat-icon"><i data-lucide="trending-up"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Total Penjualan</div>
+                            <div class="stat-value" id="lap-pj-total">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="--stat-color:#3B82F6;--stat-bg:#DBEAFE">
+                        <div class="stat-icon"><i data-lucide="receipt"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Jml. Transaksi</div>
+                            <div class="stat-value" id="lap-pj-count">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="--stat-color:#F59E0B;--stat-bg:#FEF3C7">
+                        <div class="stat-icon"><i data-lucide="shopping-bag"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Rata-rata / Trx</div>
+                            <div class="stat-value" id="lap-pj-rata">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="--stat-color:#8B5CF6;--stat-bg:#EDE9FE">
+                        <div class="stat-icon"><i data-lucide="percent"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Transaksi Lunas</div>
+                            <div class="stat-value" id="lap-pj-lunas">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-lap-penjualan">
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>No. Faktur</th>
+                                    <th>Kasir</th>
+                                    <th>Pelanggan</th>
+                                    <th>Metode</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-lap-penjualan">Memuat data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== LAPORAN PEMBELIAN ===== -->
+            <div id="page-lap-pembelian" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Laporan Pembelian</h2>
+                        <p>Rekap pembelian dari supplier</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-secondary btn-sm" onclick="exportCSV('tbl-lap-pembelian','laporan-pembelian')"><i data-lucide="download"></i> Export</button></div>
+                </div>
+                <div class="card" style="margin-bottom:16px">
+                    <div class="laporan-filter">
+                        <div class="form-group"><label>Dari Tanggal</label><input type="date" id="lap-pb-dari" class="form-control"></div>
+                        <div class="form-group"><label>Sampai Tanggal</label><input type="date" id="lap-pb-sampai" class="form-control"></div>
+                        <div class="form-group"><label>Supplier</label><select id="lap-pb-supplier" class="form-control"><option value="">Semua Supplier</option></select></div>
+                        <button class="btn btn-primary" style="margin-top:20px" onclick="filterLaporanPembelian()">Filter</button>
+                    </div>
+                </div>
+                <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+                    <div class="stat-card" style="--stat-color:#3B82F6;--stat-bg:#DBEAFE">
+                        <div class="stat-icon"><i data-lucide="shopping-cart"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Total Pembelian</div>
+                            <div class="stat-value" id="lap-pb-total">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="--stat-color:#16A34A;--stat-bg:#DCFCE7">
+                        <div class="stat-icon"><i data-lucide="check-circle"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Sudah Lunas</div>
+                            <div class="stat-value" id="lap-pb-lunas">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="--stat-color:#EF4444;--stat-bg:#FEE2E2">
+                        <div class="stat-icon"><i data-lucide="landmark"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Masih Hutang</div>
+                            <div class="stat-value" id="lap-pb-hutang">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-lap-pembelian">
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>No. PO</th>
+                                    <th>Supplier</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-lap-pembelian">Memuat data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== LAPORAN PIUTANG ===== -->
+            <div id="page-lap-piutang" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Laporan Piutang</h2>
+                        <p>Rekap piutang pelanggan</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-secondary btn-sm" onclick="exportCSV('tbl-lap-piutang','laporan-piutang')"><i data-lucide="download"></i> Export</button></div>
+                </div>
+                <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+                    <div class="stat-card" style="--stat-color:#F59E0B;--stat-bg:#FEF3C7">
+                        <div class="stat-icon"><i data-lucide="clock"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Total Piutang</div>
+                            <div class="stat-value" id="lap-piutang-total">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="--stat-color:#EF4444;--stat-bg:#FEE2E2">
+                        <div class="stat-icon"><i data-lucide="alert-circle"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Jumlah Tagihan</div>
+                            <div class="stat-value" id="lap-piutang-count">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="--stat-color:#16A34A;--stat-bg:#DCFCE7">
+                        <div class="stat-icon"><i data-lucide="check-circle"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Sudah Lunas (Hari Ini)</div>
+                            <div class="stat-value" id="lap-piutang-lunas">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-lap-piutang">
+                            <thead>
+                                <tr>
+                                    <th>Pelanggan</th>
+                                    <th>No. Faktur</th>
+                                    <th>Tgl. Transaksi</th>
+                                    <th>Metode</th>
+                                    <th>Sisa Piutang</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-lap-piutang">Memuat data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== LAPORAN HUTANG ===== -->
+            <div id="page-lap-hutang" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Laporan Hutang</h2>
+                        <p>Rekap hutang kepada supplier</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-secondary btn-sm" onclick="exportCSV('tbl-lap-hutang','laporan-hutang')"><i data-lucide="download"></i> Export</button></div>
+                </div>
+                <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+                    <div class="stat-card" style="--stat-color:#EF4444;--stat-bg:#FEE2E2">
+                        <div class="stat-icon"><i data-lucide="landmark"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Total Hutang</div>
+                            <div class="stat-value" id="lap-hutang-total">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="--stat-color:#F59E0B;--stat-bg:#FEF3C7">
+                        <div class="stat-icon"><i data-lucide="alert-triangle"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Jatuh Tempo</div>
+                            <div class="stat-value" id="lap-hutang-tempo">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="--stat-color:#16A34A;--stat-bg:#DCFCE7">
+                        <div class="stat-icon"><i data-lucide="check-circle"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Sudah Dibayar</div>
+                            <div class="stat-value" id="lap-hutang-dibayar">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-lap-hutang">
+                            <thead>
+                                <tr>
+                                    <th>Supplier</th>
+                                    <th>No. PO</th>
+                                    <th>Tgl. PO</th>
+                                    <th>Jatuh Tempo</th>
+                                    <th>Nilai</th>
+                                    <th>Sisa</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-lap-hutang">Memuat data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== LAPORAN KAS ===== -->
+            <div id="page-lap-kas" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Laporan Kas</h2>
+                        <p>Rekap mutasi kas seluruh kasir</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-secondary btn-sm" onclick="exportCSV('tbl-lap-kas','laporan-kas')"><i data-lucide="download"></i> Export</button></div>
+                </div>
+                <div class="card" style="margin-bottom:16px">
+                    <div class="laporan-filter">
+                        <div class="form-group"><label>Dari Tanggal</label><input type="date" id="lap-kas-dari" class="form-control"></div>
+                        <div class="form-group"><label>Sampai Tanggal</label><input type="date" id="lap-kas-sampai" class="form-control"></div>
+                        <div class="form-group"><label>Kasir</label><select id="lap-kas-kasir" class="form-control"><option value="">Semua Kasir</option></select></div>
+                        <button class="btn btn-primary" style="margin-top:20px" onclick="filterLaporanKas()">Filter</button>
+                    </div>
+                </div>
+                <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+                    <div class="stat-card" style="--stat-color:#16A34A;--stat-bg:#DCFCE7">
+                        <div class="stat-icon"><i data-lucide="arrow-down-circle"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Kas Masuk</div>
+                            <div class="stat-value" id="lap-kas-masuk">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="--stat-color:#EF4444;--stat-bg:#FEE2E2">
+                        <div class="stat-icon"><i data-lucide="arrow-up-circle"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Kas Keluar</div>
+                            <div class="stat-value" id="lap-kas-keluar">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="--stat-color:#3B82F6;--stat-bg:#DBEAFE">
+                        <div class="stat-icon"><i data-lucide="wallet"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Saldo Akhir</div>
+                            <div class="stat-value" id="lap-kas-saldo">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-lap-kas">
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Kasir</th>
+                                    <th>Keterangan</th>
+                                    <th>Kas Masuk</th>
+                                    <th>Kas Keluar</th>
+                                    <th>Saldo</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-lap-kas">Memuat data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== LAPORAN STOK ===== -->
+            <div id="page-lap-stok" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Laporan Stok</h2>
+                        <p>Status stok semua barang</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-secondary btn-sm" onclick="exportCSV('tbl-lap-stok','laporan-stok')"><i data-lucide="download"></i> Export</button></div>
+                </div>
+                <div class="card">
+                    <div class="table-toolbar">
+                        <div class="search-box"><i data-lucide="search"></i><input type="text" placeholder="Cari barang..." oninput="filterTable(this,'tbl-lap-stok',1)"></div>
+                        <div class="table-filter"><select id="lap-stok-kategori" onchange="filterLaporanStok(this.value)"><option value="">Semua Kategori</option></select></div>
+                        <div class="table-filter"><select><option>Semua Status</option><option>Normal</option><option>Hampir Habis</option><option>Habis</option></select></div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-lap-stok">
+                            <thead>
+                                <tr>
+                                    <th>Kode</th>
+                                    <th>Nama Barang</th>
+                                    <th>Kategori</th>
+                                    <th>Stok Sistem</th>
+                                    <th>Stok Min</th>
+                                    <th>Nilai Stok</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-lap-stok">Menampilkan data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== LOG STOK ===== -->
+            <div id="page-lap-log-stok" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Log Pergerakan Stok</h2>
+                        <p>Audit trail setiap perubahan stok barang</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-secondary btn-sm" onclick="exportCSV('tbl-stok-log','log-stok')"><i data-lucide="download"></i> Export</button></div>
+                </div>
+                <div class="card">
+                    <div class="table-toolbar">
+                        <div class="search-box"><i data-lucide="search"></i><input type="text" placeholder="Cari barang..." oninput="filterTable(this,'tbl-stok-log',1)"></div>
+                        <div class="table-filter"><select onchange="filterTable({value:this.value},'tbl-stok-log',5)"><option value="">Semua Tipe</option><option>penjualan</option><option>pembelian</option><option>retur</option><option>opname</option><option>koreksi</option></select></div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-stok-log">
+                            <thead><tr>
+                                <th>Tanggal</th><th>Barang</th><th>Stok Sebelum</th><th>Stok Sesudah</th><th>Selisih</th><th>Tipe</th><th>Referensi</th>
+                            </tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-stok-log">Memuat data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== SHIFT KASIR ===== -->
+            <div id="page-shift-kasir" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Laporan Shift</h2>
+                        <p>Monitor dan rekap sesi shift kasir</p>
+                    </div>
+                    <div class="page-actions">
+                        <button class="btn btn-danger btn-sm" onclick="openTutupShift()" id="btn-tutup-shift"><i data-lucide="clock-x"></i> Tutup Shift</button>
+                        <button class="btn btn-primary btn-sm" onclick="openBukaShift()"><i data-lucide="play"></i> Buka Shift</button>
+                    </div>
+                </div>
+
+                <!-- Info shift aktif -->
+                <div id="shift-aktif-card" class="card" style="display:none;border-left:4px solid var(--primary);margin-bottom:16px">
+                    <div id="shift-aktif-content"></div>
+                </div>
+
+                <!-- Riwayat shift -->
+                <div class="card">
+                    <div class="table-toolbar">
+                        <div class="search-box"><i data-lucide="search"></i><input type="text" placeholder="Cari kasir..." oninput="filterTable(this,'tbl-shift',1)"></div>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <select id="filter-shift-status" class="form-control" style="width:auto;padding:6px 12px;font-size:13px" onchange="renderShiftKasir()">
+                                <option value="">Semua Status</option>
+                                <option value="buka">Shift Aktif</option>
+                                <option value="tutup">Selesai</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-shift">
+                            <thead><tr>
+                                <th>Tanggal</th>
+                                <th>Kasir</th>
+                                <th>Jam Buka</th>
+                                <th>Jam Tutup</th>
+                                <th>Durasi</th>
+                                <th>Modal Awal</th>
+                                <th>Total Tunai</th>
+                                <th>Kas Masuk</th>
+                                <th>Kas Keluar</th>
+                                <th>Saldo Akhir</th>
+                                <th>Selisih</th>
+                                <th>Status</th>
+                            </tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-shift">Memuat data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== MANAJEMEN USER ===== -->
+            <div id="page-users" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Manajemen User</h2>
+                        <p>Kelola akun pengguna sistem POS</p>
+                    </div>
+                    <div class="page-actions"><button class="btn btn-primary" onclick="openTambahUser()"><i data-lucide="plus"></i> Tambah User</button></div>
+                </div>
+                <div class="card">
+                    <div class="table-toolbar">
+                        <div class="search-box"><i data-lucide="search"></i><input type="text" placeholder="Cari user..." oninput="filterTable(this,'tbl-users',1)"></div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="data-table" id="tbl-users">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nama</th>
+                                    <th>Username</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Terakhir Login</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar"><span id="info-users">Menampilkan data...</span></div>
+                </div>
+            </div>
+
+            <!-- ===== PENGATURAN ===== -->
+            <div id="page-pengaturan" class="page">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h2>Pengaturan</h2>
+                        <p>Konfigurasi sistem POS UGT MART</p>
+                    </div>
+                </div>
+                <div class="settings-grid">
+                    <div class="settings-nav">
+                        <div class="settings-nav-item active" onclick="showSettingsPanel('set-toko',this)"><i data-lucide="store"></i> Info Toko</div>
+                        <div class="settings-nav-item" onclick="showSettingsPanel('set-pajak',this)"><i data-lucide="percent"></i> Pajak & Diskon</div>
+                        <div class="settings-nav-item" onclick="showSettingsPanel('set-struk',this)"><i data-lucide="printer"></i> Struk & Printer</div>
+                        <div class="settings-nav-item" onclick="showSettingsPanel('set-backup',this)"><i data-lucide="database"></i> Backup Data</div>
+                    </div>
+                    <div>
+                        <div id="set-toko" class="settings-panel">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="card-title"><i data-lucide="store"></i> Informasi Toko</div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-grid">
+                                        <div class="form-group form-full"><label>Nama Toko</label><input id="set-toko-nama" class="form-control" value="UGT MART"></div>
+                                        <div class="form-group"><label>No. Telepon</label><input id="set-toko-telp" class="form-control" value="08123456789"></div>
+                                        <div class="form-group"><label>Email</label><input id="set-toko-email" class="form-control" value="ugtmart@email.com"></div>
+                                        <div class="form-group form-full"><label>Alamat</label><textarea id="set-toko-alamat" class="form-control">Jl. Merdeka No. 1, Kota</textarea></div>
+                                        <div class="form-group"><label>Kota</label><input id="set-toko-kota" class="form-control" value="Kota Contoh"></div>
+                                        <div class="form-group"><label>Kode Pos</label><input id="set-toko-pos" class="form-control" value="12345"></div>
+                                    </div>
+                                    <div style="margin-top:16px"><button class="btn btn-primary" onclick="simpanPengaturan('toko')"><i data-lucide="save"></i> Simpan</button></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="set-pajak" class="settings-panel" style="display:none">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="card-title"><i data-lucide="percent"></i> Pengaturan Pajak & Diskon</div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-grid">
+                                        <div class="form-group"><label>PPN (%)</label><input id="set-pajak-ppn" class="form-control" type="number" value="11"></div>
+                                        <div class="form-group"><label>Diskon Maks (%)</label><input id="set-pajak-diskon" class="form-control" type="number" value="30"></div>
+                                        <div class="form-group"><label>Poin per Rp 1.000</label><input id="set-pajak-poin" class="form-control" type="number" value="1"></div>
+                                        <div class="form-group"><label>Min. Belanja Poin (Rp)</label><input id="set-pajak-min" class="form-control" type="number" value="50000"></div>
+                                    </div>
+                                    <div style="margin-top:16px"><button class="btn btn-primary" onclick="simpanPengaturan('pajak')"><i data-lucide="save"></i> Simpan</button></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="set-struk" class="settings-panel" style="display:none">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="card-title"><i data-lucide="printer"></i> Pengaturan Struk</div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-grid">
+                                        <div class="form-group"><label>Header Struk</label><input id="set-struk-header" class="form-control" value="UGT MART"></div>
+                                        <div class="form-group"><label>Footer Struk</label><input id="set-struk-footer" class="form-control" value="Terima kasih atas kunjungan Anda!"></div>
+                                        <div class="form-group"><label>Ukuran Kertas</label><select id="set-struk-kertas" class="form-control"><option>58mm</option><option>80mm</option></select></div>
+                                        <div class="form-group"><label>Cetak Otomatis</label><select id="set-struk-auto" class="form-control"><option>Ya</option><option>Tidak</option></select></div>
+                                    </div>
+                                    <div style="margin-top:16px"><button class="btn btn-primary" onclick="simpanPengaturan('struk')"><i data-lucide="save"></i> Simpan</button></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="set-backup" class="settings-panel" style="display:none">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="card-title"><i data-lucide="database"></i> Backup & Restore</div>
+                                </div>
+                                <div class="card-body">
+                                    <p style="color:var(--text-2);font-size:13px;margin-bottom:16px">Backup data penting sistem secara berkala untuk mencegah kehilangan data.</p>
+                                    <div style="display:flex;flex-direction:column;gap:12px">
+                                        <button class="btn btn-primary" onclick="backupData()"><i data-lucide="download"></i> Backup Sekarang</button>
+                                        <button class="btn btn-secondary" onclick="document.getElementById('restore-file').click()"><i data-lucide="upload"></i> Restore dari File</button>
+                                        <input type="file" id="restore-file" accept="application/json" style="display:none" onchange="restoreData(this)">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== MANAJEMEN LANGGANAN ===== -->
+            <div id="page-langganan" class="page">
+                <div class="page-header">
+                    <h2 class="page-title">Manajemen Langganan</h2>
+                    <div class="page-actions">
+                        <button class="btn btn-primary" onclick="showModalAktivasiPremium()">
+                            <i data-lucide="plus" style="width:14px;height:14px"></i> Aktivasi Premium
+                        </button>
+                    </div>
+                </div>
+                <div class="page-content">
+                    <!-- Summary cards -->
+                    <div class="stats-grid" style="margin-bottom:20px">
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background:#EDE9FE"><i data-lucide="badge-check" style="color:#7C3AED;width:18px;height:18px"></i></div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="lan-total-premium">-</div>
+                                <div class="stat-label">Toko Premium</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i data-lucide="store" style="color:#16A34A;width:18px;height:18px"></i></div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="lan-total-free">-</div>
+                                <div class="stat-label">Toko Free</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background:#FEF9C3"><i data-lucide="alert-triangle" style="color:#EAB308;width:18px;height:18px"></i></div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="lan-exp-soon">-</div>
+                                <div class="stat-label">Exp. &lt;7 Hari</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Table -->
+                    <div class="card">
+                        <div class="card-header" style="display:flex;align-items:center;gap:12px">
+                            <input type="text" class="form-control" placeholder="Cari nama toko..." id="lan-search" oninput="filterLangganan()" style="max-width:260px">
+                        </div>
+                        <div class="table-wrap">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nama Toko</th>
+                                        <th>No. HP</th>
+                                        <th>Plan</th>
+                                        <th>Berlaku Hingga</th>
+                                        <th>Status</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lan-tbody">
+                                    <tr><td colspan="6" style="text-align:center;padding:32px;color:#94A3B8">Memuat data...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- MODAL AKTIVASI PREMIUM -->
+    <div id="modal-aktivasi" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModalAktivasi()">
+        <div class="modal-dialog" style="max-width:440px">
+            <div class="modal-header">
+                <h3 class="modal-title">Aktivasi Premium</h3>
+                <button class="modal-close" onclick="closeModalAktivasi()"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Pilih Toko</label>
+                    <select id="akt-id-toko" class="form-control">
+                        <option value="">-- Pilih Toko --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Durasi (bulan)</label>
+                    <select id="akt-bulan" class="form-control">
+                        <option value="1">1 Bulan — Rp 99.000</option>
+                        <option value="3" selected>3 Bulan — Rp 249.000</option>
+                        <option value="12">12 Bulan — Rp 799.000</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Nominal Dibayar (Rp)</label>
+                    <input type="number" id="akt-nominal" class="form-control" placeholder="contoh: 249000">
+                </div>
+                <div class="form-group">
+                    <label>Keterangan</label>
+                    <input type="text" id="akt-keterangan" class="form-control" placeholder="Transfer BCA / tunai / dll">
+                </div>
+                <div id="akt-err" style="display:none;padding:10px;background:#FEE2E2;border-radius:8px;font-size:12.5px;color:#DC2626;margin-top:8px"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModalAktivasi()">Batal</button>
+                <button class="btn btn-primary" id="akt-btn" onclick="doAktivasiPremium()">Aktifkan Premium</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODALS ========== -->
+
+    <!-- Modal Kategori -->
+    <div id="modal-kategori" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-kategori-title">Tambah Kategori</h3>
+                <button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-kategori')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-kategori" onsubmit="return false">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Kode Kategori</label>
+                            <input id="fk-kode" class="form-control" disabled placeholder="Auto-generate">
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="fk-status" class="form-control">
+                            <option value="Aktif">Aktif</option>
+                            <option value="Non-aktif">Non-aktif</option>
+                        </select>
+                        </div>
+                        <div class="form-group form-full">
+                            <label>Nama Kategori <span style="color:var(--danger)">*</span></label>
+                            <input id="fk-nama" class="form-control" placeholder="Masukkan nama kategori">
+                        </div>
+                        <div class="form-group form-full">
+                            <label>Deskripsi</label>
+                            <textarea id="fk-deskripsi" class="form-control" placeholder="Deskripsi singkat kategori"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-kategori')">Batal</button>
+                <button class="btn btn-primary" onclick="simpanKategori()"><i data-lucide="save"></i> Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Barang -->
+    <div id="modal-barang" class="modal-overlay">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h3 id="modal-barang-title">Tambah Barang</h3>
+                <button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-barang')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-barang" onsubmit="return false">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Kode Barang</label>
+                            <input id="fb-kode" class="form-control" disabled placeholder="Auto-generate">
+                        </div>
+                        <div class="form-group">
+                            <label>Barcode</label>
+                            <input id="fb-barcode" class="form-control" placeholder="Scan atau ketik barcode">
+                        </div>
+                        <div class="form-group form-full">
+                            <label>Nama Barang <span style="color:var(--danger)">*</span></label>
+                            <input id="fb-nama" class="form-control" placeholder="Masukkan nama barang">
+                        </div>
+                        <div class="form-group">
+                            <label>Kategori <span style="color:var(--danger)">*</span></label>
+                            <div style="display:flex;gap:6px;align-items:center">
+                                <select id="fb-kategori" class="form-control" style="flex:1"><option value="">Pilih Kategori</option></select>
+                                <button type="button" class="btn btn-secondary btn-sm" title="Tambah Kategori Baru" onclick="openTambahKategori()" style="padding:7px 11px;flex-shrink:0"><i data-lucide="plus"></i></button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Satuan <span style="color:var(--danger)">*</span></label>
+                            <select id="fb-satuan" class="form-control">
+                            <option>Pcs</option><option>Kg</option><option>Botol</option>
+                            <option>Karung</option><option>Box</option><option>Liter</option><option>Lusin</option>
+                        </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Harga Beli (Rp) <span style="color:var(--danger)">*</span></label>
+                            <input id="fb-harga-beli" class="form-control" type="number" min="0" placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Harga Jual (Rp) <span style="color:var(--danger)">*</span></label>
+                            <input id="fb-harga-jual" class="form-control" type="number" min="0" placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Stok Awal</label>
+                            <input id="fb-stok" class="form-control" type="number" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Stok Minimum</label>
+                            <input id="fb-stok-min" class="form-control" type="number" min="0" value="10">
+                            <span class="form-hint">Alert jika stok ≤ nilai ini</span>
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="fb-status" class="form-control">
+                            <option value="Aktif">Aktif</option>
+                            <option value="Non-aktif">Non-aktif</option>
+                        </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-barang')">Batal</button>
+                <button class="btn btn-primary" onclick="simpanBarang()"><i data-lucide="save"></i> Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Supplier -->
+    <div id="modal-supplier" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-supplier-title">Tambah Supplier</h3>
+                <button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-supplier')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-supplier" onsubmit="return false">
+                    <div class="form-grid">
+                        <div class="form-group"><label>Kode Supplier</label><input id="fs-kode" class="form-control" disabled placeholder="Auto-generate"></div>
+                        <div class="form-group"><label>Status</label><select id="fs-status" class="form-control"><option>Aktif</option><option>Non-aktif</option></select></div>
+                        <div class="form-group form-full"><label>Nama Supplier <span style="color:var(--danger)">*</span></label><input id="fs-nama" class="form-control" placeholder="Nama perusahaan/perorangan"></div>
+                        <div class="form-group"><label>No. Kontak <span style="color:var(--danger)">*</span></label><input id="fs-kontak" class="form-control" placeholder="08xxxxxxxxxx"></div>
+                        <div class="form-group"><label>Email</label><input id="fs-email" class="form-control" type="email" placeholder="email@contoh.com"></div>
+                        <div class="form-group form-full"><label>Alamat</label><textarea id="fs-alamat" class="form-control" placeholder="Alamat lengkap supplier"></textarea></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-supplier')">Batal</button>
+                <button class="btn btn-primary" onclick="simpanSupplier()"><i data-lucide="save"></i> Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Member -->
+    <div id="modal-member" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-member-title">Tambah Member</h3>
+                <button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-member')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-member" onsubmit="return false">
+                    <div class="form-grid">
+                        <div class="form-group"><label>Kode Member</label><input id="fm-kode" class="form-control" disabled placeholder="Auto-generate"></div>
+                        <div class="form-group"><label>Status</label><select id="fm-status" class="form-control"><option>Aktif</option><option>Non-aktif</option></select></div>
+                        <div class="form-group form-full"><label>Nama Lengkap <span style="color:var(--danger)">*</span></label><input id="fm-nama" class="form-control" placeholder="Nama lengkap member"></div>
+                        <div class="form-group"><label>No. HP <span style="color:var(--danger)">*</span></label><input id="fm-hp" class="form-control" placeholder="08xxxxxxxxxx"></div>
+                        <div class="form-group"><label>Email</label><input id="fm-email" class="form-control" type="email" placeholder="email@contoh.com"></div>
+                        <div class="form-group form-full"><label>Alamat</label><textarea id="fm-alamat" class="form-control" placeholder="Alamat lengkap"></textarea></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-member')">Batal</button>
+                <button class="btn btn-primary" onclick="simpanMember()"><i data-lucide="save"></i> Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal User -->
+    <div id="modal-user" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-user-title">Tambah User</h3>
+                <button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-user')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-user" onsubmit="return false">
+                    <div class="form-grid">
+                        <div class="form-group form-full"><label>Nama Lengkap <span style="color:var(--danger)">*</span></label><input id="fu-nama" class="form-control" placeholder="Nama lengkap user"></div>
+                        <div class="form-group"><label>Username <span style="color:var(--danger)">*</span></label><input id="fu-username" class="form-control" placeholder="username (tanpa spasi)"></div>
+                        <div class="form-group"><label>Role <span style="color:var(--danger)">*</span></label>
+                            <select id="fu-role" class="form-control"><option>Owner</option><option>Admin</option><option>Kasir</option></select>
+                        </div>
+                        <div class="form-group"><label>Password <span style="color:var(--danger)">*</span></label><input id="fu-pass" class="form-control" type="password" placeholder="Min. 6 karakter"></div>
+                        <div class="form-group"><label>Konfirmasi Password</label><input id="fu-pass2" class="form-control" type="password" placeholder="Ulangi password"></div>
+                        <div class="form-group"><label>Status</label><select id="fu-status" class="form-control"><option>Aktif</option><option>Non-aktif</option></select></div>
+                    </div>
+                    <div id="fu-hidden-id" style="display:none"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-user')">Batal</button>
+                <button class="btn btn-primary" onclick="simpanUser()"><i data-lucide="save"></i> Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cabang (simple) -->
+    <div id="modal-cabang" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-cabang-title">Tambah Cabang</h3><button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-cabang')"><i data-lucide="x"></i></button></div>
+            <div class="modal-body">
+                <form id="form-cabang" onsubmit="return false">
+                    <div class="form-grid">
+                        <div class="form-group"><label>Kode Cabang</label><input id="fc-kode" class="form-control" disabled placeholder="Auto-generate"></div>
+                        <div class="form-group"><label>Status</label><select id="fc-status" class="form-control"><option>Aktif</option><option>Non-aktif</option></select></div>
+                        <div class="form-group form-full"><label>Nama Cabang <span style="color:var(--danger)">*</span></label><input id="fc-nama" class="form-control" placeholder="Nama cabang"></div>
+                        <div class="form-group"><label>Kontak</label><input id="fc-kontak" class="form-control" placeholder="08xxxxxxxxxx"></div>
+                        <div class="form-group"><label>PIC / Penanggung Jawab</label><input id="fc-pic" class="form-control" placeholder="Nama PIC"></div>
+                        <div class="form-group form-full"><label>Alamat</label><textarea id="fc-alamat" class="form-control"></textarea></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-cabang')">Batal</button><button class="btn btn-primary" onclick="simpanCabang()"><i data-lucide="save"></i> Simpan</button></div>
+        </div>
+    </div>
+
+    <!-- Modal Reseller -->
+    <!-- ===== MODAL TAMBAH PENJUALAN ===== -->
+    <div id="modal-penjualan" class="modal-overlay">
+        <div class="modal" style="max-width:520px">
+            <div class="modal-header">
+                <h3>Tambah Penjualan</h3>
+                <button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-penjualan')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-penjualan" onsubmit="return false">
+                    <div class="form-grid">
+                        <div class="form-group"><label>No. Faktur</label><input id="fj-no" class="form-control" disabled></div>
+                        <div class="form-group"><label>Tanggal</label><input id="fj-tanggal" class="form-control" type="date"></div>
+                        <div class="form-group form-full">
+                            <label>Jenis Pelanggan</label>
+                            <select id="fj-jenis" class="form-control" onchange="onJenisPelangganJual()">
+                                <option value="Umum">Umum</option>
+                                <option value="Reseller">Reseller</option>
+                                <option value="Member">Member</option>
+                            </select>
+                        </div>
+                        <!-- Pilih Reseller (muncul jika jenis = Reseller) -->
+                        <div class="form-group form-full" id="fj-reseller-wrap" style="display:none">
+                            <label>Pilih Reseller <span style="color:var(--danger)">*</span></label>
+                            <select id="fj-reseller" class="form-control" onchange="onPilihResellerJual()">
+                                <option value="">-- Pilih Reseller --</option>
+                            </select>
+                        </div>
+                        <!-- Info kredit reseller (muncul setelah pilih reseller) -->
+                        <div class="form-group form-full" id="fj-kredit-info" style="display:none">
+                            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px 14px;font-size:13px">
+                                <div style="font-weight:600;margin-bottom:8px;color:var(--text-2)">Info Kredit Reseller</div>
+                                <div style="display:flex;flex-direction:column;gap:5px">
+                                    <div style="display:flex;justify-content:space-between"><span style="color:var(--text-3)">Limit Kredit</span><span id="fj-info-limit" style="font-weight:500">—</span></div>
+                                    <div style="display:flex;justify-content:space-between"><span style="color:var(--text-3)">Piutang Berjalan</span><span id="fj-info-piutang" style="font-weight:500;color:var(--danger)">—</span></div>
+                                    <div style="display:flex;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.06);padding-top:5px"><span style="color:var(--text-3);font-weight:600">Sisa Limit</span><span id="fj-info-sisa" style="font-weight:700">—</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Pilih Member dari dropdown (muncul jika jenis = Member) -->
+                        <div class="form-group form-full" id="fj-member-wrap" style="display:none">
+                            <label>Pilih Member <span style="color:var(--danger)">*</span></label>
+                            <select id="fj-member" class="form-control" onchange="onPilihMemberJual()">
+                                <option value="">-- Pilih Member --</option>
+                            </select>
+                        </div>
+                        <!-- Info member (poin, tier) -->
+                        <div class="form-group form-full" id="fj-member-info" style="display:none">
+                            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px 14px;font-size:13px">
+                                <div style="font-weight:600;margin-bottom:8px;color:var(--text-2)">Info Member</div>
+                                <div style="display:flex;gap:16px">
+                                    <div><span style="color:var(--text-3)">Tier</span><br><span id="fj-member-tier" style="font-weight:600">—</span></div>
+                                    <div><span style="color:var(--text-3)">Poin</span><br><span id="fj-member-poin" style="font-weight:600">—</span></div>
+                                    <div><span style="color:var(--text-3)">Total Belanja</span><br><span id="fj-member-belanja" style="font-weight:600">—</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Nama pelanggan manual (muncul jika Umum) -->
+                        <div class="form-group form-full" id="fj-nama-wrap">
+                            <label>Nama Pelanggan</label>
+                            <input id="fj-nama" class="form-control" placeholder="Umum / nama toko (opsional)">
+                        </div>
+                        <div class="form-group form-full">
+                            <label>Total Penjualan (Rp) <span style="color:var(--danger)">*</span></label>
+                            <input id="fj-total" class="form-control" type="number" min="0" step="1000" placeholder="0">
+                        </div>
+                        <div class="form-group form-full">
+                            <label>Metode Bayar</label>
+                            <select id="fj-metode" class="form-control" onchange="onMetodeBayarJual()">
+                                <option value="Tunai">Tunai</option>
+                                <option value="QRIS">QRIS</option>
+                                <option value="Kartu Debit/Kredit">Kartu Debit/Kredit</option>
+                                <option value="Piutang">Piutang (Bayar Nanti)</option>
+                            </select>
+                        </div>
+                        <!-- DP (muncul jika Piutang) -->
+                        <div class="form-group form-full" id="fj-dp-wrap" style="display:none">
+                            <label>DP Dibayar Sekarang (Rp)</label>
+                            <input id="fj-dp" class="form-control" type="number" min="0" step="1000" placeholder="0 = tidak ada DP">
+                            <small style="color:var(--text-3);font-size:11.5px">Sisa tagihan otomatis menjadi piutang berjalan.</small>
+                        </div>
+                        <div class="form-group form-full">
+                            <label>Keterangan</label>
+                            <textarea id="fj-keterangan" class="form-control" rows="2" placeholder="Opsional"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-penjualan')">Batal</button>
+                <button class="btn btn-primary" onclick="simpanPenjualanBaru()"><i data-lucide="save"></i> Simpan Penjualan</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-reseller" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-reseller-title">Tambah Reseller</h3><button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-reseller')"><i data-lucide="x"></i></button></div>
+            <div class="modal-body">
+                <form id="form-reseller" onsubmit="return false">
+                    <div class="form-grid">
+                        <div class="form-group"><label>Kode Reseller</label><input id="fr-kode" class="form-control" disabled placeholder="Auto-generate"></div>
+                        <div class="form-group"><label>Status</label><select id="fr-status" class="form-control"><option>Aktif</option><option>Non-aktif</option></select></div>
+                        <div class="form-group form-full"><label>Nama Reseller <span style="color:var(--danger)">*</span></label><input id="fr-nama" class="form-control" placeholder="Nama reseller / toko"></div>
+                        <div class="form-group"><label>No. HP <span style="color:var(--danger)">*</span></label><input id="fr-hp" class="form-control" placeholder="08xxxxxxxxxx"></div>
+                        <div class="form-group"><label>Diskon Khusus (%)</label><input id="fr-diskon" class="form-control" type="number" min="0" max="50" step="0.5" value="5"></div>
+                        <div class="form-group form-full"><label>Limit Kredit (Rp)</label><input id="fr-limit" class="form-control" type="number" min="0" step="100000" value="5000000"><small style="color:var(--text-3);font-size:11.5px">Batas maksimal piutang yang boleh berjalan untuk reseller ini.</small></div>
+                        <div class="form-group form-full"><label>Alamat</label><textarea id="fr-alamat" class="form-control"></textarea></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-reseller')">Batal</button><button class="btn btn-primary" onclick="simpanReseller()"><i data-lucide="save"></i> Simpan</button></div>
+        </div>
+    </div>
+
+    <!-- Modal PO Pembelian -->
+    <div id="modal-pembelian" class="modal-overlay">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h3 id="modal-pembelian-title">Buat Purchase Order</h3><button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-pembelian')"><i data-lucide="x"></i></button></div>
+            <div class="modal-body">
+                <form id="form-pembelian" onsubmit="return false">
+                    <div class="form-grid">
+                        <div class="form-group"><label>No. PO</label><input id="fp-no" class="form-control" disabled placeholder="Auto-generate"></div>
+                        <div class="form-group"><label>Tanggal PO</label><input id="fp-tanggal" class="form-control" type="date"></div>
+                        <div class="form-group form-full"><label>Supplier <span style="color:var(--danger)">*</span></label><select class="form-control" id="po-supplier"><option value="">Pilih Supplier</option></select></div>
+                        <div class="form-group form-full"><label>Barang</label><select class="form-control" id="fp-produk" onchange="isiHargaBeli()"><option value="">Pilih Barang</option></select></div>
+                        <div class="form-group"><label>Qty</label><input id="fp-qty" class="form-control" type="number" min="1" value="1"></div>
+                        <div class="form-group"><label>Harga Beli / Satuan</label><input id="fp-harga" class="form-control" type="number" min="0" value="0"></div>
+                        <div class="form-group form-full" style="display:flex;align-items:flex-end">
+                            <button type="button" class="btn btn-secondary" onclick="tambahItemPO()" style="width:100%"><i data-lucide="plus"></i> Tambah Item ke PO</button>
+                        </div>
+                        <div class="form-group form-full">
+                            <label>Daftar Item PO</label>
+                            <table class="table" id="tbl-po-items" style="margin-top:6px">
+                                <thead><tr><th>Barang</th><th>Qty</th><th>Harga/Sat</th><th>Subtotal</th><th></th></tr></thead>
+                                <tbody><tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:12px">Belum ada item — tambahkan barang di atas</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div class="form-group"><label>Total PO <span style="color:var(--danger)">*</span></label><input id="fp-total" class="form-control" type="number" min="0" value="0" placeholder="Otomatis dari item atau isi manual"></div>
+                        <div class="form-group"><label>Pembayaran</label><select id="fp-bayar" class="form-control" onchange="togglePembelianHutang()"><option>Lunas</option><option>Hutang</option></select></div>
+                        <div class="form-group form-full" id="fp-tempo-wrap" style="display:none"><label>Jatuh Tempo Hutang</label><input id="fp-tempo" class="form-control" type="date"></div>
+                        <div class="form-group form-full"><label>Keterangan</label><textarea id="fp-ket" class="form-control" placeholder="Catatan pembelian"></textarea></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-pembelian')">Batal</button><button class="btn btn-primary" onclick="simpanPembelian()"><i data-lucide="save"></i> Simpan PO</button></div>
+        </div>
+    </div>
+
+    <!-- Modal Retur Jual -->
+    <div id="modal-retur-jual" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Buat Retur Penjualan</h3><button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-retur-jual')"><i data-lucide="x"></i></button></div>
+            <div class="modal-body">
+                <form id="form-retur-jual" onsubmit="return false">
+                    <div class="form-grid">
+                        <div class="form-group form-full"><label>No. Faktur Ref. <span style="color:var(--danger)">*</span></label><select id="frj-faktur" class="form-control" onchange="isiMaxReturJual()"><option value="">Pilih faktur penjualan</option></select></div>
+                        <div class="form-group"><label>Tanggal Retur</label><input id="frj-tanggal" class="form-control" type="date"></div>
+                        <div class="form-group"><label>Alasan</label><select id="frj-alasan" class="form-control"><option>Barang rusak</option><option>Tidak sesuai pesanan</option><option>Kadaluarsa</option><option>Lainnya</option></select></div>
+                        <div class="form-group form-full"><label>Barang Dikembalikan</label><select id="frj-produk" class="form-control"><option value="">— Tidak menambah stok —</option></select></div>
+                        <div class="form-group"><label>Qty Kembali</label><input id="frj-qty" class="form-control" type="number" min="0" value="0"></div>
+                        <div class="form-group"><label>Total Retur (Rp) <span style="color:var(--danger)">*</span></label><input id="frj-total" class="form-control" type="number" min="0" value="0"><small id="frj-max" style="color:var(--text-3);font-size:11.5px"></small></div>
+                        <div class="form-group form-full"><label>Keterangan</label><textarea id="frj-ket" class="form-control" placeholder="Detail retur..."></textarea></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-retur-jual')">Batal</button><button class="btn btn-primary" onclick="simpanReturJual()"><i data-lucide="save"></i> Simpan</button></div>
+        </div>
+    </div>
+
+    <!-- Modal Retur Beli -->
+    <div id="modal-retur-beli" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Buat Retur Pembelian</h3><button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-retur-beli')"><i data-lucide="x"></i></button></div>
+            <div class="modal-body">
+                <form id="form-retur-beli" onsubmit="return false">
+                    <div class="form-grid">
+                        <div class="form-group form-full"><label>No. PO Ref. <span style="color:var(--danger)">*</span></label><select id="frb-po" class="form-control" onchange="isiMaxReturBeli()"><option value="">Pilih PO pembelian</option></select></div>
+                        <div class="form-group"><label>Tanggal Retur</label><input id="frb-tanggal" class="form-control" type="date"></div>
+                        <div class="form-group"><label>Alasan</label><select id="frb-alasan" class="form-control"><option>Produk rusak</option><option>Tidak sesuai PO</option><option>Kadaluarsa</option><option>Lainnya</option></select></div>
+                        <div class="form-group form-full"><label>Barang Diretur</label><select id="frb-produk" class="form-control"><option value="">— Tidak mengurangi stok —</option></select></div>
+                        <div class="form-group"><label>Qty Diretur</label><input id="frb-qty" class="form-control" type="number" min="0" value="0"></div>
+                        <div class="form-group"><label>Total Retur (Rp) <span style="color:var(--danger)">*</span></label><input id="frb-total" class="form-control" type="number" min="0" value="0"><small id="frb-max" style="color:var(--text-3);font-size:11.5px"></small></div>
+                        <div class="form-group form-full"><label>Keterangan</label><textarea id="frb-ket" class="form-control"></textarea></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-retur-beli')">Batal</button><button class="btn btn-primary" onclick="simpanReturBeli()"><i data-lucide="save"></i> Simpan</button></div>
+        </div>
+    </div>
+
+    <!-- Modal Stock Opname -->
+    <div id="modal-stock-opname" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Mulai Stock Opname</h3><button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-stock-opname')"><i data-lucide="x"></i></button></div>
+            <div class="modal-body">
+                <form id="form-opname" onsubmit="return false">
+                    <div class="form-grid">
+                        <div class="form-group"><label>No. Opname</label><input id="fo-no" class="form-control" disabled placeholder="Auto-generate"></div>
+                        <div class="form-group"><label>Tanggal</label><input id="fo-tanggal" class="form-control" type="date"></div>
+                        <div class="form-group form-full"><label>Petugas <span style="color:var(--danger)">*</span></label><select id="fo-petugas" class="form-control"></select></div>
+                        <div class="form-group form-full"><label>Kategori yang diOpname</label><select id="fo-kategori" class="form-control"><option value="">Semua Kategori</option></select></div>
+                        <div class="form-group form-full"><label>Keterangan</label><textarea id="fo-ket" class="form-control" placeholder="Catatan opname..."></textarea></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-stock-opname')">Batal</button><button class="btn btn-primary" onclick="simpanOpname()"><i data-lucide="play"></i> Mulai</button></div>
+        </div>
+    </div>
+
+    <!-- Modal Penyesuaian Stok -->
+    <div id="modal-adj-stok" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Penyesuaian Stok</h3><button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-adj-stok')"><i data-lucide="x"></i></button></div>
+            <div class="modal-body">
+                <form id="form-adj-stok" onsubmit="return false">
+                    <div class="form-grid">
+                        <div class="form-group form-full"><label>Barang <span style="color:var(--danger)">*</span></label><select id="fa-barang" class="form-control" onchange="isiStokSistem()"><option value="">Pilih Barang</option></select></div>
+                        <div class="form-group"><label>Stok Sistem</label><input id="fa-sistem" class="form-control" disabled value="0"></div>
+                        <div class="form-group"><label>Stok Fisik Aktual <span style="color:var(--danger)">*</span></label><input id="fa-fisik" class="form-control" type="number" min="0" placeholder="0" oninput="hitungSelisihAdj()"></div>
+                        <div class="form-group form-full"><label>Selisih</label><input id="fa-selisih" class="form-control" disabled value="0"></div>
+                        <div class="form-group form-full"><label>Keterangan <span style="color:var(--danger)">*</span></label><textarea id="fa-ket" class="form-control" placeholder="Alasan penyesuaian..."></textarea></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-adj-stok')">Batal</button><button class="btn btn-primary" onclick="simpanAdjStok()"><i data-lucide="save"></i> Simpan</button></div>
+        </div>
+    </div>
+
+    <!-- Modal Pelunasan Piutang -->
+    <div id="modal-bayar-piutang" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Catat Pelunasan Piutang</h3><button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-bayar-piutang')"><i data-lucide="x"></i></button></div>
+            <div class="modal-body">
+                <form id="form-bayar-piutang" onsubmit="return false">
+                    <div class="form-grid">
+                        <div class="form-group form-full"><label>Faktur Piutang <span style="color:var(--danger)">*</span></label><select id="fbp-faktur" class="form-control" onchange="isiSisaPiutang()"><option value="">Pilih faktur</option></select></div>
+                        <div class="form-group"><label>Nilai Piutang</label><input id="fbp-total" class="form-control" disabled></div>
+                        <div class="form-group"><label>Sisa Tagihan</label><input id="fbp-sisa" class="form-control" disabled></div>
+                        <div class="form-group"><label>Jumlah Bayar (Rp) <span style="color:var(--danger)">*</span></label><input id="fbp-jumlah" class="form-control" type="number" min="0" value="0"></div>
+                        <div class="form-group"><label>Metode Bayar</label><select id="fbp-metode" class="form-control"><option>Tunai</option><option>QRIS</option><option>Transfer</option><option>EDC BCA</option></select></div>
+                        <div class="form-group form-full"><label>Tanggal Bayar</label><input id="fbp-tanggal" class="form-control" type="date"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-bayar-piutang')">Batal</button><button class="btn btn-primary" onclick="simpanBayarPiutang()"><i data-lucide="save"></i> Simpan Pembayaran</button></div>
+        </div>
+    </div>
+
+    <!-- Modal Pembayaran Hutang -->
+    <div id="modal-bayar-hutang" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Catat Pembayaran Hutang</h3><button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-bayar-hutang')"><i data-lucide="x"></i></button></div>
+            <div class="modal-body">
+                <form id="form-bayar-hutang" onsubmit="return false">
+                    <div class="form-grid">
+                        <div class="form-group form-full"><label>PO Hutang <span style="color:var(--danger)">*</span></label><select id="fbh-po" class="form-control" onchange="isiSisaHutang()"><option value="">Pilih PO</option></select></div>
+                        <div class="form-group"><label>Nilai Hutang</label><input id="fbh-total" class="form-control" disabled></div>
+                        <div class="form-group"><label>Sisa Tagihan</label><input id="fbh-sisa" class="form-control" disabled></div>
+                        <div class="form-group"><label>Jumlah Bayar (Rp) <span style="color:var(--danger)">*</span></label><input id="fbh-jumlah" class="form-control" type="number" min="0" value="0"></div>
+                        <div class="form-group"><label>Metode Bayar</label><select id="fbh-metode" class="form-control"><option>Tunai</option><option>Transfer</option><option>QRIS</option><option>EDC BCA</option></select></div>
+                        <div class="form-group form-full"><label>Tanggal Bayar</label><input id="fbh-tanggal" class="form-control" type="date"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-bayar-hutang')">Batal</button><button class="btn btn-primary" onclick="simpanBayarHutang()"><i data-lucide="save"></i> Simpan Pembayaran</button></div>
+        </div>
+    </div>
+
+    <!-- Modal Kas Kasir -->
+    <div id="modal-kas" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-kas-title">Catat Mutasi Kas</h3><button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-kas')"><i data-lucide="x"></i></button></div>
+            <div class="modal-body">
+                <form id="form-kas" onsubmit="return false">
+                    <div class="form-grid">
+                        <div class="form-group"><label>Tipe Mutasi</label><select id="fkas-tipe" class="form-control"><option value="masuk">Kas Masuk</option><option value="keluar">Kas Keluar</option></select></div>
+                        <div class="form-group"><label>Nominal (Rp) <span style="color:var(--danger)">*</span></label><input id="fkas-nominal" class="form-control" type="number" min="0" value="0"></div>
+                        <div class="form-group"><label>Kasir</label><select id="fkas-kasir" class="form-control"></select></div>
+                        <div class="form-group"><label>Tanggal</label><input id="fkas-tanggal" class="form-control" type="date"></div>
+                        <div class="form-group form-full"><label>Keterangan <span style="color:var(--danger)">*</span></label><input id="fkas-ket" class="form-control" placeholder="Contoh: Saldo awal shift"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-kas')">Batal</button><button class="btn btn-primary" onclick="simpanKas()"><i data-lucide="save"></i> Simpan</button></div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL BUKA SHIFT ========== -->
+    <div id="modal-buka-shift" class="modal-overlay">
+        <div class="modal" style="max-width:420px">
+            <div class="modal-header">
+                <h3>Buka Shift Kasir</h3><button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-buka-shift')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-buka-shift" onsubmit="return false">
+                    <div class="form-grid">
+                        <div class="form-group"><label>Kasir <span style="color:var(--danger)">*</span></label><select id="fsh-kasir" class="form-control"></select></div>
+                        <div class="form-group"><label>Tanggal</label><input id="fsh-tanggal" class="form-control" type="date"></div>
+                        <div class="form-group form-full"><label>Modal Awal (Rp)</label><input id="fsh-kas-awal" class="form-control" type="number" min="0" value="0" placeholder="0"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-buka-shift')">Batal</button>
+                <button class="btn btn-primary" onclick="simpanBukaShift()"><i data-lucide="play"></i> Buka Shift</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL TUTUP SHIFT ========== -->
+    <div id="modal-tutup-shift" class="modal-overlay">
+        <div class="modal" style="max-width:480px">
+            <div class="modal-header">
+                <h3>Tutup Shift Kasir</h3>
+                <button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-tutup-shift')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div id="tutup-shift-ringkasan" style="margin-bottom:16px"></div>
+                <div style="border-top:1px solid var(--border);padding-top:16px">
+                    <div class="form-group" style="margin-bottom:12px">
+                        <label style="font-weight:600">Saldo Fisik — Uang di Kasir (Rp) <span style="color:var(--danger)">*</span></label>
+                        <input id="fts-saldo-fisik" class="form-control" type="number" min="0" placeholder="0" oninput="hitungSelisihTutup()">
+                    </div>
+                    <div id="tutup-shift-selisih" style="display:none;margin-top:8px"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-tutup-shift')">Batal</button>
+                <button class="btn btn-danger" onclick="simpanTutupShift()"><i data-lucide="clock-x"></i> Tutup Shift</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL DETAIL TRANSAKSI ========== -->
+    <div id="modal-detail-trx" class="modal-overlay">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h3>Detail Transaksi <span id="detail-trx-id" style="color:var(--primary);font-size:14px"></span></h3>
+                <button class="modal-close" aria-label="Tutup" onclick="closeModal('modal-detail-trx')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-grid" style="margin-bottom:16px">
+                    <div class="form-group">
+                        <label>Tanggal</label>
+                        <div class="form-control-static" id="detail-trx-tanggal">—</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Kasir</label>
+                        <div class="form-control-static" id="detail-trx-kasir">—</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Pelanggan</label>
+                        <div class="form-control-static" id="detail-trx-pelanggan">—</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Metode Bayar</label>
+                        <div class="form-control-static" id="detail-trx-metode">—</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <div id="detail-trx-status">—</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Total</label>
+                        <div class="form-control-static" id="detail-trx-total" style="font-weight:600;color:var(--primary)">—</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Terbayar</label>
+                        <div class="form-control-static" id="detail-trx-terbayar">—</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Sisa</label>
+                        <div class="form-control-static" id="detail-trx-sisa" style="color:var(--danger)">—</div>
+                    </div>
+                </div>
+                <div class="card-title" style="font-size:13px;font-weight:600;margin-bottom:4px"><i data-lucide="list" style="width:14px;height:14px"></i> Item Transaksi</div>
+                <div id="detail-trx-items"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-detail-trx')">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== TOAST CONTAINER ========== -->
+    <div id="toast-container"></div>
+
+    <!-- ========== CONFIRM DIALOG ========== -->
+    <div id="confirm-overlay">
+        <div class="confirm-box">
+            <div class="confirm-icon" id="confirm-icon-wrap"><i data-lucide="trash-2" id="confirm-icon-el"></i></div>
+            <h3 id="confirm-title">Hapus Data</h3>
+            <p id="confirm-msg">Apakah Anda yakin?</p>
+            <div class="confirm-actions">
+                <button class="btn btn-secondary" onclick="closeConfirm()">Batal</button>
+                <button class="btn btn-danger" id="confirm-ok-btn" data-no-confirm="true" onclick="doConfirm()">
+                    <i data-lucide="trash-2" id="confirm-ok-icon"></i>
+                    <span id="confirm-ok-text">Ya, Hapus</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== NOTIFICATION PANEL ========== -->
+    <div id="notif-panel">
+        <div class="notif-header">
+            <h4>Notifikasi</h4><button class="btn btn-secondary btn-sm" onclick="toggleNotifPanel()"><i data-lucide="x"></i></button></div>
+        <div class="notif-list">
+            <div class="notif-item unread">
+                <div class="notif-dot red"></div>
+                <div class="notif-content"><strong>Stok Hampir Habis</strong><span>Minyak Goreng 1L — sisa 5 unit (min. 10)</span><small>5 menit lalu</small></div>
+            </div>
+            <div class="notif-item unread">
+                <div class="notif-dot yellow"></div>
+                <div class="notif-content"><strong>Piutang Jatuh Tempo</strong><span>Warung Bu Sri — Rp 450.000 jatuh tempo hari ini</span><small>1 jam lalu</small></div>
+            </div>
+            <div class="notif-item unread">
+                <div class="notif-dot red"></div>
+                <div class="notif-content"><strong>Stok Hampir Habis</strong><span>Gula Pasir 1Kg — sisa 3 unit (min. 15)</span><small>2 jam lalu</small></div>
+            </div>
+            <div class="notif-item">
+                <div class="notif-dot green"></div>
+                <div class="notif-content"><strong>PO Diterima</strong><span>PO-2024-003 dari UD Sukses Makmur telah diterima</span><small>3 jam lalu</small></div>
+            </div>
+            <div class="notif-item">
+                <div class="notif-dot blue"></div>
+                <div class="notif-content"><strong>Laporan Siap</strong><span>Laporan penjualan Juli sudah dapat diunduh</span><small>1 hari lalu</small></div>
+            </div>
+        </div>
+        <div class="notif-footer"><button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="tandaiSemuaNotifDibaca()">Tandai Semua Dibaca</button></div>
+    </div>
+
+    <!-- ========== MOBILE BOTTOM NAVIGATION ========== -->
+    <nav id="bottom-nav">
+        <button class="bot-nav-item active" id="bot-dashboard" onclick="navigate('dashboard',null,'Dashboard');setBotNav(this)"><i data-lucide="layout-dashboard"></i><span>Home</span></button>
+        <button class="bot-nav-item" onclick="navigate('penjualan',null,'Transaksi > Penjualan');setBotNav(this)"><i data-lucide="receipt"></i><span>Transaksi</span></button>
+        <button class="bot-nav-item" onclick="navigate('lap-penjualan',null,'Laporan > Penjualan');setBotNav(this)"><i data-lucide="bar-chart-2"></i><span>Laporan</span></button>
+        <button class="bot-nav-item" onclick="openMobileSidebar()"><i data-lucide="menu"></i><span>Menu</span></button>
+    </nav>
+
+    <script src="supabase-config.js?v=7"></script>
+    <script src="script.js?v=5"></script>
+</body>
+
+</html>
