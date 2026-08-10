@@ -6,6 +6,7 @@ import '../providers/app_provider.dart';
 import '../models/purchase.dart';
 import '../widgets/ugt_widgets.dart';
 import 'tambah_pembelian_screen.dart';
+import 'supplier_screen.dart';
 
 class PembelianScreen extends StatefulWidget {
   const PembelianScreen({super.key});
@@ -59,10 +60,41 @@ class _PembelianScreenState extends State<PembelianScreen> {
                           child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
                         ),
                         const SizedBox(width: 12),
-                        Text(
-                          'Pembelian Barang',
-                          style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                        Expanded(
+                          child: Text(
+                            'Pembelian Barang',
+                            style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                          ),
                         ),
+                        if (canAdd)
+                          GestureDetector(
+                            onTap: () async {
+                              await Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const SupplierScreen()),
+                              );
+                              setState(() {});
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.white30),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.storefront_outlined, size: 14, color: Colors.white),
+                                  const SizedBox(width: 4),
+                                  Text('Supplier',
+                                      style: GoogleFonts.inter(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white)),
+                                ],
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 16),

@@ -1,8 +1,21 @@
 class Supplier {
   final String id;
+  final String kode;
   final String nama;
   final String kontak;
-  const Supplier({required this.id, required this.nama, required this.kontak});
+  final String alamat;
+  final String email;
+  final String status; // Aktif / Non-aktif
+
+  const Supplier({
+    required this.id,
+    this.kode = '',
+    required this.nama,
+    this.kontak = '',
+    this.alamat = '',
+    this.email = '',
+    this.status = 'Aktif',
+  });
 }
 
 class PurchaseItem {
@@ -43,12 +56,7 @@ class Purchase {
   });
 }
 
-List<Supplier> dummySuppliers = [
-  const Supplier(id: '1', nama: 'PT Indofood Sukses Makmur', kontak: '021-12345678'),
-  const Supplier(id: '2', nama: 'CV Maju Bersama', kontak: '0271-567890'),
-  const Supplier(id: '3', nama: 'UD Sukses Makmur', kontak: '031-678901'),
-  const Supplier(id: '4', nama: 'PT Aqua Golden Mississippi', kontak: '021-23456789'),
-];
+List<Supplier> dummySuppliers = [];
 
 List<Purchase> dummyPurchases = [
   Purchase(

@@ -8,6 +8,7 @@ import '../models/purchase.dart';
 import '../models/product.dart';
 import '../services/db_service.dart';
 import '../widgets/ugt_widgets.dart';
+import 'supplier_screen.dart';
 
 class TambahPembelianScreen extends StatefulWidget {
   const TambahPembelianScreen({super.key});
@@ -551,12 +552,29 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
 }
 
 // ── Supplier Picker Bottom Sheet ─────────────────────────────────────────────
-class _SupplierPickerSheet extends StatelessWidget {
+class _SupplierPickerSheet extends StatefulWidget {
   final Supplier? current;
   const _SupplierPickerSheet({this.current});
 
   @override
+  State<_SupplierPickerSheet> createState() => _SupplierPickerSheetState();
+}
+
+class _SupplierPickerSheetState extends State<_SupplierPickerSheet> {
+  String _query = '';
+
+  List<Supplier> get _list {
+    final aktif = dummySuppliers.where((s) => s.status == 'Aktif').toList();
+    if (_query.isEmpty) return aktif;
+    final q = _query.toLowerCase();
+    return aktif.where((s) =>
+        s.nama.toLowerCase().contains(q) ||
+        s.kontak.toLowerCase().contains(q)).toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final list = _list;
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -567,23 +585,125 @@ class _SupplierPickerSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(10)))),
+          Center(
+            child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(10))),
+          ),
           const SizedBox(height: 16),
-          Text('Pilih Supplier', style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.text)),
-          const SizedBox(height: 12),
-          ...dummySuppliers.map((s) => ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.storefront_outlined, size: 18, color: AppColors.primary),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Pilih Supplier',
+                  style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.text)),
+              TextButton.icon(
+                onPressed: () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SupplierScreen()),
+                  );
+                  if (mounted) setState(() {});
+                },
+                icon: const Icon(Icons.add, size: 16, color: AppColors.primary),
+                label: Text('Tambah',
+                    style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary)),
+                style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Search
+          TextField(
+            autofocus: false,
+            onChanged: (v) => setState(() => _query = v),
+            style: GoogleFonts.inter(fontSize: 13),
+            decoration: InputDecoration(
+              hintText: 'Cari supplier...',
+              hintStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.placeholder),
+              prefixIcon: const Icon(Icons.search, size: 18, color: AppColors.placeholder),
+              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              filled: true,
+              fillColor: AppColors.bg,
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: AppColors.border)),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: AppColors.border)),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
             ),
-            title: Text(s.nama, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500)),
-            subtitle: Text(s.kontak, style: GoogleFonts.inter(fontSize: 11, color: AppColors.textDim)),
-            trailing: current?.id == s.id ? const Icon(Icons.check_circle, color: AppColors.primary, size: 18) : null,
-            onTap: () => Navigator.of(context).pop(s),
-          )),
+          ),
+          const SizedBox(height: 8),
+          if (list.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Text(
+                  dummySuppliers.isEmpty
+                      ? 'Belum ada supplier. Tambahkan dulu.'
+                      : 'Tidak ditemukan',
+                  style: GoogleFonts.inter(fontSize: 13, color: AppColors.textDim),
+                ),
+              ),
+            )
+          else
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.4),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: list.length,
+                itemBuilder: (_, i) {
+                  final s = list[i];
+                  final isSelected = widget.current?.id == s.id;
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(10)),
+                      child: Center(
+                        child: Text(
+                          s.nama[0].toUpperCase(),
+                          style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary),
+                        ),
+                      ),
+                    ),
+                    title: Text(s.nama,
+                        style: GoogleFonts.inter(
+                            fontSize: 13, fontWeight: FontWeight.w500)),
+                    subtitle: s.kontak.isNotEmpty
+                        ? Text(s.kontak,
+                            style: GoogleFonts.inter(
+                                fontSize: 11, color: AppColors.textDim))
+                        : null,
+                    trailing: isSelected
+                        ? const Icon(Icons.check_circle,
+                            color: AppColors.primary, size: 18)
+                        : null,
+                    onTap: () => Navigator.of(context).pop(s),
+                  );
+                },
+              ),
+            ),
         ],
       ),
     );

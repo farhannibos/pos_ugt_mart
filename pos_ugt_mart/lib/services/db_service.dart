@@ -429,18 +429,86 @@ class DbService {
     try {
       final rows = await _db
           .from('supplier')
-          .select('id, nama, kontak')
+          .select('id, kode, nama, kontak, alamat, email, status')
           .eq('id_toko', _idToko!)
           .order('nama');
       dummySuppliers.clear();
       for (final r in rows) {
         dummySuppliers.add(Supplier(
           id:     r['id'].toString(),
+          kode:   r['kode'] as String? ?? '',
           nama:   r['nama'] as String,
           kontak: r['kontak'] as String? ?? '',
+          alamat: r['alamat'] as String? ?? '',
+          email:  r['email'] as String? ?? '',
+          status: r['status'] as String? ?? 'Aktif',
         ));
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[DB] loadSuppliers ERROR: $e');
+    }
+  }
+
+  static Future<String?> saveSupplier({
+    required String nama,
+    required String kontak,
+    String alamat = '',
+    String email = '',
+    String status = 'Aktif',
+  }) async {
+    if (_idToko == null) return null;
+    final namaClean = nama.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
+    final prefix = namaClean.substring(0, namaClean.length.clamp(1, 4));
+    final kode = 'SUP-$prefix-${DateTime.now().millisecondsSinceEpoch % 10000}';
+    try {
+      final result = await _db.from('supplier').insert({
+        'id_toko': _idToko,
+        'kode':    kode,
+        'nama':    nama.trim(),
+        'kontak':  kontak.trim(),
+        'alamat':  alamat.trim(),
+        'email':   email.trim(),
+        'status':  status,
+      }).select('id').single();
+      debugPrint('[DB] saveSupplier OK: id=${result['id']}');
+      return result['id'].toString();
+    } catch (e) {
+      debugPrint('[DB] saveSupplier ERROR: $e');
+      return null;
+    }
+  }
+
+  static Future<bool> updateSupplier({
+    required String id,
+    required String nama,
+    required String kontak,
+    String alamat = '',
+    String email = '',
+    String status = 'Aktif',
+  }) async {
+    try {
+      await _db.from('supplier').update({
+        'nama':   nama.trim(),
+        'kontak': kontak.trim(),
+        'alamat': alamat.trim(),
+        'email':  email.trim(),
+        'status': status,
+      }).eq('id', int.parse(id));
+      return true;
+    } catch (e) {
+      debugPrint('[DB] updateSupplier ERROR: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> deleteSupplier(String id) async {
+    try {
+      await _db.from('supplier').delete().eq('id', int.parse(id));
+      return true;
+    } catch (e) {
+      debugPrint('[DB] deleteSupplier ERROR: $e');
+      return false;
+    }
   }
 
   // ── PURCHASES ──────────────────────────────────────────────────────────────
