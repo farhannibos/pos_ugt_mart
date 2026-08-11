@@ -55,14 +55,22 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         setState(() => _done = true);
         _showResult(true, 'Login web panel berhasil!\nSilakan lanjutkan di browser.');
       } else if (pesan.contains('expired')) {
+        _retryAfterFailure();
         _showResult(false, 'QR Code sudah kedaluwarsa.\nMuat ulang QR di browser.');
       } else {
+        _retryAfterFailure();
         _showResult(false, pesan.isNotEmpty ? pesan : 'QR Code tidak valid atau sudah digunakan.');
       }
     } catch (e) {
       if (!mounted) return;
+      _retryAfterFailure();
       _showResult(false, 'Terjadi kesalahan: ${e.toString()}');
     }
+  }
+
+  void _retryAfterFailure() {
+    setState(() => _processing = false);
+    _ctrl.start();
   }
 
   void _showResult(bool success, String message) {
@@ -111,7 +119,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                 ),
                 onPressed: () {
                   Navigator.of(context).pop(); // close dialog
-                  Navigator.of(context).pop(); // back to profile
+                  if (success) Navigator.of(context).pop(); // back to profile
                 },
                 child: Text('Tutup', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
               ),

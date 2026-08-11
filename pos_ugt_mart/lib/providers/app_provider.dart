@@ -11,7 +11,7 @@ class AppProvider extends ChangeNotifier {
   String kasirName     = '';
   String kasirUsername = '';
   String kasirRole     = '';
-  String storeName = 'UGT MART';
+  String storeName = 'FABIZO';
   bool isLoggedIn = false;
   DateTime? loginTime;
 
@@ -349,7 +349,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   void setStoreName(String v) {
-    storeName = v.trim().isEmpty ? 'UGT MART' : v.trim();
+    storeName = v.trim().isEmpty ? 'FABIZO' : v.trim();
     notifyListeners();
     _saveSettings();
   }
@@ -372,7 +372,7 @@ class AppProvider extends ChangeNotifier {
     required String lokasi,
     required String hp,
   }) {
-    storeName   = nama.trim().isEmpty ? 'UGT MART' : nama.trim();
+    storeName   = nama.trim().isEmpty ? 'FABIZO' : nama.trim();
     namaPemilik = pemilik.trim();
     alamatToko  = lokasi.trim();
     noHp        = hp.trim();

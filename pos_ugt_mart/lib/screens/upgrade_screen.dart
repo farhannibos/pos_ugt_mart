@@ -150,7 +150,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                     children: [
                       const Icon(Icons.bolt, color: Colors.amber, size: 14),
                       const SizedBox(width: 4),
-                      Text('UGT MART PREMIUM',
+                      Text('FABIZO PREMIUM',
                           style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.5)),
                     ],
                   ),
@@ -398,7 +398,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
 
   void _hubungiAdmin(BuildContext context, AppProvider prov, Map<String, Object?> plan) {
     final pesan = Uri.encodeComponent(
-      'Halo Admin UGT Mart! 👋\n\n'
+      'Halo Admin FABIZO! 👋\n\n'
       'Saya ingin berlangganan Premium.\n\n'
       '🏪 Nama Toko: ${prov.storeName}\n'
       '👤 Username: ${prov.kasirName}\n'

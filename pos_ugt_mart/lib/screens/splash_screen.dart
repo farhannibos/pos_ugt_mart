@@ -128,7 +128,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         child: Column(
                           children: [
                             Text(
-                              'UGT MART',
+                              'FABIZO',
                               style: GoogleFonts.poppins(
                                 fontSize: 24,
                                 fontWeight: FontWeight.w700,

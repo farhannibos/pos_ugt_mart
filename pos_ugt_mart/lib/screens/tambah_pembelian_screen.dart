@@ -95,6 +95,7 @@ class _TambahPembelianScreenState extends State<TambahPembelianScreen> {
       jam: jam,
       total: _total,
       status: _status,
+      terbayar: _status == 'Lunas' ? _total : 0,
       items: List.from(_items),
     );
 

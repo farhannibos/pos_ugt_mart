@@ -109,47 +109,41 @@ class _LoginScreenState extends State<LoginScreen>
                       decoration: const BoxDecoration(),
                       child: FadeTransition(
                         opacity: _fadeAnim,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // Logo — sudut sedikit melengkung, tanpa container
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: Image.asset(
-                                'assets/images/logo_bmt.png',
-                                width: 90,
-                                height: 90,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Icon(
-                                  Icons.store_rounded,
-                                  size: 52,
-                                  color: Colors.white,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Logo — sudut sedikit melengkung, tanpa container
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Image.asset(
+                                  'assets/images/logo_bmt.png',
+                                  width: 90,
+                                  height: 90,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Icon(
+                                    Icons.store_rounded,
+                                    size: 52,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'UGT MART',
-                              style: GoogleFonts.poppins(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                letterSpacing: 1.2,
+                              const SizedBox(height: 12),
+                              Text(
+                                'FABIZO',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: 1.2,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Sistem Kasir Modern',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color: Colors.white.withValues(alpha: 0.78),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
-
                     // ── 2. White sheet — satu lengkungan atas, tanpa drag handle ──
                     Expanded(
                       child: SlideTransition(
@@ -176,7 +170,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 children: [
                                   // Header teks
                                   Text(
-                                    'Masuk Kasir',
+                                    'Masuk',
                                     style: GoogleFonts.poppins(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w700,
@@ -185,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Masukkan akun kasir Anda untuk membuka shift',
+                                    'Masukkan akun Anda untuk membuka shift',
                                     style: GoogleFonts.inter(
                                       fontSize: 12.5,
                                       color: AppColors.textMuted,
@@ -388,25 +382,7 @@ class _LoginScreenState extends State<LoginScreen>
                                       ),
                                     ),
                                   ),
-
-                                  // ── 6. Footer dengan spacing cukup + SafeArea ──
-                                  const SizedBox(height: 20),
-                                  SafeArea(
-                                    top: false,
-                                    child: Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 24),
-                                      child: Center(
-                                        child: Text(
-                                          'Toko UGT MART · Terminal Kasir 02',
-                                          style: GoogleFonts.inter(
-                                            fontSize: 11,
-                                            color: AppColors.textDim,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
+                                  SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
                                 ],
                               ),
                             ),

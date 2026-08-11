@@ -143,13 +143,30 @@ class UsahaScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Pajak (${taxRate > 0 ? 'Aktif' : 'Tidak Aktif'})',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.text,
-                        ),
+                      Row(
+                        children: [
+                          Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryLight,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Center(
+                              child: Image.asset('assets/icons/ic_tax.png',
+                                  width: 18, fit: BoxFit.contain),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Pajak (${taxRate > 0 ? 'Aktif' : 'Tidak Aktif'})',
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.text,
+                            ),
+                          ),
+                        ],
                       ),
                       const Icon(Icons.chevron_right,
                           color: AppColors.textDim, size: 20),
@@ -324,7 +341,7 @@ class UsahaScreen extends StatelessWidget {
                       color: AppColors.text)),
               const SizedBox(height: 16),
               _SheetField(label: 'Nama Usaha', ctrl: namaCtrl,
-                  hint: 'Contoh: UGT MART'),
+                  hint: 'Contoh: FABIZO'),
               const SizedBox(height: 12),
               _SheetField(label: 'Nama Pemilik', ctrl: pemilikCtrl,
                   hint: 'Nama pemilik toko'),

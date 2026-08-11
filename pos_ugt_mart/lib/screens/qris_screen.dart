@@ -21,6 +21,7 @@ class _QrisScreenState extends State<QrisScreen> {
   static const _banks = ['BCA', 'Mandiri', 'BRI', 'BNI', 'BSI', 'Lainnya'];
 
   String? _qrisProviderSel;
+  final _qrisProviderLainnyaCtrl = TextEditingController();
   final _qrisNamaCtrl = TextEditingController();
   final _qrisHpCtrl = TextEditingController();
   Uint8List? _pickedImageBytes;
@@ -28,6 +29,7 @@ class _QrisScreenState extends State<QrisScreen> {
   bool _savingQris = false;
 
   String? _bankSel;
+  final _bankLainnyaCtrl = TextEditingController();
   final _bankRekeningCtrl = TextEditingController();
   final _bankAtasNamaCtrl = TextEditingController();
   bool _savingBank = false;
@@ -36,18 +38,36 @@ class _QrisScreenState extends State<QrisScreen> {
   void initState() {
     super.initState();
     final prov = context.read<AppProvider>();
-    _qrisProviderSel = prov.qrisProvider.isNotEmpty ? prov.qrisProvider : null;
+
+    if (prov.qrisProvider.isEmpty) {
+      _qrisProviderSel = null;
+    } else if (_qrisProviders.contains(prov.qrisProvider)) {
+      _qrisProviderSel = prov.qrisProvider;
+    } else {
+      _qrisProviderSel = 'Lainnya';
+      _qrisProviderLainnyaCtrl.text = prov.qrisProvider;
+    }
     _qrisNamaCtrl.text = prov.qrisAtasNama;
     _qrisHpCtrl.text = prov.qrisNoHp;
-    _bankSel = prov.bankNama.isNotEmpty ? prov.bankNama : null;
+
+    if (prov.bankNama.isEmpty) {
+      _bankSel = null;
+    } else if (_banks.contains(prov.bankNama)) {
+      _bankSel = prov.bankNama;
+    } else {
+      _bankSel = 'Lainnya';
+      _bankLainnyaCtrl.text = prov.bankNama;
+    }
     _bankRekeningCtrl.text = prov.bankNoRekening;
     _bankAtasNamaCtrl.text = prov.bankAtasNama;
   }
 
   @override
   void dispose() {
+    _qrisProviderLainnyaCtrl.dispose();
     _qrisNamaCtrl.dispose();
     _qrisHpCtrl.dispose();
+    _bankLainnyaCtrl.dispose();
     _bankRekeningCtrl.dispose();
     _bankAtasNamaCtrl.dispose();
     super.dispose();
@@ -71,6 +91,12 @@ class _QrisScreenState extends State<QrisScreen> {
       prov.showToast('Pilih penyedia QRIS terlebih dahulu');
       return;
     }
+    final isLainnya = _qrisProviderSel == 'Lainnya';
+    final provider = isLainnya ? _qrisProviderLainnyaCtrl.text.trim() : _qrisProviderSel!;
+    if (isLainnya && provider.isEmpty) {
+      prov.showToast('Isi nama penyedia QRIS');
+      return;
+    }
     if (_qrisNamaCtrl.text.trim().isEmpty) {
       prov.showToast('Isi atas nama QRIS');
       return;
@@ -85,7 +111,7 @@ class _QrisScreenState extends State<QrisScreen> {
     }
     setState(() => _savingQris = true);
     final ok = await prov.saveQris(
-      provider: _qrisProviderSel!,
+      provider: provider,
       atasNama: _qrisNamaCtrl.text,
       noHp: _qrisHpCtrl.text,
       imageBytes: _pickedImageBytes,
@@ -102,6 +128,12 @@ class _QrisScreenState extends State<QrisScreen> {
       prov.showToast('Pilih nama bank terlebih dahulu');
       return;
     }
+    final isLainnya = _bankSel == 'Lainnya';
+    final bank = isLainnya ? _bankLainnyaCtrl.text.trim() : _bankSel!;
+    if (isLainnya && bank.isEmpty) {
+      prov.showToast('Isi nama bank');
+      return;
+    }
     if (_bankRekeningCtrl.text.trim().isEmpty) {
       prov.showToast('Isi nomor rekening');
       return;
@@ -112,7 +144,7 @@ class _QrisScreenState extends State<QrisScreen> {
     }
     setState(() => _savingBank = true);
     final ok = await prov.saveRekening(
-      bank: _bankSel!,
+      bank: bank,
       noRekening: _bankRekeningCtrl.text,
       atasNama: _bankAtasNamaCtrl.text,
     );
@@ -174,6 +206,10 @@ class _QrisScreenState extends State<QrisScreen> {
             items: _qrisProviders,
             onChanged: (v) => setState(() => _qrisProviderSel = v),
           ),
+          if (_qrisProviderSel == 'Lainnya') ...[
+            const SizedBox(height: 10),
+            _TextInput(controller: _qrisProviderLainnyaCtrl, hint: 'Nama penyedia QRIS'),
+          ],
           const SizedBox(height: 14),
           _FieldLabel('Atas Nama'),
           const SizedBox(height: 6),
@@ -223,6 +259,10 @@ class _QrisScreenState extends State<QrisScreen> {
             items: _banks,
             onChanged: (v) => setState(() => _bankSel = v),
           ),
+          if (_bankSel == 'Lainnya') ...[
+            const SizedBox(height: 10),
+            _TextInput(controller: _bankLainnyaCtrl, hint: 'Nama bank'),
+          ],
           const SizedBox(height: 14),
           _FieldLabel('Nomor Rekening'),
           const SizedBox(height: 6),
@@ -346,10 +386,6 @@ class _Dropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Pastikan value lama (mis. hasil input manual sebelumnya) tetap muncul walau di luar daftar preset.
-    final options = value != null && value!.isNotEmpty && !items.contains(value)
-        ? [...items, value!]
-        : items;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
@@ -364,7 +400,7 @@ class _Dropdown extends StatelessWidget {
           hint: Text(hint, style: GoogleFonts.inter(fontSize: 14, color: AppColors.textDim)),
           icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textDim),
           style: GoogleFonts.inter(fontSize: 14, color: AppColors.text),
-          items: options
+          items: items
               .map((e) => DropdownMenuItem(value: e, child: Text(e)))
               .toList(),
           onChanged: onChanged,

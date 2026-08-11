@@ -35,16 +35,21 @@ class PurchaseItem {
 }
 
 class Purchase {
+  int? dbId; // primary key tabel `pembelian` di Supabase — dipakai untuk RPC cicilan
   final String id; // no_faktur: PO-YYYYMMDD-NNN
   final String supplierNama;
   final String tanggal; // display: DD Bln YYYY
   final String tanggalIso; // YYYY-MM-DD for DB
   final String jam;
   final int total;
-  final String status; // Lunas / Hutang
+  String status; // Lunas / Hutang — berubah setelah dilunasi/dicicil
+  int terbayar; // jumlah yang sudah dibayar — bertambah setelah dicicil
   final List<PurchaseItem> items;
 
+  int get sisaHutang => total - terbayar;
+
   Purchase({
+    this.dbId,
     required this.id,
     required this.supplierNama,
     required this.tanggal,
@@ -52,6 +57,7 @@ class Purchase {
     required this.jam,
     required this.total,
     required this.status,
+    this.terbayar = 0,
     required this.items,
   });
 }
@@ -67,6 +73,7 @@ List<Purchase> dummyPurchases = [
     jam: '09:15',
     total: 1350000,
     status: 'Lunas',
+    terbayar: 1350000,
     items: [
       PurchaseItem(productId: 'BRG-001', namaProduk: 'Indomie Goreng 85g', qty: 200, hargaBeli: 2800),
       PurchaseItem(productId: 'BRG-003', namaProduk: 'Minyak Goreng Sania 2L', qty: 10, hargaBeli: 35000),

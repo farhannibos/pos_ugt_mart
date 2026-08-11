@@ -19,8 +19,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   final _voucherCtrl = TextEditingController();
 
   static const _methods = [
-    _PayMethod(id: 'Tunai',              label: 'Tunai',   icon: Icons.payments_outlined),
-    _PayMethod(id: 'QRIS',               label: 'QRIS',    icon: Icons.qr_code_2),
+    _PayMethod(id: 'Tunai',              label: 'Tunai',   asset: 'assets/icons/ic_wallet.png'),
+    _PayMethod(id: 'QRIS',               label: 'QRIS',    asset: 'assets/icons/ic_qr.png'),
     _PayMethod(id: 'Kartu Debit/Kredit', label: 'Kartu',   icon: Icons.credit_card_outlined),
     _PayMethod(id: 'Voucher',            label: 'Voucher', icon: Icons.confirmation_number_outlined),
   ];
@@ -185,8 +185,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(m.icon, size: 20,
-                                        color: active ? Colors.white : AppColors.textDim),
+                                    m.asset != null
+                                        ? Opacity(
+                                            opacity: active ? 1.0 : 0.45,
+                                            child: Image.asset(m.asset!, width: 20, fit: BoxFit.contain),
+                                          )
+                                        : Icon(m.icon, size: 20,
+                                            color: active ? Colors.white : AppColors.textDim),
                                     const SizedBox(height: 4),
                                     Text(m.label,
                                         style: GoogleFonts.inter(
@@ -730,8 +735,9 @@ class _TotalRow extends StatelessWidget {
 class _PayMethod {
   final String id;
   final String label;
-  final IconData icon;
-  const _PayMethod({required this.id, required this.label, required this.icon});
+  final IconData? icon;
+  final String? asset;
+  const _PayMethod({required this.id, required this.label, this.icon, this.asset});
 }
 
 class _ThousandSeparatorFormatter extends TextInputFormatter {

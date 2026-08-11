@@ -160,7 +160,7 @@ class _ProductScreenState extends State<ProductScreen> {
 
                           Row(children: [
                             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              _fieldLabel('Stok Awal'),
+                              _fieldLabel('Stok'),
                               TextFormField(
                                 controller: stokCtrl,
                                 keyboardType: TextInputType.number,

@@ -311,7 +311,7 @@ void showBukaShiftDialog(BuildContext context, AppProvider prov) {
               width: 52,
               height: 52,
               decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(16)),
-              child: const Icon(Icons.play_arrow_rounded, color: AppColors.primary, size: 28),
+              child: Center(child: Image.asset('assets/icons/ic_shift.png', width: 28, fit: BoxFit.contain)),
             ),
             const SizedBox(height: 12),
             Text('Buka Shift', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text)),

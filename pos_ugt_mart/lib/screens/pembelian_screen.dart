@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
 import '../models/purchase.dart';
+import '../services/db_service.dart';
 import '../widgets/ugt_widgets.dart';
 import 'tambah_pembelian_screen.dart';
 import 'supplier_screen.dart';
@@ -40,11 +42,11 @@ class _PembelianScreenState extends State<PembelianScreen> {
       body: Column(
         children: [
           // Header
-          Container(
-            color: AppColors.primary,
-            child: SafeArea(
-              bottom: false,
-              child: ClipRRect(
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(color: AppColors.primary, height: MediaQuery.of(context).padding.top),
+              ClipRRect(
                 borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
                 child: Builder(
                   builder: (ctx) {
@@ -134,7 +136,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                                       label: 'Hutang',
                                       value: formatRp(dummyPurchases
                                         .where((p) => p.status == 'Hutang')
-                                        .fold(0, (s, p) => s + p.total)),
+                                        .fold(0, (s, p) => s + p.sisaHutang)),
                                     ),
                                   ),
                                 ],
@@ -147,7 +149,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                   },
                 ),
               ),
-            ),
+            ],
           ),
 
           // Filter chips
@@ -212,7 +214,10 @@ class _PembelianScreenState extends State<PembelianScreen> {
                           padding: EdgeInsets.fromLTRB(16, 12, 16, isWide ? 24 : 100),
                           itemCount: _filtered.length,
                           separatorBuilder: (_, __) => const SizedBox(height: 10),
-                          itemBuilder: (ctx, i) => _PurchaseCard(purchase: _filtered[i]),
+                          itemBuilder: (ctx, i) => _PurchaseCard(
+                            purchase: _filtered[i],
+                            onChanged: () => setState(() {}),
+                          ),
                         ),
                       ),
                     ),
@@ -269,7 +274,8 @@ class _HeaderStat extends StatelessWidget {
 
 class _PurchaseCard extends StatelessWidget {
   final Purchase purchase;
-  const _PurchaseCard({required this.purchase});
+  final VoidCallback onChanged;
+  const _PurchaseCard({required this.purchase, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -348,24 +354,63 @@ class _PurchaseCard extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _PurchaseDetailSheet(purchase: purchase),
+      builder: (_) => _PurchaseDetailSheet(purchase: purchase, onChanged: onChanged),
     );
   }
 }
 
-class _PurchaseDetailSheet extends StatelessWidget {
+class _PurchaseDetailSheet extends StatefulWidget {
   final Purchase purchase;
-  const _PurchaseDetailSheet({required this.purchase});
+  final VoidCallback onChanged;
+  const _PurchaseDetailSheet({required this.purchase, required this.onChanged});
+
+  @override
+  State<_PurchaseDetailSheet> createState() => _PurchaseDetailSheetState();
+}
+
+class _PurchaseDetailSheetState extends State<_PurchaseDetailSheet> {
+  final _nominalCtrl = TextEditingController();
+  bool _loading = false;
+
+  Purchase get purchase => widget.purchase;
+
+  @override
+  void dispose() {
+    _nominalCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _bayar(int nominal) async {
+    if (nominal <= 0 || nominal > purchase.sisaHutang) return;
+    setState(() => _loading = true);
+    final prov = context.read<AppProvider>();
+    final ok = await DbService.catatCicilanHutang(purchase, nominal);
+    if (!mounted) return;
+    setState(() => _loading = false);
+    if (ok) {
+      _nominalCtrl.clear();
+      widget.onChanged();
+      prov.showToast(purchase.status == 'Lunas'
+          ? 'Hutang berhasil dilunasi'
+          : 'Cicilan Rp${formatRp(nominal)} tercatat');
+      setState(() {});
+      if (purchase.status == 'Lunas' && mounted) Navigator.of(context).pop();
+    } else {
+      prov.showToast('Gagal mencatat pembayaran, cek koneksi');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-      child: Column(
+      child: SingleChildScrollView(
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -427,7 +472,86 @@ class _PurchaseDetailSheet extends StatelessWidget {
               Text(formatRp(purchase.total), style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primary)),
             ],
           ),
-          const SizedBox(height: 20),
+          if (purchase.status == 'Hutang') ...[
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Sudah dibayar', style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.textDim)),
+                Text(formatRp(purchase.terbayar), style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.textDim)),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Sisa Hutang', style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.yellowText)),
+                Text(formatRp(purchase.sisaHutang), style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.yellowText)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text('Bayar Sebagian', style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.bg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  const SizedBox(width: 12),
+                  Text('Rp', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDim)),
+                  Expanded(
+                    child: TextField(
+                      controller: _nominalCtrl,
+                      enabled: !_loading,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.text),
+                      decoration: InputDecoration(
+                        hintText: '0',
+                        hintStyle: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textDim),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _loading ? null : () => _bayar(int.tryParse(_nominalCtrl.text) ?? 0),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      side: const BorderSide(color: AppColors.primary),
+                    ),
+                    child: Text('Bayar Sebagian', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary)),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _loading ? null : () => _bayar(purchase.sisaHutang),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                    ),
+                    child: _loading
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : Text('Lunasi', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+          ] else
+            const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -436,6 +560,7 @@ class _PurchaseDetailSheet extends StatelessWidget {
             ),
           ),
         ],
+        ),
       ),
     );
   }

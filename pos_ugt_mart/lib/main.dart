@@ -35,7 +35,7 @@ class UGTMartApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => AppProvider()..loadSettings(),
       child: MaterialApp(
-        title: 'POS UGT MART',
+        title: 'FABIZO',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.theme,
         home: const SplashScreen(),

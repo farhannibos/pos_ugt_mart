@@ -152,7 +152,7 @@ class _PrinterScreenState extends State<PrinterScreen> {
                                 color: AppColors.primary,
                                 borderRadius: BorderRadius.circular(13),
                               ),
-                              child: const Icon(Icons.print, color: Colors.white, size: 20),
+                              child: Image.asset('assets/icons/ic_printer.png', width: 20, fit: BoxFit.contain),
                             ),
                             const SizedBox(width: 12),
                             Expanded(

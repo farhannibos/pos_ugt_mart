@@ -50,7 +50,7 @@ class PrinterService {
     bytes += gen.feed(1);
     bytes += gen.text('Printer terhubung & siap digunakan', styles: PosStyles(align: PosAlign.center));
     bytes += gen.feed(1);
-    bytes += gen.text('UGT MART POS', styles: PosStyles(align: PosAlign.center));
+    bytes += gen.text('FABIZO POS', styles: PosStyles(align: PosAlign.center));
     bytes += gen.feed(3);
     bytes += gen.cut();
     return writeBytes(bytes);

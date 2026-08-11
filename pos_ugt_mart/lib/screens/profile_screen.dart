@@ -41,11 +41,11 @@ class ProfileScreen extends StatelessWidget {
         slivers: [
           // Green header
           SliverToBoxAdapter(
-            child: Container(
-              color: AppColors.primary,
-              child: SafeArea(
-                bottom: false,
-                child: ClipRRect(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(color: AppColors.primary, height: MediaQuery.of(context).padding.top),
+                ClipRRect(
                   borderRadius: const BorderRadius.vertical(bottom: Radius.circular(26)),
                   child: SizedBox(
                     height: isWide ? 180 : 148,
@@ -142,7 +142,7 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
           SliverToBoxAdapter(
@@ -371,7 +371,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  'UGT MART POS · v2.4.0',
+                  'FABIZO POS · v2.4.0',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.placeholder),
                 ),

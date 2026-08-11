@@ -108,7 +108,7 @@ class SettingsScreen extends StatelessWidget {
                       context,
                       label: 'Nama Toko',
                       currentValue: prov.storeName,
-                      hint: 'Contoh: UGT MART',
+                      hint: 'Contoh: FABIZO',
                       onSave: (v) => context.read<AppProvider>().setStoreName(v),
                     ),
                   ),
@@ -164,7 +164,7 @@ class SettingsScreen extends StatelessWidget {
                     iconBg: AppColors.primaryLight,
                     iconColor: AppColors.primary,
                     title: 'Dibuat oleh',
-                    value: 'UGT MART Dev Team',
+                    value: 'FABIZO Dev Team',
                     showBorder: false,
                   ),
                 ]),
@@ -436,7 +436,7 @@ class _PpnItem extends StatelessWidget {
             Container(
               width: 36, height: 36,
               decoration: BoxDecoration(color: const Color(0xFFF0FDF4), borderRadius: BorderRadius.circular(11)),
-              child: const Icon(Icons.percent_rounded, size: 17, color: AppColors.primary),
+              child: Center(child: Image.asset('assets/icons/ic_ppn.png', width: 18, fit: BoxFit.contain)),
             ),
             const SizedBox(width: 12),
             Expanded(

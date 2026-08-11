@@ -107,11 +107,11 @@ class _DashHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isWide = MediaQuery.of(context).size.width > 600;
-    return Container(
-      color: AppColors.primary,
-      child: SafeArea(
-        bottom: false,
-        child: ClipRRect(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(color: AppColors.primary, height: MediaQuery.of(context).padding.top),
+        ClipRRect(
           borderRadius: const BorderRadius.vertical(bottom: Radius.circular(26)),
           child: SizedBox(
             height: isWide ? 150 : 118,
@@ -188,7 +188,7 @@ class _DashHeader extends StatelessWidget {
                                 color: Colors.white.withValues(alpha: 0.16),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 18),
+                              child: Image.asset('assets/icons/ic_notif.png', width: 18, fit: BoxFit.contain),
                             ),
                             Positioned(
                               top: 8,
@@ -213,7 +213,7 @@ class _DashHeader extends StatelessWidget {
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 }

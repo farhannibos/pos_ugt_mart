@@ -531,6 +531,7 @@ class DbService {
           hargaBeli:  i['harga_beli'] as int? ?? 0,
         )).toList();
         dummyPurchases.add(Purchase(
+          dbId:         r['id'] as int?,
           id:           r['no_faktur'] as String,
           supplierNama: sup is Map ? (sup['nama'] as String? ?? '') : '',
           tanggal:      r['tanggal']?.toString() ?? '',
@@ -538,6 +539,7 @@ class DbService {
           jam:          r['created_at']?.toString().substring(11, 16) ?? '',
           total:        r['total'] as int,
           status:       r['status'] as String,
+          terbayar:     r['terbayar'] as int? ?? 0,
           items:        items,
         ));
       }
@@ -551,16 +553,20 @@ class DbService {
   static Future<void> _savePurchaseAsync(Purchase purchase, String? supplierId, String operatorNama) async {
     if (_idToko == null) return;
     try {
+      final terbayarAwal = purchase.status == 'Lunas' ? purchase.total : 0;
       final result = await _db.from('pembelian').insert({
         'id_toko':   _idToko,
         'no_faktur': purchase.id,
         'tanggal':   purchase.tanggalIso,
         'total':     purchase.total,
         'status':    purchase.status,
+        'terbayar':  terbayarAwal,
         if (supplierId != null) 'id_supplier': int.tryParse(supplierId),
       }).select('id').single();
 
       final pembelianId = result['id'] as int;
+      purchase.dbId = pembelianId;
+      purchase.terbayar = terbayarAwal;
 
       for (final item in purchase.items) {
         await _db.from('pembelian_item').insert({
@@ -580,6 +586,40 @@ class DbService {
         }
       }
     } catch (_) {}
+  }
+
+  // Catat pelunasan/cicilan hutang pembelian. Mengembalikan true jika berhasil,
+  // dan langsung memutakhirkan `purchase.terbayar` & `purchase.status` (mutable).
+  static Future<bool> catatCicilanHutang(Purchase purchase, int nominal) async {
+    if (_idToko == null || purchase.dbId == null || nominal <= 0) return false;
+    try {
+      final newTerbayar = (purchase.terbayar + nominal).clamp(0, purchase.total);
+      final newStatus = newTerbayar >= purchase.total ? 'Lunas' : 'Hutang';
+      final now = DateTime.now();
+      final tanggalIso =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+      final ok = await _db.rpc('catat_cicilan', params: {
+        'p_jenis':        'hutang',
+        'p_id_induk':     purchase.dbId,
+        'p_id_toko':      _idToko,
+        'p_no_referensi': purchase.id,
+        'p_terbayar':     newTerbayar,
+        'p_status':       newStatus,
+        'p_nominal':      nominal,
+        'p_metode':       'Tunai',
+        'p_tanggal':      tanggalIso,
+      }) as bool? ?? false;
+
+      if (ok) {
+        purchase.terbayar = newTerbayar;
+        purchase.status = newStatus;
+      }
+      return ok;
+    } catch (e) {
+      debugPrint('[DB] catatCicilanHutang ERROR: $e');
+      return false;
+    }
   }
 
   // ─── Shift Kasir ────────────────────────────────────────────────────────────

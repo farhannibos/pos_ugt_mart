@@ -69,7 +69,7 @@ class ReceiptService {
     Transaction trx,
     Map<String, dynamic> meta,
   ) async {
-    final storeName = meta['storeName'] as String? ?? 'UGT MART';
+    final storeName = meta['storeName'] as String? ?? 'FABIZO';
     final alamat    = meta['alamat']    as String? ?? '';
     final kasir     = meta['kasir']     as String? ?? '';
     final subtotal  = meta['subtotal']  as int?    ?? trx.total;
@@ -190,7 +190,7 @@ class ReceiptService {
   static Future<Uint8List> _buildPdf(Transaction trx, Map<String, dynamic> meta) async {
     final doc = pw.Document();
 
-    final storeName = meta['storeName'] as String? ?? 'UGT MART';
+    final storeName = meta['storeName'] as String? ?? 'FABIZO';
     final alamat    = meta['alamat']    as String? ?? '';
     final kasir     = meta['kasir']     as String? ?? '';
     final subtotal  = meta['subtotal']  as int?    ?? trx.total;
