@@ -30,6 +30,9 @@ class Product {
   }
 
   bool get isLowStock => stok <= stokMin;
+
+  static const bulkSatuan = {'Kg', 'Gram', 'Liter', 'mL'};
+  bool get isBulk => bulkSatuan.contains(satuan);
 }
 
 final List<String> dummyKategori = [];

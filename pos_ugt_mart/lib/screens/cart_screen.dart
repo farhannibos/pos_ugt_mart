@@ -307,6 +307,7 @@ class _CartItem extends StatelessWidget {
       (p) => p.id == cartItem.productId,
       orElse: () => Product(id: '', nama: '', kategori: '', harga: 0, stok: 0, barcode: ''),
     );
+    final isBulk = cartItem.isBulk as bool;
     return UGTCard(
       padding: const EdgeInsets.all(12),
       child: Row(
@@ -324,7 +325,7 @@ class _CartItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${formatRp(cartItem.harga)} / ${produk.satuan}',
+                  '${formatRp(cartItem.harga)} / ${cartItem.satuan}',
                   style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textDim),
                 ),
                 const SizedBox(height: 4),
@@ -335,7 +336,37 @@ class _CartItem extends StatelessWidget {
               ],
             ),
           ),
-          QtyControl(qty: cartItem.qty, onInc: onInc, onDec: onDec),
+          if (isBulk)
+            GestureDetector(
+              onTap: () async {
+                final prov = context.read<AppProvider>();
+                final qty = await showBulkInputDialog(
+                  context, produk, initial: cartItem.qty as double);
+                if (qty != null) prov.setBulkQty(cartItem.productId as String, qty);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(color: AppColors.primaryMid),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      formatQty(cartItem.qty as double, cartItem.satuan as String),
+                      style: GoogleFonts.inter(
+                        fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.primaryDark),
+                    ),
+                    const SizedBox(width: 5),
+                    const Icon(Icons.edit_outlined, size: 13, color: AppColors.primaryDark),
+                  ],
+                ),
+              ),
+            )
+          else
+            QtyControl(qty: (cartItem.qty as double).round(), onInc: onInc, onDec: onDec),
         ],
       ),
     );

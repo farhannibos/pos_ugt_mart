@@ -141,10 +141,42 @@ class AppProvider extends ChangeNotifier {
         nama: product.nama,
         harga: product.harga,
         qty: 1,
+        satuan: product.satuan,
       );
     }
     notifyListeners();
     showToast('${product.nama} ditambahkan');
+  }
+
+  void addBulkToCart(Product product, double qty) {
+    if (qty <= 0) return;
+    if (product.stok <= 0) {
+      showToast('Stok ${product.nama} habis!');
+      return;
+    }
+    if (qty > product.stok) {
+      showToast('Stok tidak mencukupi (tersisa ${product.stok} ${product.satuan})');
+      return;
+    }
+    cart[product.id] = CartItem(
+      productId: product.id,
+      nama: product.nama,
+      harga: product.harga,
+      qty: qty,
+      satuan: product.satuan,
+    );
+    notifyListeners();
+    showToast('${product.nama} ditambahkan');
+  }
+
+  void setBulkQty(String productId, double qty) {
+    if (!cart.containsKey(productId)) return;
+    if (qty <= 0) {
+      cart.remove(productId);
+    } else {
+      cart[productId]!.qty = qty;
+    }
+    notifyListeners();
   }
 
   void incrementCart(String productId) {
@@ -180,7 +212,7 @@ class AppProvider extends ChangeNotifier {
     showToast('Keranjang dikosongkan');
   }
 
-  int get cartItemCount => cart.values.fold(0, (s, i) => s + i.qty);
+  int get cartItemCount => cart.length;
   bool get hasCart => cart.isNotEmpty;
 
   int get subtotal => cart.values.fold(0, (s, i) => s + i.subtotal);
@@ -242,14 +274,14 @@ class AppProvider extends ChangeNotifier {
     for (final item in cart.values) {
       final idx = dummyProducts.indexWhere((p) => p.id == item.productId);
       if (idx >= 0) {
-        dummyProducts[idx].stok = (dummyProducts[idx].stok - item.qty).clamp(0, 999999);
+        dummyProducts[idx].stok = (dummyProducts[idx].stok - item.qty).round().clamp(0, 999999);
         // Stok di DB dikurangi oleh trigger fn_kurangi_stok_penjualan
         // saat INSERT transaksi_item — tidak perlu update manual.
       }
     }
 
     final cartSnapshot = cart.values
-        .map((c) => CartItem(productId: c.productId, nama: c.nama, harga: c.harga, qty: c.qty))
+        .map((c) => CartItem(productId: c.productId, nama: c.nama, harga: c.harga, qty: c.qty, satuan: c.satuan))
         .toList();
 
     final tanggal = '${now.day.toString().padLeft(2, '0')} ${_bulan(now.month)} ${now.year}';

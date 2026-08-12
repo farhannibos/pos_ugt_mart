@@ -2,16 +2,20 @@ class CartItem {
   final String productId;
   final String nama;
   final int harga;
-  int qty;
+  double qty;
+  final String satuan;
 
   CartItem({
     required this.productId,
     required this.nama,
     required this.harga,
     required this.qty,
+    this.satuan = 'Pcs',
   });
 
-  int get subtotal => harga * qty;
+  bool get isBulk => const {'Kg', 'Gram', 'Liter', 'mL'}.contains(satuan);
+
+  int get subtotal => (harga * qty).round();
 
   String get initials {
     final words = nama.split(' ');

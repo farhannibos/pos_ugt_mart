@@ -246,7 +246,8 @@ class DbService {
         productId: i['id_produk']?.toString() ?? '',
         nama:      i['nama_produk'] as String? ?? '',
         harga:     i['harga'] as int,
-        qty:       i['qty'] as int,
+        qty:       ((i['qty'] as num?) ?? 1).toDouble(),
+        satuan:    i['satuan'] as String? ?? 'Pcs',
       )).toList();
       dummyHistory.add(Transaction(
         id:       r['no_faktur'] as String? ?? r['id'].toString(),
@@ -325,6 +326,7 @@ class DbService {
           'nama_produk':  item.nama,
           'harga':        item.harga,
           'qty':          item.qty,
+          'satuan':       item.satuan,
         }),
       ));
     } catch (e) {

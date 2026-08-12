@@ -792,7 +792,12 @@ class _ProductScreenState extends State<ProductScreen> {
                             );
                             if (!context.mounted || result == null) return;
                             if (result is Product) {
-                              prov.addToCart(result);
+                              if (result.isBulk) {
+                                final qty = await showBulkInputDialog(context, result);
+                                if (qty != null && context.mounted) prov.addBulkToCart(result, qty);
+                              } else {
+                                prov.addToCart(result);
+                              }
                               setState(() {
                                 _query = '';
                                 _searchCtrl.clear();
@@ -992,7 +997,16 @@ class _ProductCard extends StatelessWidget {
       color: Colors.white,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
-        onTap: isNonAktif ? null : () => prov.addToCart(product),
+        onTap: isNonAktif
+            ? null
+            : () async {
+                if (product.isBulk) {
+                  final qty = await showBulkInputDialog(context, product);
+                  if (qty != null && context.mounted) prov.addBulkToCart(product, qty);
+                } else {
+                  prov.addToCart(product);
+                }
+              },
         onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(18),
         child: Container(
@@ -1080,7 +1094,15 @@ class _ProductCard extends StatelessWidget {
                   builder: (_, prov, __) {
                     final inCart = prov.cart.containsKey(product.id);
                     return GestureDetector(
-                      onTap: () => prov.addToCart(product),
+                      onTap: () async {
+                        if (product.isBulk) {
+                          final qty = await showBulkInputDialog(context, product,
+                              initial: prov.cart[product.id]?.qty);
+                          if (qty != null && context.mounted) prov.addBulkToCart(product, qty);
+                        } else {
+                          prov.addToCart(product);
+                        }
+                      },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         width: 36,

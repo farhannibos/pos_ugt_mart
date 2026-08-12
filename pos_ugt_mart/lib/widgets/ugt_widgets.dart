@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import '../models/product.dart';
 import 'package:intl/intl.dart';
 
 String formatRp(int amount) {
@@ -12,6 +13,237 @@ String formatRpShort(int amount) {
   if (amount >= 1000000) return 'Rp ${(amount / 1000000).toStringAsFixed(1)}jt';
   if (amount >= 1000) return 'Rp ${(amount / 1000).toStringAsFixed(0)}k';
   return formatRp(amount);
+}
+
+String formatQty(double qty, String satuan) {
+  final display = qty == qty.roundToDouble()
+      ? qty.round().toString()
+      : qty.toStringAsFixed(3).replaceAll(RegExp(r'0+$'), '');
+  return '$display $satuan';
+}
+
+Future<double?> showBulkInputDialog(
+  BuildContext context,
+  Product product, {
+  double? initial,
+}) {
+  return showDialog<double>(
+    context: context,
+    builder: (ctx) => _BulkInputDialog(product: product, initial: initial),
+  );
+}
+
+class _BulkInputDialog extends StatefulWidget {
+  final Product product;
+  final double? initial;
+  const _BulkInputDialog({required this.product, this.initial});
+
+  @override
+  State<_BulkInputDialog> createState() => _BulkInputDialogState();
+}
+
+class _BulkInputDialogState extends State<_BulkInputDialog> {
+  String _input = '';
+
+  @override
+  void initState() {
+    super.initState();
+    final v = widget.initial;
+    if (v != null && v > 0) {
+      _input = v == v.roundToDouble()
+          ? v.round().toString()
+          : v.toStringAsFixed(3).replaceAll(RegExp(r'0+$'), '');
+    }
+  }
+
+  void _onKey(String key) {
+    setState(() {
+      if (key == '⌫') {
+        if (_input.isNotEmpty) _input = _input.substring(0, _input.length - 1);
+      } else if (key == '.') {
+        if (!_input.contains('.')) _input += '.';
+      } else {
+        if (_input.length >= 8) return;
+        _input += key;
+      }
+    });
+  }
+
+  double get _qty => double.tryParse(_input) ?? 0;
+  int get _subtotal => (widget.product.harga * _qty).round();
+
+  @override
+  Widget build(BuildContext context) {
+    final product = widget.product;
+    final hasQty = _qty > 0;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      backgroundColor: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Text(
+              product.nama,
+              style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.text),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '${formatRp(product.harga)} / ${product.satuan}',
+              style: GoogleFonts.inter(fontSize: 12, color: AppColors.textDim),
+            ),
+            const SizedBox(height: 16),
+            // Input display
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: AppColors.bg,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: hasQty ? AppColors.primary : AppColors.border, width: hasQty ? 1.5 : 1),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    _input.isEmpty ? '0' : _input,
+                    style: GoogleFonts.poppins(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w700,
+                      color: _input.isEmpty ? AppColors.textDim : AppColors.text,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    product.satuan,
+                    style: GoogleFonts.inter(fontSize: 14, color: AppColors.textDim),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            // Subtotal
+            SizedBox(
+              height: 20,
+              child: hasQty
+                  ? Text(
+                      'Subtotal: ${formatRp(_subtotal)}',
+                      style: GoogleFonts.inter(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(height: 12),
+            // Numpad
+            _Numpad(onKey: _onKey),
+            const SizedBox(height: 16),
+            // Actions
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+                      side: const BorderSide(color: AppColors.border),
+                    ),
+                    child: Text('Batal',
+                      style: GoogleFonts.inter(fontSize: 13, color: AppColors.textDim)),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: hasQty ? () => Navigator.of(context).pop(_qty) : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      disabledBackgroundColor: AppColors.border,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      '+ Tambah ke Keranjang',
+                      style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Numpad extends StatelessWidget {
+  final void Function(String) onKey;
+  const _Numpad({required this.onKey});
+
+  @override
+  Widget build(BuildContext context) {
+    const keys = [
+      ['1', '2', '3'],
+      ['4', '5', '6'],
+      ['7', '8', '9'],
+      ['.', '0', '⌫'],
+    ];
+    return Column(
+      children: keys.map((row) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: row.map((k) {
+              final isBackspace = k == '⌫';
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Material(
+                    color: isBackspace ? const Color(0xFFFEF2F2) : AppColors.bg,
+                    borderRadius: BorderRadius.circular(12),
+                    child: InkWell(
+                      onTap: () => onKey(k),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        height: 52,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        alignment: Alignment.center,
+                        child: isBackspace
+                            ? const Icon(Icons.backspace_outlined, size: 18, color: AppColors.red)
+                            : Text(
+                                k,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.text,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        );
+      }).toList(),
+    );
+  }
 }
 
 class UGTAppBar extends StatelessWidget implements PreferredSizeWidget {
