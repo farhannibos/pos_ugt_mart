@@ -23,6 +23,7 @@ dependencies:
   esc_pos_utils_plus: ^2.0.3
   image_picker: ^1.1.2
   tutorial_coach_mark: ^1.3.3
+  video_player: ^2.9.2
 
 dev_dependencies:
   flutter_test:
@@ -35,3 +36,4 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/videos/
