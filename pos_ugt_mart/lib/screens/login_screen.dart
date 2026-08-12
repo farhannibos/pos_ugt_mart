@@ -6,6 +6,7 @@ import '../providers/app_provider.dart';
 import '../widgets/gradient_wave.dart';
 import 'main_scaffold.dart';
 import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -279,12 +280,17 @@ class _LoginScreenState extends State<LoginScreen>
                                         ),
                                       ),
                                       const Spacer(),
-                                      Text(
-                                        'Lupa Password?',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.primary,
+                                      GestureDetector(
+                                        onTap: () => Navigator.of(context).push(
+                                          MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                                        ),
+                                        child: Text(
+                                          'Lupa Password?',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.primary,
+                                          ),
                                         ),
                                       ),
                                     ],

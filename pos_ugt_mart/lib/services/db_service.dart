@@ -872,6 +872,36 @@ class DbService {
     }
   }
 
+  static Future<Map<String, dynamic>> requestPasswordReset(String username) async {
+    try {
+      final res = await _db.rpc('request_password_reset', params: {
+        'p_username': username,
+      });
+      if (res is Map) return Map<String, dynamic>.from(res);
+      return {'ok': false, 'pesan': 'Terjadi kesalahan'};
+    } catch (e) {
+      return {'ok': false, 'pesan': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> verifyResetOtpAndSetPassword(
+    String username,
+    String otp,
+    String newPassword,
+  ) async {
+    try {
+      final res = await _db.rpc('verify_reset_otp_and_set_password', params: {
+        'p_username': username,
+        'p_otp': otp,
+        'p_new_password': newPassword,
+      });
+      if (res is Map) return Map<String, dynamic>.from(res);
+      return {'ok': false, 'pesan': 'Terjadi kesalahan'};
+    } catch (e) {
+      return {'ok': false, 'pesan': e.toString()};
+    }
+  }
+
   // Bersihkan semua data lokal saat logout
   static Future<void> clearLocalData() async {
     _idToko = null;
