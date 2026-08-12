@@ -71,12 +71,7 @@ class TourService {
       targets: targets,
       colorShadow: const Color(0xFF0F172A),
       opacityShadow: 0.85,
-      textSkip: 'Lewati',
-      textStyleSkip: GoogleFonts.inter(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: Colors.white70,
-      ),
+      hideSkip: true,
       paddingFocus: 8,
       focusAnimationDuration: const Duration(milliseconds: 400),
       pulseAnimationDuration: const Duration(milliseconds: 800),
