@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   POS UGT MART — Admin Panel Script
+   POS FABIZO — Admin Panel Script
    ═══════════════════════════════════════════════════ */
 
 lucide.createIcons();
@@ -416,12 +416,8 @@ function updateDashboard() {
     const saldoKas = DATA_KAS.reduce((s, k) => k.tipe === 'masuk' ? s + k.nominal : s - k.nominal, 0);
     setEl('dash-kas', formatRp(saldoKas));
 
-    // ── Stok & kategori
-    const totalStok = DATA_BARANG.reduce((sum, b) => sum + b.stok, 0);
-    const katAktif  = DATA_KATEGORI.filter(k => k.status === 'Aktif').length;
+    // ── Supplier aktif
     const supAktif  = DATA_SUPPLIER.filter(s => s.status === 'Aktif').length;
-    setEl('dash-stok', totalStok.toLocaleString('id-ID'));
-    setEl('dash-kat-info', `Dari ${katAktif} kategori aktif`);
     setEl('dash-supplier-aktif', supAktif);
 
     // ── Transaksi terbaru (5 data)
@@ -3597,7 +3593,7 @@ function cetakLaporan(pageId) {
     const w = window.open('', '_blank');
     if (!w) { showToast('error', 'Popup diblokir browser. Izinkan popup untuk mencetak.'); return; }
     const judul = page.querySelector('h2')?.textContent || 'Laporan';
-    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${judul} — UGT MART</title>
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${judul} — FABIZO</title>
         <style>
             body{font-family:system-ui,-apple-system,sans-serif;padding:24px;color:#0f172a}
             h1{font-size:18px;margin:0 0 4px}
@@ -3608,7 +3604,7 @@ function cetakLaporan(pageId) {
             .td-actions,.page-actions,.laporan-filter{display:none}
         </style></head><body>
         <h1>${judul}</h1>
-        <div class="meta">UGT MART · Dicetak ${new Date().toLocaleString('id-ID')} oleh ${namaPetugas()}</div>
+        <div class="meta">FABIZO · Dicetak ${new Date().toLocaleString('id-ID')} oleh ${namaPetugas()}</div>
         ${[...page.querySelectorAll('table')].map(t => t.outerHTML).join('<br>')}
         </body></html>`);
     w.document.close();

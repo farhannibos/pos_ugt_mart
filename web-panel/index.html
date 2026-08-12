@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel — POS UGT MART</title>
+    <title>Admin Panel — POS FABIZO</title>
+    <link rel="icon" type="image/jpeg" href="assets/logo.jpeg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
@@ -22,14 +23,14 @@
         <canvas id="login-canvas" aria-hidden="true"></canvas>
         <div class="login-card">
             <div class="login-logo">
-                <div class="logo-icon" style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#16A34A,#22C55E);display:flex;align-items:center;justify-content:center;font-family:Poppins,sans-serif;font-weight:800;font-size:16px;color:#fff;box-shadow:0 4px 16px rgba(22,163,74,0.4)">UGT</div>
+                <div class="logo-icon" style="width:52px;height:52px;border-radius:14px;overflow:hidden;box-shadow:0 4px 16px rgba(22,163,74,0.4)"><img src="assets/logo.jpeg" alt="Logo" style="width:100%;height:100%;object-fit:cover"></div>
                 <div class="logo-text">
-                    <h1 style="font-family:Poppins,sans-serif;font-size:22px;font-weight:700;color:#0F172A">UGT MART</h1>
+                    <h1 style="font-family:Poppins,sans-serif;font-size:22px;font-weight:700;color:#0F172A">FABIZO</h1>
                     <span style="font-size:12px;color:#64748B">Sistem Point of Sale</span>
                 </div>
             </div>
             <div class="login-title">Selamat Datang</div>
-            <div class="login-sub">Masuk ke panel administrasi POS UGT MART</div>
+            <div class="login-sub">Masuk ke panel administrasi POS FABIZO</div>
 
             <!-- Tab switcher -->
             <div class="login-tabs">
@@ -64,7 +65,7 @@
             <!-- Panel: QR Code -->
             <div id="login-panel-qr" style="display:none;text-align:center;padding:8px 0">
                 <p style="font-size:12.5px;color:#64748B;margin-bottom:16px">
-                    Buka aplikasi mobile UGT MART, lalu scan QR di bawah ini
+                    Buka aplikasi mobile FABIZO, lalu scan QR di bawah ini
                 </p>
                 <div id="qr-wrap" style="display:inline-block;padding:12px;border:2px solid #E2E8F0;border-radius:16px;background:#fff;margin-bottom:12px;position:relative">
                     <div id="qr-canvas"></div>
@@ -89,9 +90,9 @@
     <!-- ========== SIDEBAR ========== -->
     <aside id="sidebar">
         <div class="sidebar-logo">
-            <div class="logo-icon">UGT</div>
+            <div class="logo-icon"><img src="assets/logo.jpeg" alt="Logo" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></div>
             <div class="logo-text">
-                <h1>UGT MART</h1><span>Admin Panel v1.0</span></div>
+                <h1>FABIZO</h1><span>Admin Panel v1.0</span></div>
         </div>
         <nav class="sidebar-nav">
             <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard',this,'Dashboard')">
@@ -172,7 +173,7 @@
         <header id="topbar">
             <button id="toggle-sidebar" onclick="toggleSidebar()" aria-label="Buka/Tutup Menu"><i data-lucide="menu"></i></button>
             <div class="breadcrumb">
-                <span>POS UGT MART</span><i data-lucide="chevron-right"></i>
+                <span>POS FABIZO</span><i data-lucide="chevron-right"></i>
                 <span class="bc-active" id="breadcrumb-label">Dashboard</span>
             </div>
             <div class="topbar-right">
@@ -223,14 +224,6 @@
                             <div class="stat-label">Total Piutang</div>
                             <div class="stat-value" id="dash-piutang">—</div>
                             <div class="stat-sub" id="dash-piutang-count">0 tagihan aktif</div>
-                        </div>
-                    </div>
-                    <div class="stat-card" style="--stat-color:#8B5CF6;--stat-bg:#EDE9FE">
-                        <div class="stat-icon"><i data-lucide="boxes"></i></div>
-                        <div class="stat-content">
-                            <div class="stat-label">Total Item Stok</div>
-                            <div class="stat-value" id="dash-stok">—</div>
-                            <div class="stat-sub" id="dash-kat-info">Dari — kategori</div>
                         </div>
                     </div>
                     <div class="stat-card" style="--stat-color:#EF4444;--stat-bg:#FEE2E2">
@@ -1289,7 +1282,7 @@
                 <div class="page-header">
                     <div class="page-title">
                         <h2>Pengaturan</h2>
-                        <p>Konfigurasi sistem POS UGT MART</p>
+                        <p>Konfigurasi sistem POS FABIZO</p>
                     </div>
                 </div>
                 <div class="settings-grid">
