@@ -137,47 +137,37 @@ class UsahaScreen extends StatelessWidget {
             // ── Card: Pajak ───────────────────────────────────────────────
             _TapCard(
               onTap: () => _showPpnSheet(context, prov.taxRate),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 34,
-                            height: 34,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryLight,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Center(
-                              child: Image.asset('assets/icons/ic_tax.png',
-                                  width: 18, fit: BoxFit.contain),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            'Pajak (${taxRate > 0 ? 'Aktif' : 'Tidak Aktif'})',
-                            style: GoogleFonts.inter(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.text,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Icon(Icons.chevron_right,
-                          color: AppColors.textDim, size: 20),
-                    ],
+                  Image.asset(
+                    'assets/icons/ic_tax.png',
+                    width: 44,
+                    height: 44,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    taxLabel,
-                    style: GoogleFonts.inter(
-                        fontSize: 13, color: AppColors.textDim),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Pajak (${taxRate > 0 ? 'Aktif' : 'Tidak Aktif'})',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.text,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          taxLabel,
+                          style: GoogleFonts.inter(
+                              fontSize: 13, color: AppColors.textDim),
+                        ),
+                      ],
+                    ),
                   ),
+                  const Icon(Icons.chevron_right,
+                      color: AppColors.textDim, size: 20),
                 ],
               ),
             ),
@@ -188,26 +178,33 @@ class UsahaScreen extends StatelessWidget {
               onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const QrisScreen())),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'QRIS & Rekening',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.text,
+                  Image.asset(
+                    'assets/icons/ic_qr.png',
+                    width: 44,
+                    height: 44,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'QRIS & Rekening',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.text,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        prov.qrisImageUrl.isNotEmpty ? 'QRIS aktif' : 'Belum diatur',
-                        style: GoogleFonts.inter(
-                            fontSize: 13, color: AppColors.textDim),
-                      ),
-                    ],
+                        const SizedBox(height: 3),
+                        Text(
+                          prov.qrisImageUrl.isNotEmpty ? 'QRIS aktif' : 'Belum diatur',
+                          style: GoogleFonts.inter(
+                              fontSize: 13, color: AppColors.textDim),
+                        ),
+                      ],
+                    ),
                   ),
                   const Icon(Icons.chevron_right,
                       color: AppColors.textDim, size: 20),
@@ -221,14 +218,21 @@ class UsahaScreen extends StatelessWidget {
               onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const PrinterScreen())),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Atur Struk',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.text,
+                  Image.asset(
+                    'assets/icons/ic_struk.png',
+                    width: 44,
+                    height: 44,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      'Atur Struk',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.text,
+                      ),
                     ),
                   ),
                   const Icon(Icons.chevron_right,
