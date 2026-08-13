@@ -352,6 +352,7 @@ body.dark .login-card {
     white-space: nowrap;
     overflow: hidden;
     transition: var(--transition);
+    flex-shrink: 0;
 }
 
 #sidebar.collapsed .nav-section-label {
@@ -373,6 +374,7 @@ body.dark .login-card {
     overflow: hidden;
     position: relative;
     user-select: none;
+    flex-shrink: 0;
 }
 
 .nav-item:hover {
