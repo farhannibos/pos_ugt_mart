@@ -375,11 +375,45 @@ body.dark .login-card {
     position: relative;
     user-select: none;
     flex-shrink: 0;
+    border: 1px solid transparent;
 }
 
 .nav-item:hover {
-    background: rgba(255, 255, 255, 0.06);
+    padding-top: 13px;
+    padding-bottom: 13px;
+    border-color: rgba(34, 197, 94, 0.4);
+    background: rgba(34, 197, 94, 0.08);
     color: rgba(255, 255, 255, 0.9);
+}
+
+.nav-item::before,
+.nav-item::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+}
+
+.nav-item::before {
+    top: 4px;
+    left: 4px;
+    border-top: 2px solid var(--primary-light);
+    border-left: 2px solid var(--primary-light);
+}
+
+.nav-item::after {
+    bottom: 4px;
+    right: 4px;
+    border-bottom: 2px solid var(--primary-light);
+    border-right: 2px solid var(--primary-light);
+}
+
+.nav-item:hover::before,
+.nav-item:hover::after {
+    opacity: 1;
 }
 
 .nav-item.active {
@@ -443,11 +477,46 @@ body.dark .login-card {
     white-space: nowrap;
     overflow: hidden;
     user-select: none;
+    position: relative;
+    border: 1px solid transparent;
 }
 
 .nav-sub-item:hover {
-    background: rgba(255, 255, 255, 0.05);
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-color: rgba(34, 197, 94, 0.35);
+    background: rgba(34, 197, 94, 0.07);
     color: rgba(255, 255, 255, 0.8);
+}
+
+.nav-sub-item::before,
+.nav-sub-item::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+}
+
+.nav-sub-item::before {
+    top: 3px;
+    left: 26px;
+    border-top: 1.5px solid var(--primary-light);
+    border-left: 1.5px solid var(--primary-light);
+}
+
+.nav-sub-item::after {
+    bottom: 3px;
+    right: 3px;
+    border-bottom: 1.5px solid var(--primary-light);
+    border-right: 1.5px solid var(--primary-light);
+}
+
+.nav-sub-item:hover::before,
+.nav-sub-item:hover::after {
+    opacity: 1;
 }
 
 .nav-sub-item.active {
@@ -479,11 +548,46 @@ body.dark .login-card {
     white-space: nowrap;
     overflow: hidden;
     user-select: none;
+    position: relative;
+    border: 1px solid transparent;
 }
 
 .nav-sub-sub-item:hover {
-    background: rgba(255, 255, 255, 0.04);
+    padding-top: 9px;
+    padding-bottom: 9px;
+    border-color: rgba(34, 197, 94, 0.3);
+    background: rgba(34, 197, 94, 0.06);
     color: rgba(255, 255, 255, 0.7);
+}
+
+.nav-sub-sub-item::before,
+.nav-sub-sub-item::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+}
+
+.nav-sub-sub-item::before {
+    top: 3px;
+    left: 44px;
+    border-top: 1.5px solid var(--primary-light);
+    border-left: 1.5px solid var(--primary-light);
+}
+
+.nav-sub-sub-item::after {
+    bottom: 3px;
+    right: 3px;
+    border-bottom: 1.5px solid var(--primary-light);
+    border-right: 1.5px solid var(--primary-light);
+}
+
+.nav-sub-sub-item:hover::before,
+.nav-sub-sub-item:hover::after {
+    opacity: 1;
 }
 
 .nav-sub-sub-item.active {
