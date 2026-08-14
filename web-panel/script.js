@@ -555,6 +555,55 @@ function hapusKategori(idx) {
 // ── BARANG CRUD ───────────────────────────────────────────────────
 let editBarangIdx = -1;
 let filteredBarang = [];
+let _fotoBarangFile = null;  // File object foto yang dipilih
+let _fotoBarangHapus = false; // flag: user hapus foto existing
+
+function previewFotoBarang(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+        showToast('error', 'Foto maksimal 2 MB!');
+        input.value = '';
+        return;
+    }
+    _fotoBarangFile = file;
+    _fotoBarangHapus = false;
+    const reader = new FileReader();
+    reader.onload = e => {
+        document.getElementById('fb-foto-img').src = e.target.result;
+        document.getElementById('fb-foto-preview').style.display = 'block';
+        document.getElementById('fb-foto-placeholder').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+}
+
+function hapusFotoBarang() {
+    _fotoBarangFile = null;
+    _fotoBarangHapus = true;
+    document.getElementById('fb-foto-input').value = '';
+    document.getElementById('fb-foto-img').src = '';
+    document.getElementById('fb-foto-preview').style.display = 'none';
+    document.getElementById('fb-foto-placeholder').style.display = 'flex';
+}
+
+function _resetFotoBarang() {
+    _fotoBarangFile = null;
+    _fotoBarangHapus = false;
+    document.getElementById('fb-foto-input').value = '';
+    document.getElementById('fb-foto-img').src = '';
+    document.getElementById('fb-foto-preview').style.display = 'none';
+    document.getElementById('fb-foto-placeholder').style.display = 'flex';
+}
+
+function _tampilFotoBarang(url) {
+    if (url) {
+        document.getElementById('fb-foto-img').src = url;
+        document.getElementById('fb-foto-preview').style.display = 'block';
+        document.getElementById('fb-foto-placeholder').style.display = 'none';
+    } else {
+        _resetFotoBarang();
+    }
+}
 
 function renderBarang(data) {
     data = data || DATA_BARANG;
@@ -565,9 +614,13 @@ function renderBarang(data) {
         ? data.map((b, i) => {
             const realIdx = DATA_BARANG.indexOf(b);
             const stokBadge = b.stok === 0 ? 'badge-red' : (b.stok <= b.stokMin ? 'badge-yellow' : 'badge-green');
+            const inisial = b.nama.trim().split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || '??';
+            const fotoHtml = b.fotoUrl
+                ? `<img src="${escapeHtml(b.fotoUrl)}" alt="${escapeHtml(b.nama)}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;vertical-align:middle;margin-right:8px" onerror="this.style.display='none'">`
+                : `<span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;background:var(--primary-light);color:var(--primary);font-size:11px;font-weight:700;vertical-align:middle;margin-right:8px;flex-shrink:0">${inisial}</span>`;
             return `<tr>
                 <td>${escapeHtml(b.kode || b.id)}</td>
-                <td><strong>${escapeHtml(b.nama)}</strong></td>
+                <td><div style="display:flex;align-items:center">${fotoHtml}<strong>${escapeHtml(b.nama)}</strong></div></td>
                 <td>${escapeHtml(b.kategori)}</td>
                 <td>${escapeHtml(b.satuan)}</td>
                 <td>${formatRp(b.hargaBeli)}</td>
@@ -593,6 +646,7 @@ function openTambahBarang() {
     document.getElementById('fb-stok').value = 0;
     document.getElementById('fb-stok-min').value = 10;
     document.getElementById('fb-status').value = 'Aktif';
+    _resetFotoBarang();
     openModal('modal-barang');
 }
 
@@ -610,6 +664,7 @@ function bukaEditBarang(idx) {
     document.getElementById('fb-stok-min').value = b.stokMin;
     document.getElementById('fb-barcode').value = b.barcode || '';
     document.getElementById('fb-status').value = b.status;
+    _tampilFotoBarang(b.fotoUrl || null);
     openModal('modal-barang');
 }
 
@@ -625,8 +680,22 @@ async function simpanBarang() {
     if (hargaJual < hargaBeli) { showToast('warning', 'Harga jual lebih kecil dari harga beli!'); }
 
     const isEdit = editBarangIdx >= 0;
+    const existing = isEdit ? DATA_BARANG[editBarangIdx] : null;
+
+    // Upload foto jika ada file baru
+    let fotoUrl = existing?.fotoUrl || null;
+    if (_fotoBarangHapus) fotoUrl = null;
+    if (_fotoBarangFile) {
+        try {
+            fotoUrl = await dbUploadFotoProduk(_fotoBarangFile, existing?.id || null);
+        } catch(e) {
+            showToast('warning', 'Foto gagal diupload, produk tetap disimpan tanpa foto');
+            fotoUrl = existing?.fotoUrl || null;
+        }
+    }
+
     const data = {
-        id:   isEdit ? DATA_BARANG[editBarangIdx].id : null,
+        id:   isEdit ? existing.id : null,
         kode: document.getElementById('fb-kode').value.trim(),
         nama,
         kategori,
@@ -637,6 +706,7 @@ async function simpanBarang() {
         stokMin: parseInt(document.getElementById('fb-stok-min').value) || 10,
         barcode: document.getElementById('fb-barcode').value.trim(),
         status: document.getElementById('fb-status').value,
+        fotoUrl,
     };
 
     const savedId = await dbUpsertProduct(data);

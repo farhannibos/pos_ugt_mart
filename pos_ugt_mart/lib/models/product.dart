@@ -9,6 +9,7 @@ class Product {
   final String barcode;
   final String status;
   final String satuan;
+  final String? fotoUrl;
 
   Product({
     required this.id,
@@ -21,6 +22,7 @@ class Product {
     required this.barcode,
     this.status = 'Aktif',
     this.satuan = 'Pcs',
+    this.fotoUrl,
   });
 
   String get initials {

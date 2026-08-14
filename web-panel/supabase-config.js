@@ -108,6 +108,15 @@ async function dbLoadProducts() {
     return data;
 }
 
+async function dbUploadFotoProduk(file, produkId) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const path = `${_currentIdToko}/${produkId || Date.now()}_${Date.now()}.${ext}`;
+    const { error } = await _sb.storage.from('produk-foto').upload(path, file, { upsert: true });
+    if (error) throw error;
+    const { data } = _sb.storage.from('produk-foto').getPublicUrl(path);
+    return data.publicUrl;
+}
+
 async function dbUpsertProduct(p) {
     const katEntry = DATA_KATEGORI.find(k => k.nama === p.kategori);
     const isNew = !p.id || isNaN(Number(p.id));
@@ -122,6 +131,7 @@ async function dbUpsertProduct(p) {
         barcode: p.barcode,
         status: p.status,
         id_kategori: katEntry && !isNaN(Number(katEntry.id)) ? Number(katEntry.id) : null,
+        foto_url: p.fotoUrl ?? null,
     };
 
     if (isNew) {
@@ -355,6 +365,7 @@ async function dbLoadAll() {
                 stokMin: r.stok_minimum ?? 10,
                 barcode: r.barcode ?? '',
                 status: r.status ?? 'Aktif',
+                fotoUrl: r.foto_url ?? null,
             });
         }
 

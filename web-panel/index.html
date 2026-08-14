@@ -1549,6 +1549,20 @@
             <div class="modal-body">
                 <form id="form-barang" onsubmit="return false">
                     <div class="form-grid">
+                        <div class="form-group form-full">
+                            <label>Foto Produk <span style="color:var(--text-3);font-weight:400">(opsional, maks. 2 MB)</span></label>
+                            <div id="fb-foto-area" onclick="document.getElementById('fb-foto-input').click()" style="border:2px dashed var(--border);border-radius:10px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color .2s;min-height:70px" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+                                <div id="fb-foto-preview" style="display:none;position:relative;flex-shrink:0">
+                                    <img id="fb-foto-img" src="" alt="preview" style="width:64px;height:64px;object-fit:cover;border-radius:8px;display:block">
+                                    <button type="button" onclick="event.stopPropagation();hapusFotoBarang()" style="position:absolute;top:-6px;right:-6px;background:#ef4444;border:none;border-radius:50%;width:20px;height:20px;color:white;cursor:pointer;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center" title="Hapus foto">&times;</button>
+                                </div>
+                                <div id="fb-foto-placeholder" style="display:flex;align-items:center;gap:10px;color:var(--text-3)">
+                                    <i data-lucide="image-plus" style="width:24px;height:24px"></i>
+                                    <span style="font-size:13px">Klik untuk upload foto produk</span>
+                                </div>
+                            </div>
+                            <input id="fb-foto-input" type="file" accept="image/jpeg,image/jpg,image/png,image/webp" style="display:none" onchange="previewFotoBarang(this)">
+                        </div>
                         <div class="form-group">
                             <label>Kode Barang</label>
                             <input id="fb-kode" class="form-control" disabled placeholder="Auto-generate">

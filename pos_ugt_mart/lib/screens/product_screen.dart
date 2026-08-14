@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
@@ -34,6 +35,8 @@ class _ProductScreenState extends State<ProductScreen> {
     String selectedStatus   = 'Aktif';
     String selectedSatuan   = 'Pcs';
     bool loading = false;
+    Uint8List? fotoBytes;
+    String? fotoExt;
 
     showModalBottomSheet(
       context: context,
@@ -74,6 +77,14 @@ class _ProductScreenState extends State<ProductScreen> {
                           Text('Isi data produk untuk ditambahkan ke daftar',
                             style: GoogleFonts.inter(fontSize: 12, color: AppColors.textDim)),
                           const SizedBox(height: 18),
+
+                          _fieldLabel('Foto Produk (opsional)'),
+                          _FotoPicker(
+                            bytes: fotoBytes,
+                            onPick: (bytes, ext) => setSheet(() { fotoBytes = bytes; fotoExt = ext; }),
+                            onRemove: () => setSheet(() { fotoBytes = null; fotoExt = null; }),
+                          ),
+                          const SizedBox(height: 14),
 
                           _fieldLabel('Nama Produk'),
                           TextFormField(
@@ -259,6 +270,7 @@ class _ProductScreenState extends State<ProductScreen> {
                                       hargaBeli: beli, hargaJual: jual,
                                       stok: stok, stokMin: stokMn,
                                       barcode: barc, status: stat, satuan: sat,
+                                      fotoBytes: fotoBytes, fotoExt: fotoExt,
                                     );
                                     if (!ok && ctx.mounted) {
                                       ScaffoldMessenger.of(ctx).showSnackBar(
@@ -411,7 +423,7 @@ class _ProductScreenState extends State<ProductScreen> {
             ),
             const SizedBox(height: 16),
             Row(children: [
-              InitialsAvatar(text: product.initials, size: 40, fontSize: 13, borderRadius: 12),
+              _ProductThumbnail(product: product, size: 40, borderRadius: 12, fontSize: 13),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(product.nama, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.text)),
@@ -487,6 +499,9 @@ class _ProductScreenState extends State<ProductScreen> {
     String selectedSatuan = isPreset ? product.satuan : 'Lainnya...';
     final satuanLainCtrl = TextEditingController(text: isPreset ? '' : product.satuan);
     bool loading = false;
+    Uint8List? fotoBytes;
+    String? fotoExt;
+    String? currentFotoUrl = product.fotoUrl;
 
     showModalBottomSheet(
       context: context,
@@ -525,6 +540,15 @@ class _ProductScreenState extends State<ProductScreen> {
                           Text('Perbarui data produk',
                             style: GoogleFonts.inter(fontSize: 12, color: AppColors.textDim)),
                           const SizedBox(height: 18),
+
+                          _fieldLabel('Foto Produk (opsional)'),
+                          _FotoPicker(
+                            bytes: fotoBytes,
+                            existingUrl: currentFotoUrl,
+                            onPick: (bytes, ext) => setSheet(() { fotoBytes = bytes; fotoExt = ext; }),
+                            onRemove: () => setSheet(() { fotoBytes = null; fotoExt = null; currentFotoUrl = null; }),
+                          ),
+                          const SizedBox(height: 14),
 
                           _fieldLabel('Nama Produk'),
                           TextFormField(
@@ -685,6 +709,8 @@ class _ProductScreenState extends State<ProductScreen> {
                                       hargaBeli: beli, hargaJual: jual,
                                       stok: product.stok, stokMin: stokMn,
                                       barcode: barc, status: stat, satuan: sat,
+                                      fotoBytes: fotoBytes, fotoExt: fotoExt,
+                                      existingFotoUrl: currentFotoUrl,
                                     );
                                     if (!ok && ctx.mounted) {
                                       ScaffoldMessenger.of(ctx).showSnackBar(
@@ -937,6 +963,189 @@ class _ProductScreenState extends State<ProductScreen> {
   }
 }
 
+// ── Widget Thumbnail produk (foto atau initials) ─────────────────────────────
+class _ProductThumbnail extends StatelessWidget {
+  final Product product;
+  final double size;
+  final double borderRadius;
+  final double fontSize;
+
+  const _ProductThumbnail({
+    required this.product,
+    this.size = 58,
+    this.borderRadius = 14,
+    this.fontSize = 16,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (product.fotoUrl != null && product.fotoUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: Image.network(
+          product.fotoUrl!,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => InitialsAvatar(
+            text: product.initials, size: size,
+            fontSize: fontSize, borderRadius: borderRadius,
+          ),
+          loadingBuilder: (_, child, progress) => progress == null
+            ? child
+            : SizedBox(
+                width: size, height: size,
+                child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              ),
+        ),
+      );
+    }
+    return InitialsAvatar(
+      text: product.initials, size: size,
+      fontSize: fontSize, borderRadius: borderRadius,
+    );
+  }
+}
+
+// ── Widget Foto Picker ────────────────────────────────────────────────────────
+class _FotoPicker extends StatelessWidget {
+  final Uint8List? bytes;
+  final String? existingUrl;
+  final void Function(Uint8List bytes, String ext) onPick;
+  final VoidCallback onRemove;
+
+  const _FotoPicker({
+    this.bytes,
+    this.existingUrl,
+    required this.onPick,
+    required this.onRemove,
+  });
+
+  Future<void> _pick(BuildContext context) async {
+    final picker = ImagePicker();
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 32, height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined, color: AppColors.primary),
+                title: Text('Ambil Foto', style: GoogleFonts.inter(fontSize: 14)),
+                onTap: () => Navigator.pop(ctx, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
+                title: Text('Pilih dari Galeri', style: GoogleFonts.inter(fontSize: 14)),
+                onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (source == null) return;
+    final file = await picker.pickImage(source: source, maxWidth: 800, maxHeight: 800, imageQuality: 80);
+    if (file == null) return;
+    final data = await file.readAsBytes();
+    final ext = file.name.split('.').last.toLowerCase();
+    onPick(data, ext);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = bytes != null || (existingUrl != null && existingUrl!.isNotEmpty);
+    if (!hasImage) {
+      return GestureDetector(
+        onTap: () => _pick(context),
+        child: Container(
+          height: 100,
+          decoration: BoxDecoration(
+            color: AppColors.bg,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border, style: BorderStyle.solid),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.add_photo_alternate_outlined, size: 32, color: AppColors.textDim),
+              const SizedBox(height: 6),
+              Text('Ketuk untuk upload foto',
+                style: GoogleFonts.inter(fontSize: 12, color: AppColors.textDim)),
+            ],
+          ),
+        ),
+      );
+    }
+    return Stack(
+      children: [
+        GestureDetector(
+          onTap: () => _pick(context),
+          child: Container(
+            height: 120,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(13),
+              child: bytes != null
+                ? Image.memory(bytes!, fit: BoxFit.cover)
+                : Image.network(existingUrl!, fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined, color: AppColors.textDim)),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 6,
+          right: 6,
+          child: GestureDetector(
+            onTap: onRemove,
+            child: Container(
+              width: 28, height: 28,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.55),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.close, color: Colors.white, size: 16),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 6,
+          right: 6,
+          child: GestureDetector(
+            onTap: () => _pick(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.55),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text('Ganti', style: GoogleFonts.inter(fontSize: 11, color: Colors.white)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 Widget _fieldLabel(String text) => Padding(
   padding: const EdgeInsets.only(bottom: 7),
   child: Text(text, style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
@@ -1023,12 +1232,7 @@ class _ProductCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              InitialsAvatar(
-                text: product.initials,
-                size: 58,
-                fontSize: 16,
-                borderRadius: 14,
-              ),
+              _ProductThumbnail(product: product),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

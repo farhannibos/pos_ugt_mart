@@ -537,12 +537,19 @@ class AppProvider extends ChangeNotifier {
     required String barcode,
     required String status,
     required String satuan,
+    Uint8List? fotoBytes,
+    String? fotoExt,
   }) async {
+    String? fotoUrl;
+    if (fotoBytes != null) {
+      fotoUrl = await DbService.uploadProductImage(fotoBytes, fotoExt ?? 'jpg');
+    }
     final id = await DbService.saveProduct(
       nama: nama, kategori: kategori,
       hargaBeli: hargaBeli, hargaJual: hargaJual,
       stok: stok, stokMin: stokMin,
       barcode: barcode, status: status, satuan: satuan,
+      fotoUrl: fotoUrl,
     );
     if (id == null || id.startsWith('ERROR:')) {
       lastError = id ?? 'id null (login mungkin belum selesai)';
@@ -552,6 +559,7 @@ class AppProvider extends ChangeNotifier {
     dummyProducts.add(Product(
       id: id, nama: nama, kategori: kategori,
       harga: hargaJual, stok: stok, stokMin: stokMin, barcode: barcode, satuan: satuan,
+      fotoUrl: fotoUrl,
     ));
     if (kategori.isNotEmpty && !dummyKategori.contains(kategori)) {
       dummyKategori.add(kategori);
@@ -572,12 +580,20 @@ class AppProvider extends ChangeNotifier {
     required String barcode,
     required String status,
     required String satuan,
+    Uint8List? fotoBytes,
+    String? fotoExt,
+    String? existingFotoUrl,
   }) async {
+    String? fotoUrl = existingFotoUrl;
+    if (fotoBytes != null) {
+      fotoUrl = await DbService.uploadProductImage(fotoBytes, fotoExt ?? 'jpg');
+    }
     final ok = await DbService.updateProduct(
       id: id, nama: nama, kategori: kategori,
       hargaBeli: hargaBeli, hargaJual: hargaJual,
       stok: stok, stokMin: stokMin,
       barcode: barcode, status: status, satuan: satuan,
+      fotoUrl: fotoUrl,
     );
     if (!ok) { lastError = 'updateProduct returned false'; showToast('Gagal mengupdate produk'); return false; }
     final idx = dummyProducts.indexWhere((p) => p.id == id);
@@ -587,6 +603,7 @@ class AppProvider extends ChangeNotifier {
           id: id, nama: nama, kategori: kategori,
           harga: hargaJual, hargaBeli: hargaBeli,
           stok: stok, stokMin: stokMin, barcode: barcode, status: status, satuan: satuan,
+          fotoUrl: fotoUrl,
         );
       } else {
         dummyProducts.removeAt(idx);

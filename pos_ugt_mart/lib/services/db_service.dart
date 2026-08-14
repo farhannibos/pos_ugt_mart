@@ -166,6 +166,7 @@ class DbService {
           barcode:   r['barcode'] as String? ?? '',
           status:    r['status'] as String? ?? 'Aktif',
           satuan:    r['satuan'] as String? ?? 'Pcs',
+          fotoUrl:   r['foto_url'] as String?,
         ));
       }
     } catch (e) {
@@ -185,9 +186,10 @@ class DbService {
     required String barcode,
     required String status,
     required String satuan,
+    String? fotoUrl,
   }) async {
     try {
-      await _db.from('produk').update({
+      final payload = {
         'nama':         nama,
         'kategori':     kategori,
         'harga_beli':   hargaBeli,
@@ -197,11 +199,29 @@ class DbService {
         'barcode':      barcode,
         'status':       status,
         'satuan':       satuan,
-      }).eq('id', int.parse(id));
+      };
+      if (fotoUrl != null) payload['foto_url'] = fotoUrl;
+      await _db.from('produk').update(payload).eq('id', int.parse(id));
       return true;
     } catch (e) {
       debugPrint('[DB] updateProduct ERROR: $e');
       return false;
+    }
+  }
+
+  static Future<String?> uploadProductImage(Uint8List bytes, String fileExt) async {
+    if (_idToko == null) return null;
+    try {
+      final path = '$_idToko/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      await _db.storage.from('produk-foto').uploadBinary(
+        path,
+        bytes,
+        fileOptions: const FileOptions(upsert: true),
+      );
+      return _db.storage.from('produk-foto').getPublicUrl(path);
+    } catch (e) {
+      debugPrint('[DB] uploadProductImage ERROR: $e');
+      return null;
     }
   }
 
@@ -387,16 +407,16 @@ class DbService {
     required String barcode,
     required String status,
     required String satuan,
+    String? fotoUrl,
   }) async {
     if (_idToko == null) {
       debugPrint('[DB] saveProduct: _idToko null, aborted');
       return null;
     }
-    // Generate kode dari nama produk (3-6 huruf kapital) + timestamp singkat
     final namaClean = nama.replaceAll(' ', '').toUpperCase();
     final kode = 'PRD-${namaClean.substring(0, namaClean.length.clamp(1, 4))}-${DateTime.now().millisecondsSinceEpoch % 10000}';
     try {
-      final result = await _db.from('produk').insert({
+      final payload = {
         'id_toko':      _idToko,
         'kode':         kode,
         'nama':         nama,
@@ -408,12 +428,14 @@ class DbService {
         'barcode':      barcode,
         'status':       status,
         'satuan':       satuan,
-      }).select('id').single();
+      };
+      if (fotoUrl != null) payload['foto_url'] = fotoUrl;
+      final result = await _db.from('produk').insert(payload).select('id').single();
       debugPrint('[DB] saveProduct OK: id=${result['id']}');
       return result['id'].toString();
     } catch (e) {
       debugPrint('[DB] saveProduct ERROR: $e');
-      return 'ERROR: $e'; // kembalikan pesan error agar UI bisa tampilkan
+      return 'ERROR: $e';
     }
   }
 
