@@ -74,17 +74,17 @@ async function devListToko() {
 }
 
 async function devAktivasiPremium(idToko, bulan, nominal, keterangan, byUsername) {
-    const { data, error } = await _sb.rpc('dev_aktivasi_premium_checked', {
+    const { data, error } = await _sb.rpc('aktivasi_premium', {
         p_id_toko: idToko, p_bulan: bulan, p_nominal: nominal,
-        p_keterangan: keterangan, p_by_username: byUsername,
+        p_keterangan: keterangan, p_admin: byUsername,
     });
     if (error) throw error;
     return Array.isArray(data) ? data[0] : data;
 }
 
 async function devHapusToko(idToko, byUsername) {
-    const { data, error } = await _sb.rpc('dev_hapus_toko_checked', {
-        p_id_toko: idToko, p_by_username: byUsername,
+    const { data, error } = await _sb.rpc('delete_toko_complete', {
+        p_id_toko: idToko,
     });
     if (error) throw error;
     return data;

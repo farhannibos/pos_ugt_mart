@@ -83,7 +83,7 @@
     DECLARE
       v_user dev_users%ROWTYPE;
     BEGIN
-      SELECT * INTO v_user FROM dev_users WHERE username = p_username;
+      SELECT * INTO v_user FROM dev_users u WHERE u.username = p_username;
 
       IF NOT FOUND OR NOT v_user.aktif THEN
         RETURN;
@@ -95,13 +95,13 @@
       END IF;
 
       IF v_user.password_hash = crypt(p_password, v_user.password_hash) THEN
-        UPDATE dev_users SET failed_attempts = 0, locked_until = NULL WHERE id = v_user.id;
+        UPDATE dev_users u SET failed_attempts = 0, locked_until = NULL WHERE u.id = v_user.id;
         RETURN QUERY SELECT v_user.id, v_user.nama, v_user.username, v_user.role;
       ELSE
-        UPDATE dev_users
-        SET failed_attempts = failed_attempts + 1,
-            locked_until = CASE WHEN failed_attempts + 1 >= 5 THEN now() + interval '15 minutes' ELSE locked_until END
-        WHERE id = v_user.id;
+        UPDATE dev_users u
+        SET failed_attempts = u.failed_attempts + 1,
+            locked_until = CASE WHEN u.failed_attempts + 1 >= 5 THEN now() + interval '15 minutes' ELSE u.locked_until END
+        WHERE u.id = v_user.id;
         RETURN;
       END IF;
     END;

@@ -67,6 +67,9 @@
                 <div class="nav-item" data-page="aplikasi" onclick="navigate('aplikasi',this,'Aplikasi')">
                     <i data-lucide="layers" class="nav-icon"></i><span class="nav-label">Aplikasi</span>
                 </div>
+                <div class="nav-item" data-page="langganan" onclick="navigate('langganan',this,'Manajemen Langganan')">
+                    <i data-lucide="badge-check" class="nav-icon"></i><span class="nav-label">Langganan</span>
+                </div>
                 <div class="nav-item" data-page="transaksi" onclick="navigate('transaksi',this,'Transaksi')">
                     <i data-lucide="receipt" class="nav-icon"></i><span class="nav-label">Transaksi</span>
                 </div>
@@ -158,6 +161,34 @@
                         <table>
                             <thead><tr><th>Toko</th><th>Owner</th><th>No. HP</th><th>Plan</th><th>Berlaku s/d</th><th>Status</th><th>Aksi</th></tr></thead>
                             <tbody id="aplikasi-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== LANGGANAN ===== -->
+            <section class="page" id="page-langganan">
+                <div class="stat-grid">
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#8B5CF6;--stat-bg:#EDE9FE"><i data-lucide="crown"></i></div><div><div class="stat-value" id="lan-premium">—</div><div class="stat-label">Toko Premium Aktif</div></div></div>
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#64748B;--stat-bg:#F1F5F9"><i data-lucide="store"></i></div><div><div class="stat-value" id="lan-free">—</div><div class="stat-label">Toko Free</div></div></div>
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#F59E0B;--stat-bg:#FEF3C7"><i data-lucide="alert-triangle"></i></div><div><div class="stat-value" id="lan-exp-soon">—</div><div class="stat-label">Exp. &lt; 7 Hari</div></div></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><i data-lucide="badge-check"></i>Daftar Toko &amp; Status Langganan</div>
+                        <div class="toolbar">
+                            <select class="form-control" id="lan-filter-plan" style="width:140px" onchange="renderLangganan()">
+                                <option value="">Semua Plan</option>
+                                <option value="premium">Premium</option>
+                                <option value="free">Free</option>
+                            </select>
+                            <input class="form-control search-input" id="lan-search" placeholder="Cari nama toko..." oninput="renderLangganan()">
+                        </div>
+                    </div>
+                    <div class="card-body table-wrap">
+                        <table>
+                            <thead><tr><th>Nama Toko</th><th>Owner</th><th>No. HP</th><th>Plan</th><th>Berlaku Hingga</th><th>Status</th><th>Aksi</th></tr></thead>
+                            <tbody id="lan-tbody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -264,6 +295,32 @@
                     </div>
                 </div>
             </section>
+        </div>
+    </div>
+
+    <!-- ========== MODAL: HAPUS TOKO ========== -->
+    <div class="modal-overlay" id="modal-hapus-toko">
+        <div class="modal">
+            <div class="modal-header" style="background:#FEF2F2;border-bottom:1px solid #FECACA">
+                <h3 style="color:#DC2626;display:flex;align-items:center;gap:8px"><i data-lucide="triangle-alert" style="width:18px;height:18px"></i>Hapus Toko Permanen</h3>
+                <button class="modal-close" onclick="closeModalHapusToko()"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:12px;margin-bottom:14px;font-size:13px;color:#991B1B;line-height:1.6">
+                    ⚠️ Tindakan ini <strong>tidak dapat dibatalkan</strong>. Semua data toko akan dihapus permanen: produk, transaksi, member, supplier, shift, dan log keuangan.
+                </div>
+                <div id="hapus-toko-info" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px;margin-bottom:14px;font-size:13px;line-height:1.8"></div>
+                <div class="form-group" style="margin-bottom:0">
+                    <label style="font-size:13px">Ketik nama toko <strong id="hapus-toko-nama-label" style="color:#DC2626"></strong> untuk konfirmasi:</label>
+                    <input type="text" id="hapus-toko-konfirm" class="form-control" placeholder="Nama toko..." oninput="cekKonfirmasiHapusToko()" style="margin-top:6px;border-color:#FECACA">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModalHapusToko()">Batal</button>
+                <button id="btn-hapus-toko-konfirm" class="btn btn-danger" onclick="doHapusToko()" disabled>
+                    <i data-lucide="trash-2" style="width:14px;height:14px"></i> Hapus Permanen
+                </button>
+            </div>
         </div>
     </div>
 
