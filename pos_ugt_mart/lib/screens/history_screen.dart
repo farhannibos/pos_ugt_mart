@@ -27,6 +27,30 @@ class _HistoryScreenState extends State<HistoryScreen> {
   String _fmt(DateTime dt) =>
       '${dt.day.toString().padLeft(2,'0')} ${_bulan[dt.month-1]} ${dt.year}';
 
+  // Parse 2 format: ISO '2026-08-19' atau Indonesia '19 Agu 2026'
+  DateTime? _parseTanggal(String tanggal) {
+    if (tanggal.isEmpty) return null;
+    if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(tanggal)) {
+      return DateTime.tryParse(tanggal);
+    }
+    final parts = tanggal.split(' ');
+    if (parts.length == 3) {
+      final day   = int.tryParse(parts[0]);
+      final month = _bulan.indexOf(parts[1]) + 1;
+      final year  = int.tryParse(parts[2]);
+      if (day != null && month > 0 && year != null) {
+        return DateTime(year, month, day);
+      }
+    }
+    return null;
+  }
+
+  bool _isSameDay(String tanggal, DateTime dt) {
+    final parsed = _parseTanggal(tanggal);
+    if (parsed == null) return false;
+    return parsed.year == dt.year && parsed.month == dt.month && parsed.day == dt.day;
+  }
+
   int get _activeFilterCount {
     int n = 0;
     if (_filterStatus  != 'Semua') n++;
@@ -55,11 +79,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
       if (_filterMetode == 'Non-Tunai' && h.metode == 'Tunai')  return false;
       // tanggal
       if (_filterTanggal == 'Hari ini') {
-        if (h.tanggal != _fmt(now)) return false;
+        if (!_isSameDay(h.tanggal, now)) return false;
       } else if (_filterTanggal == 'Kemarin') {
-        if (h.tanggal != _fmt(now.subtract(const Duration(days: 1)))) return false;
+        if (!_isSameDay(h.tanggal, now.subtract(const Duration(days: 1)))) return false;
       } else if (_filterTanggal == 'Pilih' && _tanggalPilih != null) {
-        if (h.tanggal != _fmt(_tanggalPilih!)) return false;
+        if (!_isSameDay(h.tanggal, _tanggalPilih!)) return false;
       }
       return true;
     }).toList();
