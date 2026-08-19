@@ -146,6 +146,11 @@
                     <div class="card-header">
                         <div class="card-title"><i data-lucide="layers"></i>Daftar Aplikasi Terinstal (Toko)</div>
                         <div class="toolbar">
+                            <select class="form-control" id="ap-filter" style="width:150px" onchange="renderAplikasi()">
+                                <option value="">Semua Plan</option>
+                                <option value="premium">Premium</option>
+                                <option value="free">Free</option>
+                            </select>
                             <input class="form-control search-input" id="ap-search" placeholder="Cari nama toko..." oninput="renderAplikasi()">
                         </div>
                     </div>

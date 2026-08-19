@@ -269,7 +269,10 @@ async function loadAplikasi() {
 function renderAplikasi() {
     const tbody = document.getElementById('aplikasi-tbody');
     const q = (document.getElementById('ap-search')?.value || '').toLowerCase();
-    const rows = _tokoCache.filter((r) => (r.nama_toko || '').toLowerCase().includes(q));
+    const filterPlan = document.getElementById('ap-filter')?.value || '';
+    const rows = _tokoCache.filter((r) =>
+        (r.nama_toko || '').toLowerCase().includes(q) &&
+        (!filterPlan || (filterPlan === 'premium' ? r.plan === 'premium' : r.plan !== 'premium')));
 
     if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">Tidak ada data</div></td></tr>'; return; }
 
