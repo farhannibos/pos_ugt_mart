@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developer Panel — POS FABIZO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- ========== LOGIN ========== -->
+    <div id="login-screen">
+        <div class="login-card">
+            <div class="login-logo">
+                <div class="logo-icon"><i data-lucide="terminal-square"></i></div>
+                <div>
+                    <h1>Developer Panel</h1>
+                    <span>POS FABIZO — pos_ugt_marti</span>
+                </div>
+            </div>
+            <div class="login-title">Masuk</div>
+            <div class="login-sub">Khusus akun developer/superadmin platform</div>
+
+            <div id="login-err" style="display:none"></div>
+            <div class="form-group">
+                <label>Username</label>
+                <div class="input-icon-wrap">
+                    <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <input id="login-user" class="form-control" type="text" placeholder="Username developer" autocomplete="username">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <div class="input-icon-wrap">
+                    <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <input id="login-pass" class="form-control" type="password" placeholder="Password" autocomplete="current-password">
+                </div>
+            </div>
+            <button class="login-btn" id="login-btn" onclick="doLogin()">Masuk</button>
+        </div>
+    </div>
+
+    <!-- ========== APP ========== -->
+    <div id="app">
+        <aside id="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon"><i data-lucide="terminal-square"></i></div>
+                <div>
+                    <h1>Developer Panel</h1>
+                    <span>POS FABIZO</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard',this,'Dashboard')">
+                    <i data-lucide="layout-dashboard" class="nav-icon"></i><span class="nav-label">Dashboard</span>
+                </div>
+                <div class="nav-item" data-page="aplikasi" onclick="navigate('aplikasi',this,'Aplikasi')">
+                    <i data-lucide="layers" class="nav-icon"></i><span class="nav-label">Aplikasi</span>
+                </div>
+                <div class="nav-item" data-page="transaksi" onclick="navigate('transaksi',this,'Transaksi')">
+                    <i data-lucide="receipt" class="nav-icon"></i><span class="nav-label">Transaksi</span>
+                </div>
+                <div class="nav-item" data-page="laporan" onclick="navigate('laporan',this,'Laporan')">
+                    <i data-lucide="bar-chart-3" class="nav-icon"></i><span class="nav-label">Laporan</span>
+                </div>
+                <div class="nav-item" data-page="user-management" onclick="navigate('user-management',this,'User Management')">
+                    <i data-lucide="users-2" class="nav-icon"></i><span class="nav-label">User Management</span>
+                </div>
+                <div class="nav-item" data-page="pengaturan" onclick="navigate('pengaturan',this,'Pengaturan')">
+                    <i data-lucide="settings" class="nav-icon"></i><span class="nav-label">Pengaturan</span>
+                </div>
+            </nav>
+            <div class="sidebar-foot">Dev Panel v1.0 &middot; pos_ugt_marti</div>
+        </aside>
+
+        <div id="main-wrap">
+            <header id="topbar">
+                <div class="breadcrumb" id="breadcrumb-label">Dashboard</div>
+                <div class="topbar-right">
+                    <span class="topbar-date" id="topbar-date"></span>
+                    <div class="dev-chip"><span class="avatar" id="dev-avatar">D</span><span id="dev-nama">—</span></div>
+                    <button class="topbar-btn" onclick="toggleDarkMode()" title="Dark Mode"><i data-lucide="moon" id="dark-icon"></i></button>
+                    <button class="topbar-btn" onclick="refreshCurrentPage()" title="Refresh"><i data-lucide="refresh-cw" id="refresh-icon"></i></button>
+                    <button class="topbar-btn" onclick="doLogout()" title="Keluar" style="color:var(--danger)"><i data-lucide="log-out"></i></button>
+                </div>
+            </header>
+
+            <!-- ===== DASHBOARD ===== -->
+            <section class="page active" id="page-dashboard">
+                <div class="stat-grid">
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#16A34A;--stat-bg:#DCFCE7"><i data-lucide="smartphone"></i></div><div><div class="stat-value" id="st-total-aplikasi">—</div><div class="stat-label">Total Aplikasi Terinstal</div></div></div>
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#64748B;--stat-bg:#F1F5F9"><i data-lucide="user"></i></div><div><div class="stat-value" id="st-free">—</div><div class="stat-label">Total Member Gratis</div></div></div>
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#8B5CF6;--stat-bg:#EDE9FE"><i data-lucide="crown"></i></div><div><div class="stat-value" id="st-premium">—</div><div class="stat-label">Total Member Premium</div></div></div>
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#3B82F6;--stat-bg:#DBEAFE"><i data-lucide="download"></i></div><div><div class="stat-value" id="st-hari-ini">—</div><div class="stat-label">Aplikasi Terinstal Hari Ini</div></div></div>
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#F59E0B;--stat-bg:#FEF3C7"><i data-lucide="file-clock"></i></div><div><div class="stat-value" id="st-pengajuan">—</div><div class="stat-label">Pengajuan Premium (bulan ini)</div></div></div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header"><div class="card-title"><i data-lucide="trending-up"></i>Ringkasan Statistik (14 hari)</div></div>
+                        <div class="card-body"><canvas id="dev-chart" height="230"></canvas></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><div class="card-title"><i data-lucide="activity"></i>Aktivitas Terbaru</div></div>
+                        <div class="card-body" id="activity-list"><div class="empty-state">Memuat...</div></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== APLIKASI ===== -->
+            <section class="page" id="page-aplikasi">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><i data-lucide="layers"></i>Daftar Aplikasi Terinstal (Toko)</div>
+                        <div class="toolbar">
+                            <input class="form-control search-input" id="ap-search" placeholder="Cari nama toko..." oninput="renderAplikasi()">
+                        </div>
+                    </div>
+                    <div class="card-body table-wrap">
+                        <table>
+                            <thead><tr><th>Toko</th><th>Owner</th><th>No. HP</th><th>Plan</th><th>Berlaku s/d</th><th>Status</th><th>Aksi</th></tr></thead>
+                            <tbody id="aplikasi-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== TRANSAKSI ===== -->
+            <section class="page" id="page-transaksi">
+                <div class="stat-grid">
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#16A34A;--stat-bg:#DCFCE7"><i data-lucide="receipt"></i></div><div><div class="stat-value" id="tr-jumlah">—</div><div class="stat-label">Jumlah Transaksi</div></div></div>
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#3B82F6;--stat-bg:#DBEAFE"><i data-lucide="wallet"></i></div><div><div class="stat-value" id="tr-total">—</div><div class="stat-label">Total Pendapatan (30 hari)</div></div></div>
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#F59E0B;--stat-bg:#FEF3C7"><i data-lucide="calendar-days"></i></div><div><div class="stat-value" id="tr-bulan-ini">—</div><div class="stat-label">Pendapatan Bulan Ini</div></div></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><i data-lucide="receipt"></i>Riwayat Transaksi Langganan</div>
+                        <div class="toolbar">
+                            <input type="date" class="form-control" id="tr-start" style="width:150px">
+                            <input type="date" class="form-control" id="tr-end" style="width:150px">
+                            <button class="btn btn-secondary btn-sm" onclick="loadTransaksi()"><i data-lucide="filter"></i>Terapkan</button>
+                        </div>
+                    </div>
+                    <div class="card-body table-wrap">
+                        <table>
+                            <thead><tr><th>Tanggal</th><th>Toko</th><th>Periode</th><th>Nominal</th><th>Keterangan</th><th>Oleh</th></tr></thead>
+                            <tbody id="transaksi-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== LAPORAN ===== -->
+            <section class="page" id="page-laporan">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><i data-lucide="bar-chart-3"></i>Laporan Pendapatan</div>
+                        <div class="toolbar">
+                            <input type="date" class="form-control" id="lap-start" style="width:150px">
+                            <input type="date" class="form-control" id="lap-end" style="width:150px">
+                            <button class="btn btn-secondary btn-sm" onclick="loadLaporan()"><i data-lucide="filter"></i>Terapkan</button>
+                            <button class="btn btn-primary btn-sm" onclick="exportLaporanCsv()"><i data-lucide="download"></i>Export CSV</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="stat-grid" style="margin-bottom:18px">
+                            <div class="stat-card"><div class="stat-icon" style="--stat-color:#16A34A;--stat-bg:#DCFCE7"><i data-lucide="banknote"></i></div><div><div class="stat-value" id="lap-total">—</div><div class="stat-label">Total Pendapatan Periode</div></div></div>
+                            <div class="stat-card"><div class="stat-icon" style="--stat-color:#3B82F6;--stat-bg:#DBEAFE"><i data-lucide="hash"></i></div><div><div class="stat-value" id="lap-jumlah">—</div><div class="stat-label">Jumlah Transaksi</div></div></div>
+                            <div class="stat-card"><div class="stat-icon" style="--stat-color:#8B5CF6;--stat-bg:#EDE9FE"><i data-lucide="trophy"></i></div><div><div class="stat-value" id="lap-top-toko" style="font-size:14px">—</div><div class="stat-label">Toko Terbesar</div></div></div>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead><tr><th>Toko</th><th>Jumlah Transaksi</th><th>Total Nominal</th></tr></thead>
+                                <tbody id="laporan-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== USER MANAGEMENT ===== -->
+            <section class="page" id="page-user-management">
+                <div class="stat-grid">
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#F59E0B;--stat-bg:#FEF3C7"><i data-lucide="hourglass"></i></div><div><div class="stat-value" id="lr-pending">—</div><div class="stat-label">Menunggu Persetujuan</div></div></div>
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#16A34A;--stat-bg:#DCFCE7"><i data-lucide="check-circle-2"></i></div><div><div class="stat-value" id="lr-approved">—</div><div class="stat-label">Disetujui</div></div></div>
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#EF4444;--stat-bg:#FEE2E2"><i data-lucide="x-circle"></i></div><div><div class="stat-value" id="lr-declined">—</div><div class="stat-label">Ditolak</div></div></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><i data-lucide="users-2"></i>Pengajuan Lisensi Premium</div>
+                        <div class="toolbar">
+                            <input class="form-control search-input" id="lr-search" placeholder="Cari invoice / device / member..." oninput="renderLisensi()">
+                            <button class="btn btn-primary btn-sm" onclick="openModalAjukan()"><i data-lucide="plus"></i>Ajukan Baru</button>
+                        </div>
+                    </div>
+                    <div class="card-body table-wrap">
+                        <table>
+                            <thead><tr><th>No. Invoice</th><th>ID Device</th><th>ID Member</th><th>Durasi</th><th>Harga</th><th>Status</th><th>Diajukan</th><th>Aksi</th></tr></thead>
+                            <tbody id="lisensi-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== PENGATURAN ===== -->
+            <section class="page" id="page-pengaturan">
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header"><div class="card-title"><i data-lucide="key-round"></i>Ubah Password</div></div>
+                        <div class="card-body">
+                            <div class="form-group"><label>Password Lama</label><input class="form-control" type="password" id="pw-old"></div>
+                            <div class="form-group"><label>Password Baru</label><input class="form-control" type="password" id="pw-new"></div>
+                            <div class="form-group"><label>Konfirmasi Password Baru</label><input class="form-control" type="password" id="pw-confirm"></div>
+                            <button class="btn btn-primary" onclick="submitChangePassword()"><i data-lucide="save"></i>Simpan Password</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title"><i data-lucide="user-plus"></i>Akun Developer</div>
+                            <button class="btn btn-secondary btn-sm" onclick="openModalAddDev()"><i data-lucide="plus"></i>Tambah</button>
+                        </div>
+                        <div class="card-body table-wrap">
+                            <table>
+                                <thead><tr><th>Username</th><th>Nama</th><th>Status</th><th>Dibuat</th></tr></thead>
+                                <tbody id="devuser-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- ========== MODAL: AJUKAN LISENSI ========== -->
+    <div class="modal-overlay" id="modal-ajukan">
+        <div class="modal">
+            <div class="modal-header"><h3>Ajukan Lisensi Premium</h3><button class="modal-close" onclick="closeModal('modal-ajukan')"><i data-lucide="x"></i></button></div>
+            <div class="modal-body">
+                <div id="ajukan-err" style="display:none;padding:10px 14px;background:var(--danger-bg);color:#B91C1C;border-radius:8px;font-size:12.5px;margin-bottom:14px"></div>
+                <div class="form-group">
+                    <label>Member (Toko)</label>
+                    <select class="form-control" id="ajukan-id-toko"></select>
+                </div>
+                <div class="form-group">
+                    <label>ID Device</label>
+                    <input class="form-control" id="ajukan-id-device" placeholder="mis. android-9f2a1c...">
+                </div>
+                <div class="form-group">
+                    <label>Durasi (bulan)</label>
+                    <input class="form-control" id="ajukan-durasi" type="number" min="1" value="1">
+                </div>
+                <div class="form-group">
+                    <label>Harga (Rp)</label>
+                    <input class="form-control" id="ajukan-harga" type="number" min="0" placeholder="mis. 150000">
+                </div>
+                <div class="form-group">
+                    <label>Catatan (opsional)</label>
+                    <textarea class="form-control" id="ajukan-catatan" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-ajukan')">Batal</button>
+                <button class="btn btn-primary" id="ajukan-btn" onclick="submitAjukanLisensi()"><i data-lucide="send"></i>Ajukan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL: TOLAK LISENSI ========== -->
+    <div class="modal-overlay" id="modal-tolak">
+        <div class="modal">
+            <div class="modal-header"><h3>Tolak Pengajuan</h3><button class="modal-close" onclick="closeModal('modal-tolak')"><i data-lucide="x"></i></button></div>
+            <div class="modal-body">
+                <div class="form-group"><label>Alasan (opsional)</label><textarea class="form-control" id="tolak-alasan" rows="3"></textarea></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-tolak')">Batal</button>
+                <button class="btn btn-danger" onclick="submitTolakLisensi()"><i data-lucide="x-circle"></i>Tolak Pengajuan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL: AKTIVASI PREMIUM LANGSUNG ========== -->
+    <div class="modal-overlay" id="modal-aktivasi">
+        <div class="modal">
+            <div class="modal-header"><h3>Aktifkan Premium Langsung</h3><button class="modal-close" onclick="closeModal('modal-aktivasi')"><i data-lucide="x"></i></button></div>
+            <div class="modal-body">
+                <div id="akt-err" style="display:none;padding:10px 14px;background:var(--danger-bg);color:#B91C1C;border-radius:8px;font-size:12.5px;margin-bottom:14px"></div>
+                <input type="hidden" id="akt-id-toko">
+                <div class="form-group"><label>Toko</label><input class="form-control" id="akt-nama-toko" disabled></div>
+                <div class="form-group"><label>Durasi (bulan)</label><input class="form-control" type="number" id="akt-bulan" min="1" value="1"></div>
+                <div class="form-group"><label>Nominal (Rp)</label><input class="form-control" type="number" id="akt-nominal" min="0"></div>
+                <div class="form-group"><label>Keterangan</label><input class="form-control" id="akt-keterangan"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-aktivasi')">Batal</button>
+                <button class="btn btn-primary" id="akt-btn" onclick="doAktivasiPremium()"><i data-lucide="badge-check"></i>Aktifkan Premium</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL: TAMBAH DEV USER ========== -->
+    <div class="modal-overlay" id="modal-add-dev">
+        <div class="modal">
+            <div class="modal-header"><h3>Tambah Akun Developer</h3><button class="modal-close" onclick="closeModal('modal-add-dev')"><i data-lucide="x"></i></button></div>
+            <div class="modal-body">
+                <div id="dev-err" style="display:none;padding:10px 14px;background:var(--danger-bg);color:#B91C1C;border-radius:8px;font-size:12.5px;margin-bottom:14px"></div>
+                <div class="form-group"><label>Nama</label><input class="form-control" id="dev-nama-baru"></div>
+                <div class="form-group"><label>Username</label><input class="form-control" id="dev-username-baru"></div>
+                <div class="form-group"><label>Password</label><input class="form-control" type="password" id="dev-password-baru"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-add-dev')">Batal</button>
+                <button class="btn btn-primary" onclick="submitAddDev()"><i data-lucide="user-plus"></i>Tambah</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-wrap" id="toast-wrap"></div>
+
+    <script src="supabase-config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
