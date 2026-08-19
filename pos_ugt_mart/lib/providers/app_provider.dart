@@ -205,6 +205,17 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
+  void clearSelectedCustomer() {
+    selectedCustomer = null;
+    selectedMemberId = null;
+    notifyListeners();
+  }
+
+  void removeFromCart(String productId) {
+    cart.remove(productId);
+    notifyListeners();
+  }
+
   void clearCart() {
     cart.clear();
     discount = 0;
@@ -686,6 +697,11 @@ class AppProvider extends ChangeNotifier {
     return dummyHistory
         .where((t) => t.id.startsWith(prefix) && t.metode == 'Tunai' && t.status == 'Lunas')
         .fold(0, (s, t) => s + t.total);
+  }
+
+  List<Transaction> get todayTransactions {
+    final prefix = _todayPrefix();
+    return dummyHistory.where((t) => t.id.startsWith(prefix)).toList();
   }
 
   int get totalPiutangAktif =>

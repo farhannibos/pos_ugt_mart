@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
-import '../models/product.dart';
 import '../widgets/ugt_widgets.dart';
 import 'product_screen.dart';
 import 'history_screen.dart';
@@ -16,8 +15,6 @@ class DashboardScreen extends StatelessWidget {
     final prov = context.watch<AppProvider>();
     final size = MediaQuery.of(context).size;
     final isWide = size.width > 600;
-
-    final lowStockProducts = dummyProducts.where((p) => p.isLowStock).take(3).toList();
 
     // Real stat calculations
     final trxCount   = prov.todayTrxCount;
@@ -132,12 +129,7 @@ class DashboardScreen extends StatelessWidget {
                       const SizedBox(height: 10),
                       const _QuickMenu(),
                       const SizedBox(height: 18),
-                      Text(
-                        'Stok Menipis',
-                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted),
-                      ),
-                      const SizedBox(height: 10),
-                      _LowStockList(products: lowStockProducts),
+                      _RiwayatHariIni(prov: prov),
                     ],
                   ),
                 ),
@@ -548,14 +540,33 @@ class _QuickMenu extends StatelessWidget {
         )).toList(),
       );
     }
-    // Mobile: semua item dalam 1 baris rata, ukuran compact
-    return Row(
-      children: items.asMap().entries.map((e) => Expanded(
-        child: Padding(
-          padding: EdgeInsets.only(left: e.key == 0 ? 0 : 6),
-          child: _QuickMenuItem(item: e.value, compact: true),
+    // Mobile: grid 2 baris (3 + 2)
+    final row1 = items.take(3).toList();
+    final row2 = items.skip(3).toList();
+    return Column(
+      children: [
+        Row(
+          children: row1.asMap().entries.map((e) => Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(left: e.key == 0 ? 0 : 8),
+              child: _QuickMenuItem(item: e.value),
+            ),
+          )).toList(),
         ),
-      )).toList(),
+        if (row2.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: row2.asMap().entries.map((e) => SizedBox(
+              width: (MediaQuery.of(context).size.width - 32 - 8) / 3,
+              child: Padding(
+                padding: EdgeInsets.only(left: e.key == 0 ? 0 : 8),
+                child: _QuickMenuItem(item: e.value),
+              ),
+            )).toList(),
+          ),
+        ],
+      ],
     );
   }
 
@@ -573,27 +584,20 @@ class _QuickItem {
 
 class _QuickMenuItem extends StatelessWidget {
   final _QuickItem item;
-  final bool compact;
-  const _QuickMenuItem({required this.item, this.compact = false});
+  const _QuickMenuItem({required this.item});
 
   @override
   Widget build(BuildContext context) {
-    final iconSize  = compact ? 44.0 : 64.0;
-    final fontSize  = compact ? 9.5  : 10.0;
-    final padV      = compact ? 8.0  : 10.0;
-    final padH      = compact ? 4.0  : 6.0;
-    final radius    = compact ? 13.0 : 16.0;
-
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(radius),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: item.onTap,
-        borderRadius: BorderRadius.circular(radius),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: padV, horizontal: padH),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(radius),
+            borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF101828).withValues(alpha: 0.05),
@@ -605,14 +609,14 @@ class _QuickMenuItem extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Image.asset(item.asset, width: iconSize, fit: BoxFit.contain),
-              const SizedBox(height: 5),
+              Image.asset(item.asset, width: 64, fit: BoxFit.contain),
+              const SizedBox(height: 6),
               Text(
                 item.label,
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 style: GoogleFonts.inter(
-                  fontSize: fontSize,
+                  fontSize: 10,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textSecondary,
                 ),
@@ -625,66 +629,123 @@ class _QuickMenuItem extends StatelessWidget {
   }
 }
 
-class _LowStockList extends StatelessWidget {
-  final List<Product> products;
-  const _LowStockList({required this.products});
+class _RiwayatHariIni extends StatelessWidget {
+  final AppProvider prov;
+  const _RiwayatHariIni({required this.prov});
 
-  @override
-  Widget build(BuildContext context) {
-    return UGTCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      child: Column(
-        children: products.map((p) => _LowStockItem(product: p, isLast: p == products.last)).toList(),
-      ),
-    );
+  IconData _icon(String metode) {
+    if (metode == 'QRIS') return Icons.qr_code_2;
+    if (metode.contains('Kartu')) return Icons.credit_card;
+    if (metode == 'Voucher') return Icons.confirmation_number_outlined;
+    if (metode == 'Piutang') return Icons.pending_outlined;
+    return Icons.payments_outlined;
   }
-}
-
-class _LowStockItem extends StatelessWidget {
-  final Product product;
-  final bool isLast;
-  const _LowStockItem({required this.product, required this.isLast});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 11),
-      decoration: BoxDecoration(
-        border: isLast ? null : const Border(bottom: BorderSide(color: AppColors.borderLight)),
-      ),
-      child: Row(
-        children: [
-          InitialsAvatar(text: product.initials, size: 34, fontSize: 12, borderRadius: 10),
-          const SizedBox(width: 11),
-          Expanded(
+    final list = prov.todayTransactions;
+    final shown = list.take(5).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('Riwayat Hari Ini',
+                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+            const Spacer(),
+            if (list.isNotEmpty)
+              GestureDetector(
+                onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const HistoryScreen())),
+                child: Text('Lihat Semua',
+                    style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.primary)),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (list.isEmpty)
+          UGTCard(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: Center(
+              child: Column(
+                children: [
+                  const Icon(Icons.receipt_long_outlined, size: 32, color: AppColors.textDim),
+                  const SizedBox(height: 8),
+                  Text('Belum ada transaksi hari ini',
+                      style: GoogleFonts.inter(fontSize: 12, color: AppColors.textDim)),
+                ],
+              ),
+            ),
+          )
+        else
+          UGTCard(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.nama,
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.text),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  product.kategori,
-                  style: GoogleFonts.inter(fontSize: 10, color: AppColors.textDim),
-                ),
-              ],
+              children: shown.asMap().entries.map((e) {
+                final trx    = e.value;
+                final isLast = e.key == shown.length - 1;
+                final isPiutang = trx.status == 'Piutang';
+                final shortId = '#${trx.id.split('-').last}';
+                return GestureDetector(
+                  onTap: () {
+                    context.read<AppProvider>().selectedTransaction = trx;
+                    Navigator.of(context).pushNamed('/transaction-detail');
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                    decoration: BoxDecoration(
+                      border: isLast ? null : const Border(bottom: BorderSide(color: AppColors.borderLight)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 34, height: 34,
+                          decoration: BoxDecoration(
+                            color: isPiutang ? AppColors.yellowLight : AppColors.primaryLight,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(_icon(trx.metode), size: 16,
+                              color: isPiutang ? AppColors.yellowText : AppColors.primary),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(shortId,
+                                  style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.text)),
+                              Text('${trx.jam}  ·  ${trx.metode}',
+                                  style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textDim)),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(formatRp(trx.total),
+                                style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w700,
+                                    color: isPiutang ? AppColors.yellow : AppColors.text)),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: isPiutang ? AppColors.yellowLight : AppColors.primaryLight,
+                                borderRadius: BorderRadius.circular(100),
+                              ),
+                              child: Text(trx.status,
+                                  style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w600,
+                                      color: isPiutang ? AppColors.yellowText : AppColors.primaryDark)),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.redLight,
-              borderRadius: BorderRadius.circular(100),
-            ),
-            child: Text(
-              '${product.stok} ${product.satuan}',
-              style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.red),
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 }

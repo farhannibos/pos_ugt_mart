@@ -20,7 +20,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   final _dpCtrl = TextEditingController();
   bool _isProcessing = false;
 
-  static const _methods = [
+  static const _allMethods = [
     _PayMethod(id: 'Tunai',              label: 'Tunai',   asset: 'assets/icons/ic_wallet.png'),
     _PayMethod(id: 'QRIS',               label: 'QRIS',    asset: 'assets/icons/ic_qr.png'),
     _PayMethod(id: 'Kartu Debit/Kredit', label: 'Kartu',   icon: Icons.credit_card_outlined),
@@ -57,6 +57,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Widget build(BuildContext context) {
     final prov = context.watch<AppProvider>();
     final isWide = MediaQuery.of(context).size.width > 600;
+    final isMember = prov.selectedCustomer != null && prov.selectedCustomer!.isNotEmpty;
+    final methods = isMember ? _allMethods : _allMethods.where((m) => m.id != 'Piutang').toList();
+
+    // Kalau tidak ada member tapi metode masih Piutang, reset ke Tunai
+    if (!isMember && prov.paymentMethod == 'Piutang') {
+      WidgetsBinding.instance.addPostFrameCallback((_) => prov.setPaymentMethod('Tunai'));
+    }
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -223,10 +230,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
                     const SizedBox(height: 10),
 
-                    // ── Tab selector: 2 baris (3 + 2) ──
-                    _buildMethodRow(prov, _methods.sublist(0, 3)),
-                    const SizedBox(height: 8),
-                    _buildMethodRow(prov, _methods.sublist(3)),
+                    // ── Tab selector: 2 baris (3 + sisa) ──
+                    _buildMethodRow(prov, methods.take(3).toList()),
+                    if (methods.length > 3) ...[
+                      const SizedBox(height: 8),
+                      _buildMethodRow(prov, methods.skip(3).toList()),
+                    ],
 
                     const SizedBox(height: 14),
 

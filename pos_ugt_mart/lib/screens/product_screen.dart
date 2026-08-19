@@ -927,6 +927,7 @@ class _ProductScreenState extends State<ProductScreen> {
                         itemBuilder: (_, i) => _ProductCard(
                           product: products[i],
                           onLongPress: () => _showProductActions(context, products[i]),
+                          onMoreTap: () => _showProductActions(context, products[i]),
                         ),
                       )
                     : GridView.builder(
@@ -942,6 +943,7 @@ class _ProductScreenState extends State<ProductScreen> {
                         itemBuilder: (_, i) => _ProductCard(
                           product: products[i],
                           onLongPress: () => _showProductActions(context, products[i]),
+                          onMoreTap: () => _showProductActions(context, products[i]),
                         ),
                       ),
             ),
@@ -1196,7 +1198,8 @@ class _ActionTile extends StatelessWidget {
 class _ProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback? onLongPress;
-  const _ProductCard({required this.product, this.onLongPress});
+  final VoidCallback? onMoreTap;
+  const _ProductCard({required this.product, this.onLongPress, this.onMoreTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1218,83 +1221,108 @@ class _ProductCard extends StatelessWidget {
               },
         onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(18),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF101828).withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
+        child: Stack(
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 12, 52, 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF101828).withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Row(
-            children: [
-              _ProductThumbnail(product: product),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              child: Row(
+                children: [
+                  _ProductThumbnail(product: product),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            product.nama,
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.text),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (isNonAktif) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFEF3C7),
-                              borderRadius: BorderRadius.circular(6),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                product.nama,
+                                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.text),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                            child: Text('Non-aktif',
-                              style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w600, color: const Color(0xFF92400E))),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        const Icon(Icons.barcode_reader, size: 11, color: AppColors.textDim),
-                        const SizedBox(width: 5),
-                        Text(
-                          product.barcode,
-                          style: GoogleFonts.inter(fontSize: 10, color: AppColors.textDim, letterSpacing: 0.5),
+                            if (isNonAktif) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text('Non-aktif',
+                                  style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w600, color: const Color(0xFF92400E))),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            const Icon(Icons.barcode_reader, size: 11, color: AppColors.textDim),
+                            const SizedBox(width: 5),
+                            Text(
+                              product.barcode,
+                              style: GoogleFonts.inter(fontSize: 10, color: AppColors.textDim, letterSpacing: 0.5),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 5),
+                        Row(
+                          children: [
+                            Text(
+                              formatRp(product.harga),
+                              style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primary),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Stok ${product.stok} ${product.satuan}',
+                              style: GoogleFonts.inter(
+                                fontSize: 10.5,
+                                color: product.isLowStock ? AppColors.red : AppColors.textDim,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    const SizedBox(height: 5),
-                    Row(
-                      children: [
-                        Text(
-                          formatRp(product.harga),
-                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primary),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Stok ${product.stok} ${product.satuan}',
-                          style: GoogleFonts.inter(
-                            fontSize: 10.5,
-                            color: product.isLowStock ? AppColors.red : AppColors.textDim,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+            // ⋮ menu — pojok kanan atas
+            Positioned(
+              top: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: onMoreTap ?? onLongPress,
+                child: Container(
+                  width: 28, height: 28,
+                  decoration: BoxDecoration(
+                    color: AppColors.bg,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Icon(Icons.more_vert, size: 15, color: AppColors.textMuted),
                 ),
               ),
-              const SizedBox(width: 8),
-              if (!isNonAktif)
-                Consumer<AppProvider>(
+            ),
+            // tombol + — pojok kanan bawah
+            if (!isNonAktif)
+              Positioned(
+                bottom: 8,
+                right: 8,
+                child: Consumer<AppProvider>(
                   builder: (_, prov, __) {
                     final inCart = prov.cart.containsKey(product.id);
                     return GestureDetector(
@@ -1309,8 +1337,7 @@ class _ProductCard extends StatelessWidget {
                       },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
-                        width: 36,
-                        height: 36,
+                        width: 36, height: 36,
                         decoration: BoxDecoration(
                           color: inCart ? AppColors.primaryDark : AppColors.primary,
                           borderRadius: BorderRadius.circular(12),
@@ -1327,8 +1354,8 @@ class _ProductCard extends StatelessWidget {
                     );
                   },
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );

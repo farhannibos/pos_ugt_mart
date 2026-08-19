@@ -24,6 +24,209 @@ class _CartScreenState extends State<CartScreen> {
     super.dispose();
   }
 
+  void _showHapusSheet(BuildContext context, AppProvider prov) {
+    final items = prov.cart.values.toList();
+    final selected = <String>{};
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          final allSelected = selected.length == items.length;
+
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36, height: 4,
+                    decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(4)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Text('Hapus Item',
+                        style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.text)),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => setSheet(() {
+                        if (allSelected) {
+                          selected.clear();
+                        } else {
+                          selected.addAll(items.map((i) => i.productId));
+                        }
+                      }),
+                      child: Text(
+                        allSelected ? 'Batal Semua' : 'Pilih Semua',
+                        style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.primary),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ...items.map((item) {
+                  final id = item.productId;
+                  final isChecked = selected.contains(id);
+                  return GestureDetector(
+                    onTap: () => setSheet(() {
+                      isChecked ? selected.remove(id) : selected.add(id);
+                    }),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isChecked ? AppColors.redLight : AppColors.bg,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isChecked ? AppColors.redBorder : AppColors.border,
+                          width: isChecked ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            width: 22, height: 22,
+                            decoration: BoxDecoration(
+                              color: isChecked ? AppColors.red : Colors.white,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: isChecked ? AppColors.red : AppColors.border,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: isChecked
+                                ? const Icon(Icons.check, size: 14, color: Colors.white)
+                                : null,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(item.nama,
+                                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.text),
+                                    overflow: TextOverflow.ellipsis),
+                                Text(
+                                  '${formatQty(item.qty, item.satuan)} × ${formatRp(item.harga)}',
+                                  style: GoogleFonts.inter(fontSize: 11, color: AppColors.textDim),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(formatRp(item.subtotal),
+                              style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w700,
+                                  color: isChecked ? AppColors.red : AppColors.text)),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: Material(
+                    color: selected.isEmpty ? AppColors.grayMid : AppColors.red,
+                    borderRadius: BorderRadius.circular(14),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: selected.isEmpty ? null : () {
+                        for (final id in selected) {
+                          prov.removeFromCart(id);
+                        }
+                        Navigator.pop(ctx);
+                        if (prov.cart.isEmpty) {
+                          Navigator.of(context).pop('goto_products');
+                        }
+                      },
+                      child: Center(
+                        child: Text(
+                          selected.isEmpty
+                              ? 'Pilih item yang ingin dihapus'
+                              : 'Hapus ${selected.length} Item',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14, fontWeight: FontWeight.w600,
+                            color: selected.isEmpty ? AppColors.textDim : Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showPelangganSheet(BuildContext context, AppProvider prov) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36, height: 4,
+                decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(4)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Pilih Pelanggan',
+                style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.text)),
+            const SizedBox(height: 16),
+            // Opsi Umum
+            _PelangganOption(
+              icon: Icons.person_outline,
+              label: 'Umum',
+              sub: 'Tanpa data pelanggan',
+              active: prov.selectedCustomer == null,
+              onTap: () {
+                prov.clearSelectedCustomer();
+                Navigator.pop(ctx);
+              },
+            ),
+            const SizedBox(height: 10),
+            // Opsi Cari Member
+            _PelangganOption(
+              icon: Icons.badge_outlined,
+              label: 'Pilih Member',
+              sub: prov.selectedCustomer ?? 'Cari dari daftar member',
+              active: prov.selectedCustomer != null,
+              onTap: () async {
+                Navigator.pop(ctx);
+                await Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const MemberScreen(selectMode: true)),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showDiscountDialog(BuildContext context, AppProvider prov) {
     final ctrl = TextEditingController(
       text: prov.discount > 0 ? prov.discount.toString() : '',
@@ -91,10 +294,8 @@ class _CartScreenState extends State<CartScreen> {
           _CartAppBar(
             count: prov.cartItemCount,
             onBack: () => Navigator.of(context).pop(),
-            onClear: () {
-              prov.clearCart();
-              Navigator.of(context).pop();
-            },
+            onAddProduct: () => Navigator.of(context).pop('goto_products'),
+            onClear: () => _showHapusSheet(context, prov),
           ),
                     // Content
                     Expanded(
@@ -108,13 +309,9 @@ class _CartScreenState extends State<CartScreen> {
                       child: _InfoChip(
                         asset: 'assets/icons/ic_member.png',
                         label: 'Pelanggan',
-                        value: prov.selectedCustomer ?? 'Pilih Member',
+                        value: prov.selectedCustomer ?? 'Umum',
                         showArrow: true,
-                        onTap: () async {
-                          await Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const MemberScreen(selectMode: true)),
-                          );
-                        },
+                        onTap: () => _showPelangganSheet(context, prov),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -139,36 +336,9 @@ class _CartScreenState extends State<CartScreen> {
                       cartItem: item,
                       onInc: () => prov.incrementCart(item.productId),
                       onDec: () => prov.decrementCart(item.productId),
+                      onDelete: () => prov.removeFromCart(item.productId),
                     ),
                   )),
-                  // Tombol tambah produk
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pop('goto_products'),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.primaryMid, width: 1.5),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.add, size: 16, color: AppColors.primary),
-                          const SizedBox(width: 7),
-                          Text(
-                            'Tambah Produk',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 ],
                 // Note field
                 const SizedBox(height: 10),
@@ -232,9 +402,15 @@ class _CartScreenState extends State<CartScreen> {
 class _CartAppBar extends StatelessWidget {
   final int count;
   final VoidCallback onBack;
+  final VoidCallback onAddProduct;
   final VoidCallback onClear;
 
-  const _CartAppBar({required this.count, required this.onBack, required this.onClear});
+  const _CartAppBar({
+    required this.count,
+    required this.onBack,
+    required this.onAddProduct,
+    required this.onClear,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -262,7 +438,13 @@ class _CartAppBar extends StatelessWidget {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.red),
+                tooltip: 'Tambah Produk',
+                icon: const Icon(Icons.add_circle_outline, size: 22, color: AppColors.primary),
+                onPressed: onAddProduct,
+              ),
+              IconButton(
+                tooltip: 'Kosongkan Keranjang',
+                icon: const Icon(Icons.delete_outline, size: 22, color: AppColors.red),
                 onPressed: onClear,
               ),
             ],
@@ -336,8 +518,9 @@ class _CartItem extends StatelessWidget {
   final dynamic cartItem;
   final VoidCallback onInc;
   final VoidCallback onDec;
+  final VoidCallback onDelete;
 
-  const _CartItem({required this.cartItem, required this.onInc, required this.onDec});
+  const _CartItem({required this.cartItem, required this.onInc, required this.onDec, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -374,37 +557,47 @@ class _CartItem extends StatelessWidget {
               ],
             ),
           ),
-          if (isBulk)
-            GestureDetector(
-              onTap: () async {
-                final prov = context.read<AppProvider>();
-                final qty = await showBulkInputDialog(
-                  context, produk, initial: cartItem.qty as double);
-                if (qty != null) prov.setBulkQty(cartItem.productId as String, qty);
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(11),
-                  border: Border.all(color: AppColors.primaryMid),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      formatQty(cartItem.qty as double, cartItem.satuan as String),
-                      style: GoogleFonts.inter(
-                        fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.primaryDark),
-                    ),
-                    const SizedBox(width: 5),
-                    const Icon(Icons.edit_outlined, size: 13, color: AppColors.primaryDark),
-                  ],
-                ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              GestureDetector(
+                onTap: onDelete,
+                child: const Icon(Icons.delete_outline, size: 18, color: AppColors.red),
               ),
-            )
-          else
-            QtyControl(qty: (cartItem.qty as double).round(), onInc: onInc, onDec: onDec),
+              const SizedBox(height: 8),
+              if (isBulk)
+                GestureDetector(
+                  onTap: () async {
+                    final prov = context.read<AppProvider>();
+                    final qty = await showBulkInputDialog(
+                      context, produk, initial: cartItem.qty as double);
+                    if (qty != null) prov.setBulkQty(cartItem.productId as String, qty);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(11),
+                      border: Border.all(color: AppColors.primaryMid),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          formatQty(cartItem.qty as double, cartItem.satuan as String),
+                          style: GoogleFonts.inter(
+                            fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.primaryDark),
+                        ),
+                        const SizedBox(width: 5),
+                        const Icon(Icons.edit_outlined, size: 13, color: AppColors.primaryDark),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                QtyControl(qty: (cartItem.qty as double).round(), onInc: onInc, onDec: onDec),
+            ],
+          ),
         ],
       ),
     );
@@ -433,6 +626,70 @@ class _ProductThumb extends StatelessWidget {
       );
     }
     return InitialsAvatar(text: initials, size: 50, fontSize: 14, borderRadius: 13);
+  }
+}
+
+class _PelangganOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String sub;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _PelangganOption({
+    required this.icon,
+    required this.label,
+    required this.sub,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        decoration: BoxDecoration(
+          color: active ? AppColors.primaryLight : AppColors.bg,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: active ? AppColors.primary : AppColors.border,
+            width: active ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: active ? AppColors.primary : Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 18, color: active ? Colors.white : AppColors.textDim),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: GoogleFonts.inter(
+                          fontSize: 13, fontWeight: FontWeight.w600,
+                          color: active ? AppColors.primaryDark : AppColors.text)),
+                  Text(sub,
+                      style: GoogleFonts.inter(fontSize: 11, color: AppColors.textDim),
+                      overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
+            if (active)
+              const Icon(Icons.check_circle, size: 18, color: AppColors.primary),
+          ],
+        ),
+      ),
+    );
   }
 }
 
