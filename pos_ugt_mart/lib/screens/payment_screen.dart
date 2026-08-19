@@ -17,6 +17,7 @@ class PaymentScreen extends StatefulWidget {
 class _PaymentScreenState extends State<PaymentScreen> {
   final _cashCtrl = TextEditingController();
   final _voucherCtrl = TextEditingController();
+  final _dpCtrl = TextEditingController();
   bool _isProcessing = false;
 
   static const _methods = [
@@ -30,6 +31,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   void dispose() {
     _cashCtrl.dispose();
     _voucherCtrl.dispose();
+    _dpCtrl.dispose();
     super.dispose();
   }
 
@@ -39,7 +41,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       prov.showToast('Keranjang masih kosong');
       return;
     }
-    if (prov.paymentMethod == 'Tunai' && prov.cashAmount < prov.total) {
+    if (prov.paymentMethod == 'Tunai' && !prov.piutangMode && prov.cashAmount < prov.total) {
       prov.showToast('Uang diterima belum cukup');
       return;
     }
@@ -75,7 +77,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             width: double.infinity,
             height: 52,
             child: Material(
-              color: AppColors.primary,
+              color: prov.piutangMode ? AppColors.yellow : AppColors.primary,
               borderRadius: BorderRadius.circular(15),
               child: InkWell(
                 onTap: () => _processPayment(prov),
@@ -83,10 +85,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                    Icon(
+                      prov.piutangMode ? Icons.pending_outlined : Icons.check_circle_outline,
+                      color: Colors.white, size: 18,
+                    ),
                     const SizedBox(width: 8),
-                    Text('Proses Pembayaran',
-                        style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                    Text(
+                      prov.piutangMode ? 'Catat Piutang' : 'Proses Pembayaran',
+                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                    ),
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
@@ -268,6 +275,37 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         child: _buildPanel(prov),
                       ),
                     ),
+
+                    const SizedBox(height: 16),
+
+                    // ── Status Pembayaran Toggle ──
+                    Text('Status Pembayaran',
+                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(child: _StatusChip(
+                          label: 'Lunas',
+                          icon: Icons.check_circle_outline,
+                          active: !prov.piutangMode,
+                          activeColor: AppColors.primary,
+                          onTap: () => prov.setPiutangMode(false),
+                        )),
+                        const SizedBox(width: 10),
+                        Expanded(child: _StatusChip(
+                          label: 'Piutang / Nyicil',
+                          icon: Icons.pending_outlined,
+                          active: prov.piutangMode,
+                          activeColor: AppColors.yellow,
+                          onTap: () => prov.setPiutangMode(true),
+                        )),
+                      ],
+                    ),
+
+                    if (prov.piutangMode) ...[
+                      const SizedBox(height: 12),
+                      _DpPanel(prov: prov, dpCtrl: _dpCtrl),
+                    ],
                   ],
                 ),
               ),
@@ -737,6 +775,140 @@ class _PayMethod {
   final IconData? icon;
   final String? asset;
   const _PayMethod({required this.id, required this.label, this.icon, this.asset});
+}
+
+// ── Status Pembayaran Chip ──
+class _StatusChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool active;
+  final Color activeColor;
+  final VoidCallback onTap;
+
+  const _StatusChip({
+    required this.label,
+    required this.icon,
+    required this.active,
+    required this.activeColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 12),
+        decoration: BoxDecoration(
+          color: active ? activeColor : Colors.white,
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(
+            color: active ? activeColor : AppColors.border,
+            width: active ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: active ? Colors.white : AppColors.textDim),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: active ? Colors.white : AppColors.textMuted,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── DP / Bayar Sekarang Panel (for piutang) ──
+class _DpPanel extends StatelessWidget {
+  final AppProvider prov;
+  final TextEditingController dpCtrl;
+
+  const _DpPanel({required this.prov, required this.dpCtrl});
+
+  @override
+  Widget build(BuildContext context) {
+    final sisa = prov.total - prov.piutangTerbayar;
+    return UGTCard(
+      borderRadius: 16,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: AppColors.yellowLight,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: const Icon(Icons.info_outline, size: 14, color: AppColors.yellowText),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Pelanggan berhutang — bayar nanti. Isi DP jika ada.',
+                  style: GoogleFonts.inter(fontSize: 11, color: AppColors.yellowText, height: 1.4),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text('DP / Bayar Sekarang (opsional)',
+              style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: dpCtrl,
+            keyboardType: TextInputType.number,
+            inputFormatters: [_ThousandSeparatorFormatter()],
+            onChanged: (v) {
+              final digits = v.replaceAll('.', '');
+              final val = int.tryParse(digits) ?? 0;
+              prov.setPiutangTerbayar(val.clamp(0, prov.total));
+            },
+            style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text),
+            decoration: InputDecoration(
+              prefixText: 'Rp  ',
+              prefixStyle: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textDim),
+              hintText: '0',
+              hintStyle: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textDim),
+              filled: true,
+              fillColor: AppColors.bg,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.yellow, width: 1.5)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Sisa Piutang',
+                  style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMuted)),
+              Text(
+                formatRp(sisa < 0 ? 0 : sisa),
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: sisa > 0 ? AppColors.yellow : AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ThousandSeparatorFormatter extends TextInputFormatter {

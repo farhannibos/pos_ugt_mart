@@ -30,8 +30,9 @@ class Transaction {
   final String jam;
   final String metode;
   final int total;
+  int terbayar;   // mutable: updated when piutang dilunasi
   final int items;
-  final String status;
+  String status;  // mutable: 'Lunas' | 'Piutang'
   final String customer;
   final List<CartItem> cartItems;
 
@@ -41,11 +42,14 @@ class Transaction {
     required this.jam,
     required this.metode,
     required this.total,
+    this.terbayar = 0,
     required this.items,
     required this.status,
     required this.customer,
     required this.cartItems,
   });
+
+  int get sisaPiutang => total - terbayar;
 }
 
 class KasLog {

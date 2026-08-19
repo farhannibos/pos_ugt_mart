@@ -44,21 +44,23 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
     final last = prov.lastTransaction;
     final size = MediaQuery.of(context).size;
     final isWide = size.width > 600;
+    final isPiutang = (last?['status'] ?? 'Lunas') == 'Piutang';
+    final headerColor = isPiutang ? AppColors.yellow : AppColors.primary;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: Column(
         children: [
-          // Green top
+          // Header (green for lunas, yellow for piutang)
           Container(
-            color: AppColors.primary,
+            color: headerColor,
             child: SafeArea(
               bottom: false,
               child: Container(
                 padding: const EdgeInsets.fromLTRB(20, 34, 20, 46),
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+                decoration: BoxDecoration(
+                  color: headerColor,
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
                 ),
                 child: Column(
                   children: [
@@ -80,7 +82,12 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
                             color: Colors.white,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.check, size: 28, color: AppColors.primary, weight: 700),
+                          child: Icon(
+                            isPiutang ? Icons.pending_outlined : Icons.check,
+                            size: 28,
+                            color: headerColor,
+                            weight: 700,
+                          ),
                         ),
                       ),
                     ),
@@ -90,7 +97,7 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
                       child: Column(
                         children: [
                           Text(
-                            'Pembayaran Berhasil',
+                            isPiutang ? 'Piutang Dicatat' : 'Pembayaran Berhasil',
                             style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white),
                           ),
                           const SizedBox(height: 3),
@@ -114,7 +121,7 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
                   children: [
-                    // Receipt card (overlaps green header)
+                    // Receipt card (overlaps header)
                     Transform.translate(
                       offset: const Offset(0, -26),
                       child: UGTCard(
@@ -137,11 +144,18 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
                               ),
                               child: Column(
                                 children: [
-                                  Text('Total Dibayar', style: GoogleFonts.inter(fontSize: 11, color: AppColors.textDim)),
+                                  Text(
+                                    isPiutang ? 'Total Piutang' : 'Total Dibayar',
+                                    style: GoogleFonts.inter(fontSize: 11, color: AppColors.textDim),
+                                  ),
                                   const SizedBox(height: 2),
                                   Text(
                                     formatRp(last?['total'] ?? 0),
-                                    style: GoogleFonts.poppins(fontSize: 26, fontWeight: FontWeight.w700, color: AppColors.primary),
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w700,
+                                      color: isPiutang ? AppColors.yellow : AppColors.primary,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -150,9 +164,24 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
                             // Details
                             _DetailRow('Metode', last?['method'] ?? '-'),
                             const SizedBox(height: 9),
-                            _DetailRow('Uang Diterima', formatRp(last?['cash'] ?? 0)),
-                            const SizedBox(height: 9),
-                            _DetailRow('Kembalian', formatRp(last?['change'] ?? 0)),
+                            if (isPiutang) ...[
+                              _DetailRow('DP Dibayar', formatRp(last?['terbayar'] ?? 0)),
+                              const SizedBox(height: 9),
+                              Row(
+                                children: [
+                                  Text('Sisa Piutang', style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMuted)),
+                                  const Spacer(),
+                                  Text(
+                                    formatRp((last?['total'] ?? 0) - (last?['terbayar'] ?? 0)),
+                                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.yellow),
+                                  ),
+                                ],
+                              ),
+                            ] else ...[
+                              _DetailRow('Uang Diterima', formatRp(last?['cash'] ?? 0)),
+                              const SizedBox(height: 9),
+                              _DetailRow('Kembalian', formatRp(last?['change'] ?? 0)),
+                            ],
                             const SizedBox(height: 9),
                             _DetailRow('Pelanggan', last?['customer'] ?? 'Umum'),
                             const SizedBox(height: 9),
@@ -161,8 +190,8 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
                               const SizedBox(height: 9),
                               _DetailRow('Catatan', last!['note'] as String),
                             ],
-                            // Points
-                            if ((last?['points'] ?? 0) > 0) ...[
+                            // Points (only for lunas)
+                            if (!isPiutang && (last?['points'] ?? 0) > 0) ...[
                               const SizedBox(height: 14),
                               Container(
                                 padding: const EdgeInsets.all(12),
@@ -187,6 +216,36 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
                                       style: GoogleFonts.inter(
                                         fontSize: 11.5,
                                         color: AppColors.primaryDark,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            if (isPiutang) ...[
+                              const SizedBox(height: 14),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.yellowLight,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 30,
+                                      height: 30,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(Icons.info_outline, size: 15, color: AppColors.yellow),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        'Lunasi via menu Riwayat → Detail Transaksi',
+                                        style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.yellowText),
                                       ),
                                     ),
                                   ],

@@ -35,6 +35,8 @@ class AppProvider extends ChangeNotifier {
   String cashInput = '';
   String voucherCode = '';
   double taxRate = 0; // persentase PPN, 0 = tidak ada PPN
+  bool piutangMode = false;
+  int piutangTerbayar = 0; // DP dibayar saat catat piutang (bisa 0)
 
   bool get taxEnabled => taxRate > 0;
 
@@ -250,6 +252,34 @@ class AppProvider extends ChangeNotifier {
 
   int get change => cashAmount - total;
 
+  void setPiutangMode(bool value) {
+    piutangMode = value;
+    if (!value) piutangTerbayar = 0;
+    notifyListeners();
+  }
+
+  void setPiutangTerbayar(int value) {
+    piutangTerbayar = value < 0 ? 0 : value;
+    notifyListeners();
+  }
+
+  Future<bool> lunasiPiutang(Transaction trx) async {
+    final sisa = trx.sisaPiutang;
+    final ok = await DbService.lunasiPiutangDb(trx.id, trx.total);
+    if (ok) {
+      trx.status = 'Lunas';
+      trx.terbayar = trx.total;
+      if (sisa > 0) {
+        final now = DateTime.now();
+        final jam = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+        dummyKasLog.insert(0, KasLog(ket: 'Lunasi ${trx.id}', jam: jam, nominal: sisa, tipe: 'masuk'));
+        DbService.saveKas('Lunasi ${trx.id}', 'masuk', sisa, kasirName);
+      }
+      notifyListeners();
+    }
+    return ok;
+  }
+
   void processPayment() {
     final now = DateTime.now();
     final dateStr = '${now.year}'
@@ -285,30 +315,40 @@ class AppProvider extends ChangeNotifier {
         .toList();
 
     final tanggal = '${now.day.toString().padLeft(2, '0')} ${_bulan(now.month)} ${now.year}';
+    final trxStatus = piutangMode ? 'Piutang' : 'Lunas';
+    final trxTerbayar = piutangMode
+        ? piutangTerbayar
+        : (paymentMethod == 'Tunai' ? cashAmount : total);
+
     final trx = Transaction(
       id: id,
       tanggal: tanggal,
       jam: timeStr,
       metode: paymentMethod,
       total: total,
+      terbayar: piutangMode ? piutangTerbayar : 0,
       items: cartItemCount,
-      status: 'Lunas',
+      status: trxStatus,
       customer: selectedCustomer ?? 'Umum',
       cartItems: cartSnapshot,
     );
     dummyHistory.insert(0, trx);
     DbService.saveTransaction(trx, kasirName,
         diskon: discount, ppnRate: taxRate, ppnNominal: taxValue,
-        terbayar: paymentMethod == 'Tunai' ? cashAmount : total,
+        terbayar: trxTerbayar,
         onError: (e) {
       debugPrint('[APP] Transaksi gagal disimpan ke server: $e');
       showToast('⚠ Transaksi tidak tersimpan ke server. Cek koneksi.');
     });
 
-    if (paymentMethod == 'Tunai') {
+    if (!piutangMode && paymentMethod == 'Tunai') {
       final kasKet = 'Penjualan $id';
       dummyKasLog.insert(0, KasLog(ket: kasKet, jam: timeStr, nominal: total, tipe: 'masuk'));
       DbService.saveKas(kasKet, 'masuk', total, kasirName);
+    } else if (piutangMode && piutangTerbayar > 0) {
+      final kasKet = 'DP Piutang $id';
+      dummyKasLog.insert(0, KasLog(ket: kasKet, jam: timeStr, nominal: piutangTerbayar, tipe: 'masuk'));
+      DbService.saveKas(kasKet, 'masuk', piutangTerbayar, kasirName);
     }
 
     lastTrxObj = trx;
@@ -323,6 +363,8 @@ class AppProvider extends ChangeNotifier {
       'taxValue': taxValue,
       'roundUp': roundUpValue,
       'method': paymentMethod,
+      'status': trxStatus,
+      'terbayar': piutangMode ? piutangTerbayar : (paymentMethod == 'Tunai' ? cashAmount : total),
       'cash': paymentMethod == 'Tunai' ? cashAmount : total,
       'change': paymentMethod == 'Tunai' ? change : 0,
       'customer': selectedCustomer ?? 'Umum',
@@ -349,6 +391,8 @@ class AppProvider extends ChangeNotifier {
     selectedCustomer = null;
     selectedMemberId = null;
     paymentMethod = 'Tunai';
+    piutangMode = false;
+    piutangTerbayar = 0;
     lastTransaction = null;
     notifyListeners();
   }

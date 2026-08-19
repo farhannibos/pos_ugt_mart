@@ -275,6 +275,7 @@ class DbService {
         jam:      r['jam']?.toString() ?? '',
         metode:   r['metode_bayar'] as String? ?? '',
         total:    r['total'] as int,
+        terbayar: r['terbayar'] as int? ?? 0,
         items:    r['jumlah_item'] as int? ?? items.length,
         status:   r['status'] as String? ?? 'Lunas',
         customer: r['pelanggan'] as String? ?? 'Umum',
@@ -921,6 +922,19 @@ class DbService {
       return {'ok': false, 'pesan': 'Terjadi kesalahan'};
     } catch (e) {
       return {'ok': false, 'pesan': e.toString()};
+    }
+  }
+
+  static Future<bool> lunasiPiutangDb(String noFaktur, int total) async {
+    try {
+      await _db
+          .from('transaksi')
+          .update({'status': 'Lunas', 'terbayar': total})
+          .eq('no_faktur', noFaktur);
+      return true;
+    } catch (e) {
+      debugPrint('[DB] lunasiPiutangDb ERROR: $e');
+      return false;
     }
   }
 
