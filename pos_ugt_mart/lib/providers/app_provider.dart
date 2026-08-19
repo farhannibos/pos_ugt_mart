@@ -35,8 +35,10 @@ class AppProvider extends ChangeNotifier {
   String cashInput = '';
   String voucherCode = '';
   double taxRate = 0; // persentase PPN, 0 = tidak ada PPN
-  bool piutangMode = false;
   int piutangTerbayar = 0; // DP dibayar saat catat piutang (bisa 0)
+
+  // piutangMode otomatis true saat metode = 'Piutang'
+  bool get piutangMode => paymentMethod == 'Piutang';
 
   bool get taxEnabled => taxRate > 0;
 
@@ -252,12 +254,6 @@ class AppProvider extends ChangeNotifier {
 
   int get change => cashAmount - total;
 
-  void setPiutangMode(bool value) {
-    piutangMode = value;
-    if (!value) piutangTerbayar = 0;
-    notifyListeners();
-  }
-
   void setPiutangTerbayar(int value) {
     piutangTerbayar = value < 0 ? 0 : value;
     notifyListeners();
@@ -391,7 +387,6 @@ class AppProvider extends ChangeNotifier {
     selectedCustomer = null;
     selectedMemberId = null;
     paymentMethod = 'Tunai';
-    piutangMode = false;
     piutangTerbayar = 0;
     lastTransaction = null;
     notifyListeners();

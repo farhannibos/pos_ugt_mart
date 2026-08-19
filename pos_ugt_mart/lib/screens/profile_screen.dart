@@ -176,7 +176,7 @@ class ProfileScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Total Penjualan', style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textDim)),
+                            Text('Penjualan Hari Ini', style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textDim)),
                             const SizedBox(height: 3),
                             Text(formatRp(prov.todayTotalPenjualan), style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.text)),
                           ],

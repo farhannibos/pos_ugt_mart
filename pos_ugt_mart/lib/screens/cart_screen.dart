@@ -132,7 +132,7 @@ class _CartScreenState extends State<CartScreen> {
                 // Cart items
                 if (items.isEmpty)
                   _EmptyCart(onGoProduct: () => Navigator.of(context).pop('goto_products'))
-                else
+                else ...[
                   ...items.map((item) => Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _CartItem(
@@ -141,8 +141,37 @@ class _CartScreenState extends State<CartScreen> {
                       onDec: () => prov.decrementCart(item.productId),
                     ),
                   )),
+                  // Tombol tambah produk
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop('goto_products'),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.primaryMid, width: 1.5),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.add, size: 16, color: AppColors.primary),
+                          const SizedBox(width: 7),
+                          Text(
+                            'Tambah Produk',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 // Note field
-                const SizedBox(height: 2),
+                const SizedBox(height: 10),
                 UGTCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

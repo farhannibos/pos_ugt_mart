@@ -25,6 +25,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     _PayMethod(id: 'QRIS',               label: 'QRIS',    asset: 'assets/icons/ic_qr.png'),
     _PayMethod(id: 'Kartu Debit/Kredit', label: 'Kartu',   icon: Icons.credit_card_outlined),
     _PayMethod(id: 'Voucher',            label: 'Voucher', icon: Icons.confirmation_number_outlined),
+    _PayMethod(id: 'Piutang',            label: 'Piutang', icon: Icons.pending_outlined),
   ];
 
   @override
@@ -41,7 +42,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       prov.showToast('Keranjang masih kosong');
       return;
     }
-    if (prov.paymentMethod == 'Tunai' && !prov.piutangMode && prov.cashAmount < prov.total) {
+    if (prov.paymentMethod == 'Tunai' && prov.cashAmount < prov.total) {
       prov.showToast('Uang diterima belum cukup');
       return;
     }
@@ -222,51 +223,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
                     const SizedBox(height: 10),
 
-                    // ── Tab selector: 4 pill buttons ──
-                    Row(
-                      children: _methods.map((m) {
-                        final active = prov.paymentMethod == m.id;
-                        return Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.only(right: m == _methods.last ? 0 : 8),
-                            child: GestureDetector(
-                              onTap: () => prov.setPaymentMethod(m.id),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 160),
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: active ? AppColors.primary : Colors.white,
-                                  borderRadius: BorderRadius.circular(13),
-                                  border: Border.all(
-                                    color: active ? AppColors.primary : AppColors.border,
-                                    width: active ? 1.5 : 1,
-                                  ),
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    m.asset != null
-                                        ? Opacity(
-                                            opacity: active ? 1.0 : 0.45,
-                                            child: Image.asset(m.asset!, width: 20, fit: BoxFit.contain),
-                                          )
-                                        : Icon(m.icon, size: 20,
-                                            color: active ? Colors.white : AppColors.textDim),
-                                    const SizedBox(height: 4),
-                                    Text(m.label,
-                                        style: GoogleFonts.inter(
-                                          fontSize: 10.5,
-                                          fontWeight: FontWeight.w600,
-                                          color: active ? Colors.white : AppColors.textMuted,
-                                        )),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
+                    // ── Tab selector: 2 baris (3 + 2) ──
+                    _buildMethodRow(prov, _methods.sublist(0, 3)),
+                    const SizedBox(height: 8),
+                    _buildMethodRow(prov, _methods.sublist(3)),
 
                     const SizedBox(height: 14),
 
@@ -274,41 +234,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 200),
                       child: KeyedSubtree(
-                        key: ValueKey('${prov.paymentMethod}_${prov.piutangMode}'),
+                        key: ValueKey(prov.paymentMethod),
                         child: _buildPanel(prov),
                       ),
                     ),
-
-                    const SizedBox(height: 16),
-
-                    // ── Status Pembayaran Toggle ──
-                    Text('Status Pembayaran',
-                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(child: _StatusChip(
-                          label: 'Lunas',
-                          icon: Icons.check_circle_outline,
-                          active: !prov.piutangMode,
-                          activeColor: AppColors.primary,
-                          onTap: () => prov.setPiutangMode(false),
-                        )),
-                        const SizedBox(width: 10),
-                        Expanded(child: _StatusChip(
-                          label: 'Piutang / Nyicil',
-                          icon: Icons.pending_outlined,
-                          active: prov.piutangMode,
-                          activeColor: AppColors.yellow,
-                          onTap: () => prov.setPiutangMode(true),
-                        )),
-                      ],
-                    ),
-
-                    if (prov.piutangMode) ...[
-                      const SizedBox(height: 12),
-                      _DpPanel(prov: prov, dpCtrl: _dpCtrl),
-                    ],
                   ],
                 ),
               ),
@@ -319,17 +248,70 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
+  // ── Baris metode pembayaran ──
+  Widget _buildMethodRow(AppProvider prov, List<_PayMethod> methods) {
+    return Row(
+      children: methods.asMap().entries.map((e) {
+        final m = e.value;
+        final active = prov.paymentMethod == m.id;
+        final isPiutang = m.id == 'Piutang';
+        final activeColor = isPiutang ? AppColors.yellow : AppColors.primary;
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: e.key < methods.length - 1 ? 8 : 0),
+            child: GestureDetector(
+              onTap: () => prov.setPaymentMethod(m.id),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: active ? activeColor : Colors.white,
+                  borderRadius: BorderRadius.circular(13),
+                  border: Border.all(
+                    color: active ? activeColor : AppColors.border,
+                    width: active ? 1.5 : 1,
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    m.asset != null
+                        ? Opacity(
+                            opacity: active ? 1.0 : 0.45,
+                            child: Image.asset(m.asset!, width: 20, fit: BoxFit.contain),
+                          )
+                        : Icon(m.icon, size: 20,
+                            color: active ? Colors.white : AppColors.textDim),
+                    const SizedBox(height: 4),
+                    Text(m.label,
+                        style: GoogleFonts.inter(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                          color: active ? Colors.white : AppColors.textMuted,
+                        )),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   // ── Panel per metode ──
   Widget _buildPanel(AppProvider prov) {
     switch (prov.paymentMethod) {
       case 'Tunai':
-        return _TunaiPanel(prov: prov, cashCtrl: _cashCtrl, piutangMode: prov.piutangMode);
+        return _TunaiPanel(prov: prov, cashCtrl: _cashCtrl);
       case 'QRIS':
         return _QrisPanel(prov: prov);
       case 'Kartu Debit/Kredit':
         return _KartuPanel();
       case 'Voucher':
         return _VoucherPanel(voucherCtrl: _voucherCtrl);
+      case 'Piutang':
+        return _DpPanel(prov: prov, dpCtrl: _dpCtrl);
       default:
         return const SizedBox.shrink();
     }
@@ -340,35 +322,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
 class _TunaiPanel extends StatelessWidget {
   final AppProvider prov;
   final TextEditingController cashCtrl;
-  final bool piutangMode;
-  const _TunaiPanel({required this.prov, required this.cashCtrl, this.piutangMode = false});
+  const _TunaiPanel({required this.prov, required this.cashCtrl});
 
   @override
   Widget build(BuildContext context) {
-    if (piutangMode) {
-      return UGTCard(
-        borderRadius: 18,
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.yellowLight,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.info_outline, size: 16, color: AppColors.yellowText),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Jumlah uang tunai yang diterima diisi di bagian "DP / Bayar Sekarang" di bawah.',
-                style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.textMuted, height: 1.4),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
     final quickCash = [prov.total, 50000, 100000, 200000];
     return UGTCard(
       borderRadius: 18,
@@ -803,57 +760,6 @@ class _PayMethod {
   final IconData? icon;
   final String? asset;
   const _PayMethod({required this.id, required this.label, this.icon, this.asset});
-}
-
-// ── Status Pembayaran Chip ──
-class _StatusChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool active;
-  final Color activeColor;
-  final VoidCallback onTap;
-
-  const _StatusChip({
-    required this.label,
-    required this.icon,
-    required this.active,
-    required this.activeColor,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 12),
-        decoration: BoxDecoration(
-          color: active ? activeColor : Colors.white,
-          borderRadius: BorderRadius.circular(13),
-          border: Border.all(
-            color: active ? activeColor : AppColors.border,
-            width: active ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16, color: active ? Colors.white : AppColors.textDim),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: GoogleFonts.inter(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                color: active ? Colors.white : AppColors.textMuted,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 // ── DP / Bayar Sekarang Panel (for piutang) ──

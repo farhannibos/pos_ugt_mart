@@ -357,8 +357,19 @@ void showBukaShiftDialog(BuildContext context, AppProvider prov) {
         ),
         actions: [
           TextButton(
-            onPressed: loading ? null : () => Navigator.of(ctx).pop(),
-            child: Text('Lewati', style: GoogleFonts.inter(fontSize: 13, color: AppColors.textDim)),
+            onPressed: loading
+                ? null
+                : () async {
+                    setState(() => loading = true);
+                    final ok = await prov.bukaShift(0);
+                    if (ctx.mounted) Navigator.of(ctx).pop();
+                    if (ok) {
+                      prov.showToast('Shift dibuka · Tanpa modal awal');
+                    } else {
+                      prov.showToast('Gagal membuka shift, cek koneksi');
+                    }
+                  },
+            child: Text('Tanpa Modal Awal', style: GoogleFonts.inter(fontSize: 13, color: AppColors.textDim)),
           ),
           ElevatedButton(
             onPressed: loading
@@ -369,7 +380,7 @@ void showBukaShiftDialog(BuildContext context, AppProvider prov) {
                     final ok = await prov.bukaShift(modal);
                     if (ctx.mounted) Navigator.of(ctx).pop();
                     if (ok) {
-                      prov.showToast('Shift dibuka · Modal Rp${formatRp(modal)}');
+                      prov.showToast('Shift dibuka · Modal ${formatRp(modal)}');
                     } else {
                       prov.showToast('Gagal membuka shift, cek koneksi');
                     }
