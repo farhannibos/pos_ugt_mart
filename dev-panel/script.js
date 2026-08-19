@@ -66,6 +66,7 @@ async function doLogin() {
 }
 
 function doLogout() {
+    stopAutoRefresh();
     localStorage.removeItem('dev_user');
     _devUser = null;
     document.getElementById('app').style.display = 'none';
@@ -81,9 +82,23 @@ function enterApp() {
     document.getElementById('dev-avatar').textContent = (_devUser.nama || '?').charAt(0).toUpperCase();
     lucide.createIcons();
     loadDashboard();
+    startAutoRefresh();
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────────
+async function loadTransaksiPage() {
+    await Promise.all([loadTransaksi(), loadLisensi()]);
+}
+
+const _pageLoaders = {
+    dashboard: loadDashboard,
+    member: loadMember,
+    aplikasi: loadAplikasi,
+    transaksi: loadTransaksiPage,
+    laporan: loadLaporan,
+    'user-management': loadDevUsers,
+};
+
 function navigate(page, el, label) {
     document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
     if (el) el.classList.add('active');
@@ -91,12 +106,7 @@ function navigate(page, el, label) {
     document.getElementById('page-' + page).classList.add('active');
     document.getElementById('breadcrumb-label').textContent = label;
 
-    if (page === 'dashboard') loadDashboard();
-    else if (page === 'aplikasi') loadAplikasi();
-    else if (page === 'transaksi') loadTransaksi();
-    else if (page === 'laporan') loadLaporan();
-    else if (page === 'user-management') loadLisensi();
-    else if (page === 'pengaturan') loadPengaturan();
+    (_pageLoaders[page] || (() => {}))();
 }
 
 function refreshCurrentPage() {
@@ -105,8 +115,27 @@ function refreshCurrentPage() {
     const icon = document.getElementById('refresh-icon');
     icon.classList.add('spin');
     const page = active.id.replace('page-', '');
-    const map = { dashboard: loadDashboard, aplikasi: loadAplikasi, transaksi: loadTransaksi, laporan: loadLaporan, 'user-management': loadLisensi, pengaturan: loadPengaturan };
-    Promise.resolve((map[page] || (() => {}))()).finally(() => icon.classList.remove('spin'));
+    Promise.resolve((_pageLoaders[page] || (() => {}))()).finally(() => icon.classList.remove('spin'));
+}
+
+// ── AUTO-REFRESH (polling, tanpa ubah RLS) ──────────────────────────────────────
+const AUTO_REFRESH_MS = 20000;
+let _autoRefreshTimer = null;
+
+function startAutoRefresh() {
+    stopAutoRefresh();
+    _autoRefreshTimer = setInterval(() => {
+        if (document.hidden) return; // hemat request kalau tab tidak aktif
+        const active = document.querySelector('.page.active');
+        if (!active) return;
+        const page = active.id.replace('page-', '');
+        Promise.resolve((_pageLoaders[page] || (() => {}))()).catch(() => {});
+    }, AUTO_REFRESH_MS);
+}
+
+function stopAutoRefresh() {
+    clearInterval(_autoRefreshTimer);
+    _autoRefreshTimer = null;
 }
 
 function toggleDarkMode() {
@@ -126,7 +155,7 @@ async function loadDashboard() {
         document.getElementById('st-free').textContent = stats.total_free ?? 0;
         document.getElementById('st-premium').textContent = stats.total_premium ?? 0;
         document.getElementById('st-hari-ini').textContent = stats.terinstal_hari_ini ?? 0;
-        document.getElementById('st-pengajuan').textContent = stats.pengajuan_bulan_ini ?? 0;
+        document.getElementById('st-pengajuan').textContent = stats.total_pengajuan ?? 0;
     } catch (e) { showToast('error', 'Gagal memuat statistik: ' + e.message); }
 
     try {
@@ -185,6 +214,47 @@ function renderActivity(list) {
             </div>
             <div class="activity-time">${waktuRelatif(a.waktu)}</div>
         </div>`).join('');
+    lucide.createIcons();
+}
+
+// ── MEMBER ────────────────────────────────────────────────────────────────────
+let _memberCache = [];
+async function loadMember() {
+    try {
+        _memberCache = await devListToko();
+        renderMember();
+    } catch (e) { showToast('error', 'Gagal memuat daftar member: ' + e.message); }
+}
+
+function renderMember() {
+    const tbody = document.getElementById('member-tbody');
+    const q = (document.getElementById('mb-search')?.value || '').toLowerCase();
+    const premiumOnly = _memberCache.filter((r) => r.plan === 'premium');
+    const rows = premiumOnly.filter((r) =>
+        (r.nama_toko || '').toLowerCase().includes(q) || (r.owner_nama || '').toLowerCase().includes(q));
+
+    const isExpired = (r) => r.expired_at && Math.floor((new Date(r.expired_at) - new Date()) / 86400000) < 0;
+    document.getElementById('mb-total').textContent = premiumOnly.length;
+    document.getElementById('mb-expired').textContent = premiumOnly.filter(isExpired).length;
+    document.getElementById('mb-aktif').textContent = premiumOnly.filter((r) => !isExpired(r)).length;
+
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">Tidak ada data</div></td></tr>'; return; }
+
+    tbody.innerHTML = rows.map((r) => {
+        const exp = r.expired_at ? new Date(r.expired_at) : null;
+        const diff = exp ? Math.floor((exp - new Date()) / 86400000) : null;
+        let statusHtml = '<span class="badge badge-green">Aktif</span>';
+        if (diff !== null && diff < 0) statusHtml = '<span class="badge badge-red">Expired</span>';
+        else if (diff !== null && diff <= 7) statusHtml = `<span class="badge badge-yellow">Exp ${diff}h lagi</span>`;
+        return `<tr>
+            <td><strong>${escapeHtml(r.nama_toko)}</strong></td>
+            <td>${escapeHtml(r.owner_nama || '—')}</td>
+            <td>${escapeHtml(r.no_hp || '—')}</td>
+            <td>${tanggal(r.created_at)}</td>
+            <td>${tanggal(r.expired_at)}</td>
+            <td>${statusHtml}</td>
+        </tr>`;
+    }).join('');
     lucide.createIcons();
 }
 
@@ -331,7 +401,6 @@ async function loadLaporan() {
             byToko[r.nama_toko].nominal += (r.nominal || 0);
         });
         const sorted = Object.entries(byToko).sort((a, b) => b[1].nominal - a[1].nominal);
-        document.getElementById('lap-top-toko').textContent = sorted[0]?.[0] || '—';
 
         const tbody = document.getElementById('laporan-tbody');
         tbody.innerHTML = sorted.length
@@ -462,8 +531,8 @@ async function submitTolakLisensi() {
     } catch (e) { showToast('error', e.message); }
 }
 
-// ── PENGATURAN ────────────────────────────────────────────────────────────────
-async function loadPengaturan() {
+// ── USER MANAGEMENT ──────────────────────────────────────────────────────────
+async function loadDevUsers() {
     try {
         const users = await devListUsers();
         const tbody = document.getElementById('devuser-tbody');
@@ -476,6 +545,7 @@ async function loadPengaturan() {
     } catch (e) { showToast('error', 'Gagal memuat akun developer: ' + e.message); }
 }
 
+// ── PENGATURAN ────────────────────────────────────────────────────────────────
 async function submitChangePassword() {
     const oldPass = document.getElementById('pw-old').value;
     const newPass = document.getElementById('pw-new').value;
@@ -508,7 +578,7 @@ async function submitAddDev() {
     if (!nama || !username || !password) { errEl.textContent = 'Semua field wajib diisi'; errEl.style.display = 'block'; return; }
     try {
         const res = await devCreateUser(username, password, nama);
-        if (res?.ok) { closeModal('modal-add-dev'); showToast('success', 'Akun developer dibuat'); loadPengaturan(); }
+        if (res?.ok) { closeModal('modal-add-dev'); showToast('success', 'Akun developer dibuat'); loadDevUsers(); }
         else { errEl.textContent = res?.pesan || 'Gagal membuat akun'; errEl.style.display = 'block'; }
     } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
 }

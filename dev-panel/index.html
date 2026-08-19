@@ -61,6 +61,9 @@
                 <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard',this,'Dashboard')">
                     <i data-lucide="layout-dashboard" class="nav-icon"></i><span class="nav-label">Dashboard</span>
                 </div>
+                <div class="nav-item" data-page="member" onclick="navigate('member',this,'Member')">
+                    <i data-lucide="users" class="nav-icon"></i><span class="nav-label">Member</span>
+                </div>
                 <div class="nav-item" data-page="aplikasi" onclick="navigate('aplikasi',this,'Aplikasi')">
                     <i data-lucide="layers" class="nav-icon"></i><span class="nav-label">Aplikasi</span>
                 </div>
@@ -99,7 +102,7 @@
                     <div class="stat-card"><div class="stat-icon" style="--stat-color:#64748B;--stat-bg:#F1F5F9"><i data-lucide="user"></i></div><div><div class="stat-value" id="st-free">—</div><div class="stat-label">Total Member Gratis</div></div></div>
                     <div class="stat-card"><div class="stat-icon" style="--stat-color:#8B5CF6;--stat-bg:#EDE9FE"><i data-lucide="crown"></i></div><div><div class="stat-value" id="st-premium">—</div><div class="stat-label">Total Member Premium</div></div></div>
                     <div class="stat-card"><div class="stat-icon" style="--stat-color:#3B82F6;--stat-bg:#DBEAFE"><i data-lucide="download"></i></div><div><div class="stat-value" id="st-hari-ini">—</div><div class="stat-label">Aplikasi Terinstal Hari Ini</div></div></div>
-                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#F59E0B;--stat-bg:#FEF3C7"><i data-lucide="file-clock"></i></div><div><div class="stat-value" id="st-pengajuan">—</div><div class="stat-label">Pengajuan Premium (bulan ini)</div></div></div>
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#F59E0B;--stat-bg:#FEF3C7"><i data-lucide="file-clock"></i></div><div><div class="stat-value" id="st-pengajuan">—</div><div class="stat-label">Total Pengajuan Premium</div></div></div>
                 </div>
 
                 <div class="grid-2">
@@ -110,6 +113,29 @@
                     <div class="card">
                         <div class="card-header"><div class="card-title"><i data-lucide="activity"></i>Aktivitas Terbaru</div></div>
                         <div class="card-body" id="activity-list"><div class="empty-state">Memuat...</div></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== MEMBER ===== -->
+            <section class="page" id="page-member">
+                <div class="stat-grid">
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#8B5CF6;--stat-bg:#EDE9FE"><i data-lucide="crown"></i></div><div><div class="stat-value" id="mb-total">—</div><div class="stat-label">Total Member Premium</div></div></div>
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#16A34A;--stat-bg:#DCFCE7"><i data-lucide="check-circle-2"></i></div><div><div class="stat-value" id="mb-aktif">—</div><div class="stat-label">Aktif</div></div></div>
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#EF4444;--stat-bg:#FEE2E2"><i data-lucide="x-circle"></i></div><div><div class="stat-value" id="mb-expired">—</div><div class="stat-label">Expired</div></div></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><i data-lucide="crown"></i>Daftar Member Premium</div>
+                        <div class="toolbar">
+                            <input class="form-control search-input" id="mb-search" placeholder="Cari nama toko / pemilik..." oninput="renderMember()">
+                        </div>
+                    </div>
+                    <div class="card-body table-wrap">
+                        <table>
+                            <thead><tr><th>Toko</th><th>Pemilik</th><th>No. HP</th><th>Tanggal Daftar</th><th>Berlaku s/d</th><th>Status</th></tr></thead>
+                            <tbody id="member-tbody"></tbody>
+                        </table>
                     </div>
                 </div>
             </section>
@@ -155,6 +181,27 @@
                         </table>
                     </div>
                 </div>
+
+                <div class="stat-grid" style="margin-top:18px">
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#F59E0B;--stat-bg:#FEF3C7"><i data-lucide="hourglass"></i></div><div><div class="stat-value" id="lr-pending">—</div><div class="stat-label">Menunggu Persetujuan</div></div></div>
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#16A34A;--stat-bg:#DCFCE7"><i data-lucide="check-circle-2"></i></div><div><div class="stat-value" id="lr-approved">—</div><div class="stat-label">Disetujui</div></div></div>
+                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#EF4444;--stat-bg:#FEE2E2"><i data-lucide="x-circle"></i></div><div><div class="stat-value" id="lr-declined">—</div><div class="stat-label">Ditolak</div></div></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><i data-lucide="ticket"></i>Pengajuan Lisensi Premium</div>
+                        <div class="toolbar">
+                            <input class="form-control search-input" id="lr-search" placeholder="Cari invoice / device / member..." oninput="renderLisensi()">
+                            <button class="btn btn-primary btn-sm" onclick="openModalAjukan()"><i data-lucide="plus"></i>Ajukan Baru</button>
+                        </div>
+                    </div>
+                    <div class="card-body table-wrap">
+                        <table>
+                            <thead><tr><th>No. Invoice</th><th>ID Device</th><th>ID Member</th><th>Durasi</th><th>Harga</th><th>Status</th><th>Diajukan</th><th>Aksi</th></tr></thead>
+                            <tbody id="lisensi-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
 
             <!-- ===== LAPORAN ===== -->
@@ -173,7 +220,6 @@
                         <div class="stat-grid" style="margin-bottom:18px">
                             <div class="stat-card"><div class="stat-icon" style="--stat-color:#16A34A;--stat-bg:#DCFCE7"><i data-lucide="banknote"></i></div><div><div class="stat-value" id="lap-total">—</div><div class="stat-label">Total Pendapatan Periode</div></div></div>
                             <div class="stat-card"><div class="stat-icon" style="--stat-color:#3B82F6;--stat-bg:#DBEAFE"><i data-lucide="hash"></i></div><div><div class="stat-value" id="lap-jumlah">—</div><div class="stat-label">Jumlah Transaksi</div></div></div>
-                            <div class="stat-card"><div class="stat-icon" style="--stat-color:#8B5CF6;--stat-bg:#EDE9FE"><i data-lucide="trophy"></i></div><div><div class="stat-value" id="lap-top-toko" style="font-size:14px">—</div><div class="stat-label">Toko Terbesar</div></div></div>
                         </div>
                         <div class="table-wrap">
                             <table>
@@ -187,23 +233,15 @@
 
             <!-- ===== USER MANAGEMENT ===== -->
             <section class="page" id="page-user-management">
-                <div class="stat-grid">
-                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#F59E0B;--stat-bg:#FEF3C7"><i data-lucide="hourglass"></i></div><div><div class="stat-value" id="lr-pending">—</div><div class="stat-label">Menunggu Persetujuan</div></div></div>
-                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#16A34A;--stat-bg:#DCFCE7"><i data-lucide="check-circle-2"></i></div><div><div class="stat-value" id="lr-approved">—</div><div class="stat-label">Disetujui</div></div></div>
-                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#EF4444;--stat-bg:#FEE2E2"><i data-lucide="x-circle"></i></div><div><div class="stat-value" id="lr-declined">—</div><div class="stat-label">Ditolak</div></div></div>
-                </div>
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-title"><i data-lucide="users-2"></i>Pengajuan Lisensi Premium</div>
-                        <div class="toolbar">
-                            <input class="form-control search-input" id="lr-search" placeholder="Cari invoice / device / member..." oninput="renderLisensi()">
-                            <button class="btn btn-primary btn-sm" onclick="openModalAjukan()"><i data-lucide="plus"></i>Ajukan Baru</button>
-                        </div>
+                        <div class="card-title"><i data-lucide="users-2"></i>Akun Developer / Admin Panel</div>
+                        <button class="btn btn-primary btn-sm" onclick="openModalAddDev()"><i data-lucide="user-plus"></i>Tambah Admin</button>
                     </div>
                     <div class="card-body table-wrap">
                         <table>
-                            <thead><tr><th>No. Invoice</th><th>ID Device</th><th>ID Member</th><th>Durasi</th><th>Harga</th><th>Status</th><th>Diajukan</th><th>Aksi</th></tr></thead>
-                            <tbody id="lisensi-tbody"></tbody>
+                            <thead><tr><th>Username</th><th>Nama</th><th>Status</th><th>Dibuat</th></tr></thead>
+                            <tbody id="devuser-tbody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -211,27 +249,13 @@
 
             <!-- ===== PENGATURAN ===== -->
             <section class="page" id="page-pengaturan">
-                <div class="grid-2">
-                    <div class="card">
-                        <div class="card-header"><div class="card-title"><i data-lucide="key-round"></i>Ubah Password</div></div>
-                        <div class="card-body">
-                            <div class="form-group"><label>Password Lama</label><input class="form-control" type="password" id="pw-old"></div>
-                            <div class="form-group"><label>Password Baru</label><input class="form-control" type="password" id="pw-new"></div>
-                            <div class="form-group"><label>Konfirmasi Password Baru</label><input class="form-control" type="password" id="pw-confirm"></div>
-                            <button class="btn btn-primary" onclick="submitChangePassword()"><i data-lucide="save"></i>Simpan Password</button>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title"><i data-lucide="user-plus"></i>Akun Developer</div>
-                            <button class="btn btn-secondary btn-sm" onclick="openModalAddDev()"><i data-lucide="plus"></i>Tambah</button>
-                        </div>
-                        <div class="card-body table-wrap">
-                            <table>
-                                <thead><tr><th>Username</th><th>Nama</th><th>Status</th><th>Dibuat</th></tr></thead>
-                                <tbody id="devuser-tbody"></tbody>
-                            </table>
-                        </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title"><i data-lucide="key-round"></i>Ubah Password</div></div>
+                    <div class="card-body">
+                        <div class="form-group"><label>Password Lama</label><input class="form-control" type="password" id="pw-old"></div>
+                        <div class="form-group"><label>Password Baru</label><input class="form-control" type="password" id="pw-new"></div>
+                        <div class="form-group"><label>Konfirmasi Password Baru</label><input class="form-control" type="password" id="pw-confirm"></div>
+                        <button class="btn btn-primary" onclick="submitChangePassword()"><i data-lucide="save"></i>Simpan Password</button>
                     </div>
                 </div>
             </section>

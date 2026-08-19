@@ -293,7 +293,7 @@ DECLARE
   v_total_premium  int;
   v_hari_ini       int;
   v_pending        int;
-  v_pengajuan_bulan_ini int;
+  v_total_pengajuan int;
 BEGIN
   SELECT COUNT(*) INTO v_total_aplikasi FROM toko;
 
@@ -307,8 +307,7 @@ BEGIN
 
   SELECT COUNT(*) INTO v_pending FROM lisensi_request WHERE status = 'pending';
 
-  SELECT COUNT(*) INTO v_pengajuan_bulan_ini FROM lisensi_request
-  WHERE diajukan_at >= date_trunc('month', CURRENT_DATE);
+  SELECT COUNT(*) INTO v_total_pengajuan FROM lisensi_request;
 
   RETURN jsonb_build_object(
     'total_aplikasi',        v_total_aplikasi,
@@ -316,7 +315,7 @@ BEGIN
     'total_premium',          v_total_premium,
     'terinstal_hari_ini',     v_hari_ini,
     'pending_requests',       v_pending,
-    'pengajuan_bulan_ini',    v_pengajuan_bulan_ini
+    'total_pengajuan',        v_total_pengajuan
   );
 END;
 $$;
