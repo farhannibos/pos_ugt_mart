@@ -315,7 +315,7 @@ class _CartItem extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
-          InitialsAvatar(text: cartItem.initials, size: 50, fontSize: 14, borderRadius: 13),
+          _ProductThumb(fotoUrl: produk.fotoUrl, initials: cartItem.initials as String),
           const SizedBox(width: 11),
           Expanded(
             child: Column(
@@ -373,6 +373,31 @@ class _CartItem extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _ProductThumb extends StatelessWidget {
+  final String? fotoUrl;
+  final String initials;
+
+  const _ProductThumb({required this.fotoUrl, required this.initials});
+
+  @override
+  Widget build(BuildContext context) {
+    if (fotoUrl != null && fotoUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(13),
+        child: Image.network(
+          fotoUrl!,
+          width: 50,
+          height: 50,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) =>
+              InitialsAvatar(text: initials, size: 50, fontSize: 14, borderRadius: 13),
+        ),
+      );
+    }
+    return InitialsAvatar(text: initials, size: 50, fontSize: 14, borderRadius: 13);
   }
 }
 
