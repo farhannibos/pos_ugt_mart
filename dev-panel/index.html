@@ -241,11 +241,11 @@
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title"><i data-lucide="users-2"></i>Akun Developer / Admin Panel</div>
-                        <button class="btn btn-primary btn-sm" onclick="openModalAddDev()"><i data-lucide="user-plus"></i>Tambah Admin</button>
+                        <button class="btn btn-primary btn-sm" id="btn-tambah-admin" onclick="openModalAddDev()"><i data-lucide="user-plus"></i>Tambah Admin</button>
                     </div>
                     <div class="card-body table-wrap">
                         <table>
-                            <thead><tr><th>Username</th><th>Nama</th><th>Status</th><th>Dibuat</th></tr></thead>
+                            <thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Status</th><th>Dibuat</th><th>Aksi</th></tr></thead>
                             <tbody id="devuser-tbody"></tbody>
                         </table>
                     </div>
@@ -343,6 +343,12 @@
                 <div class="form-group"><label>Nama</label><input class="form-control" id="dev-nama-baru"></div>
                 <div class="form-group"><label>Username</label><input class="form-control" id="dev-username-baru"></div>
                 <div class="form-group"><label>Password</label><input class="form-control" type="password" id="dev-password-baru"></div>
+                <div class="form-group"><label>Role</label>
+                    <select class="form-control" id="dev-role-baru">
+                        <option value="staff">Staf — tidak bisa aktivasi/hapus toko & approve lisensi</option>
+                        <option value="admin">Admin — akses penuh</option>
+                    </select>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('modal-add-dev')">Batal</button>

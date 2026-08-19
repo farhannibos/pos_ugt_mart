@@ -58,7 +58,7 @@ async function doLogin() {
             enterApp();
         }
     } catch (e) {
-        errEl.textContent = 'Gagal terhubung ke server: ' + e.message;
+        errEl.textContent = e.message;
         errEl.style.display = 'block';
     }
     btn.disabled = false;
@@ -80,6 +80,7 @@ function enterApp() {
     document.getElementById('app').style.display = 'block';
     document.getElementById('dev-nama').textContent = _devUser.nama;
     document.getElementById('dev-avatar').textContent = (_devUser.nama || '?').charAt(0).toUpperCase();
+    document.getElementById('btn-tambah-admin').style.display = (_devUser.role || 'admin') === 'admin' ? '' : 'none';
     lucide.createIcons();
     loadDashboard();
     startAutoRefresh();
@@ -276,6 +277,8 @@ function renderAplikasi() {
 
     if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">Tidak ada data</div></td></tr>'; return; }
 
+    const isAdmin = (_devUser.role || 'admin') === 'admin';
+
     tbody.innerHTML = rows.map((r) => {
         const isPremium = r.plan === 'premium';
         const exp = r.expired_at ? new Date(r.expired_at) : null;
@@ -293,10 +296,10 @@ function renderAplikasi() {
             <td><span class="badge ${isPremium ? 'badge-purple' : 'badge-gray'}">${isPremium ? 'Premium' : 'Free'}</span></td>
             <td>${tanggal(r.expired_at)}</td>
             <td>${statusHtml}</td>
-            <td>
+            <td>${isAdmin ? `
                 <button class="btn btn-sm btn-primary" onclick="openModalAktivasi('${r.id_toko}','${escapeHtml(r.nama_toko).replace(/'/g, "\\'")}')"><i data-lucide="badge-check"></i>Aktifkan</button>
                 <button class="btn btn-sm btn-danger" onclick="confirmHapusToko('${r.id_toko}','${escapeHtml(r.nama_toko).replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i></button>
-            </td>
+            ` : `<span class="text-dim" style="font-size:11.5px">khusus admin</span>`}</td>
         </tr>`;
     }).join('');
     lucide.createIcons();
@@ -324,7 +327,7 @@ async function doAktivasiPremium() {
 
     btn.disabled = true; btn.textContent = 'Memproses...';
     try {
-        const res = await devAktivasiPremium(idToko, bulan, nominal, keterangan || `Aktivasi ${bulan} bulan`, _devUser.nama);
+        const res = await devAktivasiPremium(idToko, bulan, nominal, keterangan || `Aktivasi ${bulan} bulan`, _devUser.username);
         if (res?.ok) {
             closeModal('modal-aktivasi');
             showToast('success', 'Premium berhasil diaktifkan');
@@ -343,7 +346,7 @@ async function doAktivasiPremium() {
 
 function confirmHapusToko(idToko, namaToko) {
     if (!confirm(`Hapus toko "${namaToko}" beserta seluruh datanya secara permanen?`)) return;
-    devHapusToko(parseInt(idToko))
+    devHapusToko(parseInt(idToko), _devUser.username)
         .then((res) => { showToast('success', `Toko "${res.nama_toko || namaToko}" dihapus`); loadAplikasi(); })
         .catch((e) => showToast('error', 'Gagal menghapus: ' + e.message));
 }
@@ -451,6 +454,7 @@ function renderLisensi() {
     if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">Belum ada pengajuan</div></td></tr>'; return; }
 
     const statusBadge = { pending: '<span class="badge badge-yellow">Pending</span>', approved: '<span class="badge badge-green">Approved</span>', declined: '<span class="badge badge-red">Declined</span>' };
+    const isAdmin = (_devUser.role || 'admin') === 'admin';
 
     tbody.innerHTML = rows.map((r) => `<tr>
         <td class="mono">${escapeHtml(r.no_invoice)}</td>
@@ -460,10 +464,11 @@ function renderLisensi() {
         <td>${rupiah(r.harga)}</td>
         <td>${statusBadge[r.status] || r.status}</td>
         <td>${tanggal(r.diajukan_at)}</td>
-        <td>${r.status === 'pending' ? `
+        <td>${r.status === 'pending' && isAdmin ? `
             <button class="btn btn-sm btn-primary" onclick="approveLisensi(${r.id})"><i data-lucide="check"></i></button>
             <button class="btn btn-sm btn-danger" onclick="openModalTolak(${r.id})"><i data-lucide="x"></i></button>
-        ` : `<span class="text-dim" style="font-size:11.5px">oleh ${escapeHtml(r.diproses_oleh || '—')}</span>`}</td>
+        ` : r.status === 'pending' ? `<span class="text-dim" style="font-size:11.5px">menunggu admin</span>`
+          : `<span class="text-dim" style="font-size:11.5px">oleh ${escapeHtml(r.diproses_oleh || '—')}</span>`}</td>
     </tr>`).join('');
     lucide.createIcons();
 }
@@ -511,7 +516,7 @@ async function submitAjukanLisensi() {
 async function approveLisensi(id) {
     if (!confirm('Setujui pengajuan ini? Toko akan langsung diaktifkan ke premium.')) return;
     try {
-        const res = await devApproveLisensi(id, _devUser.nama);
+        const res = await devApproveLisensi(id, _devUser.username);
         if (res?.ok) { showToast('success', res.pesan || 'Pengajuan disetujui'); loadLisensi(); }
         else showToast('error', res?.pesan || 'Gagal menyetujui pengajuan');
     } catch (e) { showToast('error', e.message); }
@@ -527,7 +532,7 @@ async function submitTolakLisensi() {
     if (!_tolakId) return;
     const alasan = document.getElementById('tolak-alasan').value.trim();
     try {
-        const res = await devDeclineLisensi(_tolakId, _devUser.nama, alasan);
+        const res = await devDeclineLisensi(_tolakId, _devUser.username, alasan);
         closeModal('modal-tolak');
         if (res?.ok) { showToast('success', 'Pengajuan ditolak'); loadLisensi(); }
         else showToast('error', res?.pesan || 'Gagal menolak pengajuan');
@@ -538,14 +543,34 @@ async function submitTolakLisensi() {
 async function loadDevUsers() {
     try {
         const users = await devListUsers();
+        const isAdmin = (_devUser.role || 'admin') === 'admin';
         const tbody = document.getElementById('devuser-tbody');
-        tbody.innerHTML = users.map((u) => `<tr>
-            <td>${escapeHtml(u.username)}</td>
-            <td>${escapeHtml(u.nama)}</td>
-            <td>${u.aktif ? '<span class="badge badge-green">Aktif</span>' : '<span class="badge badge-gray">Nonaktif</span>'}</td>
-            <td>${tanggal(u.created_at)}</td>
-        </tr>`).join('');
+        tbody.innerHTML = users.map((u) => {
+            const isSelf = u.username === _devUser.username;
+            const roleBadge = u.role === 'admin' ? '<span class="badge badge-purple">Admin</span>' : '<span class="badge badge-gray">Staf</span>';
+            const statusBadge = u.aktif ? '<span class="badge badge-green">Aktif</span>' : '<span class="badge badge-gray">Nonaktif</span>';
+            const toggleBtn = (isAdmin && !isSelf)
+                ? `<button class="btn btn-sm ${u.aktif ? 'btn-danger' : 'btn-secondary'}" onclick="toggleDevUserAktif(${u.id}, ${!u.aktif})">${u.aktif ? 'Nonaktifkan' : 'Aktifkan'}</button>`
+                : '';
+            return `<tr>
+                <td>${escapeHtml(u.username)}</td>
+                <td>${escapeHtml(u.nama)}</td>
+                <td>${roleBadge}</td>
+                <td>${statusBadge}</td>
+                <td>${tanggal(u.created_at)}</td>
+                <td>${toggleBtn}</td>
+            </tr>`;
+        }).join('');
     } catch (e) { showToast('error', 'Gagal memuat akun developer: ' + e.message); }
+}
+
+async function toggleDevUserAktif(id, aktif) {
+    if (!confirm(aktif ? 'Aktifkan akun ini?' : 'Nonaktifkan akun ini? Pemiliknya tidak akan bisa login lagi.')) return;
+    try {
+        const res = await devSetUserAktif(id, aktif, _devUser.username);
+        if (res?.ok) { showToast('success', res.pesan || 'Berhasil'); loadDevUsers(); }
+        else showToast('error', res?.pesan || 'Gagal mengubah status akun');
+    } catch (e) { showToast('error', e.message); }
 }
 
 // ── PENGATURAN ────────────────────────────────────────────────────────────────
@@ -570,6 +595,7 @@ function openModalAddDev() {
     document.getElementById('dev-nama-baru').value = '';
     document.getElementById('dev-username-baru').value = '';
     document.getElementById('dev-password-baru').value = '';
+    document.getElementById('dev-role-baru').value = 'staff';
     document.getElementById('dev-err').style.display = 'none';
     openModal('modal-add-dev');
 }
@@ -577,10 +603,11 @@ async function submitAddDev() {
     const nama = document.getElementById('dev-nama-baru').value.trim();
     const username = document.getElementById('dev-username-baru').value.trim();
     const password = document.getElementById('dev-password-baru').value;
+    const role = document.getElementById('dev-role-baru').value;
     const errEl = document.getElementById('dev-err');
     if (!nama || !username || !password) { errEl.textContent = 'Semua field wajib diisi'; errEl.style.display = 'block'; return; }
     try {
-        const res = await devCreateUser(username, password, nama);
+        const res = await devCreateUser(username, password, nama, role, _devUser.username);
         if (res?.ok) { closeModal('modal-add-dev'); showToast('success', 'Akun developer dibuat'); loadDevUsers(); }
         else { errEl.textContent = res?.pesan || 'Gagal membuat akun'; errEl.style.display = 'block'; }
     } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }

@@ -11,8 +11,9 @@ async function devValidateLogin(username, password) {
         p_username: username,
         p_password: password,
     });
-    if (error || !data || data.length === 0) return null;
-    return data[0]; // { id, nama, username }
+    if (error) throw error;
+    if (!data || data.length === 0) return null;
+    return data[0]; // { id, nama, username, role }
 }
 
 async function devChangePassword(username, oldPass, newPass) {
@@ -23,9 +24,10 @@ async function devChangePassword(username, oldPass, newPass) {
     return data;
 }
 
-async function devCreateUser(username, password, nama) {
+async function devCreateUser(username, password, nama, role, byUsername) {
     const { data, error } = await _sb.rpc('dev_create_user', {
         p_username: username, p_password: password, p_nama: nama,
+        p_role: role, p_by_username: byUsername,
     });
     if (error) throw error;
     return data;
@@ -35,6 +37,14 @@ async function devListUsers() {
     const { data, error } = await _sb.rpc('dev_list_users');
     if (error) throw error;
     return data || [];
+}
+
+async function devSetUserAktif(id, aktif, byUsername) {
+    const { data, error } = await _sb.rpc('dev_set_user_aktif', {
+        p_id: id, p_aktif: aktif, p_by_username: byUsername,
+    });
+    if (error) throw error;
+    return data;
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
@@ -63,17 +73,19 @@ async function devListToko() {
     return data || [];
 }
 
-async function devAktivasiPremium(idToko, bulan, nominal, keterangan, admin) {
-    const { data, error } = await _sb.rpc('aktivasi_premium', {
+async function devAktivasiPremium(idToko, bulan, nominal, keterangan, byUsername) {
+    const { data, error } = await _sb.rpc('dev_aktivasi_premium_checked', {
         p_id_toko: idToko, p_bulan: bulan, p_nominal: nominal,
-        p_keterangan: keterangan, p_admin: admin,
+        p_keterangan: keterangan, p_by_username: byUsername,
     });
     if (error) throw error;
     return Array.isArray(data) ? data[0] : data;
 }
 
-async function devHapusToko(idToko) {
-    const { data, error } = await _sb.rpc('delete_toko_complete', { p_id_toko: idToko });
+async function devHapusToko(idToko, byUsername) {
+    const { data, error } = await _sb.rpc('dev_hapus_toko_checked', {
+        p_id_toko: idToko, p_by_username: byUsername,
+    });
     if (error) throw error;
     return data;
 }
@@ -94,17 +106,17 @@ async function devAjukanLisensi(idToko, idDevice, durasiBulan, harga, catatan) {
     return data;
 }
 
-async function devApproveLisensi(idRequest, admin) {
+async function devApproveLisensi(idRequest, byUsername) {
     const { data, error } = await _sb.rpc('dev_approve_lisensi', {
-        p_id_request: idRequest, p_admin: admin,
+        p_id_request: idRequest, p_by_username: byUsername,
     });
     if (error) throw error;
     return data;
 }
 
-async function devDeclineLisensi(idRequest, admin, alasan) {
+async function devDeclineLisensi(idRequest, byUsername, alasan) {
     const { data, error } = await _sb.rpc('dev_decline_lisensi', {
-        p_id_request: idRequest, p_admin: admin, p_alasan: alasan,
+        p_id_request: idRequest, p_by_username: byUsername, p_alasan: alasan,
     });
     if (error) throw error;
     return data;
