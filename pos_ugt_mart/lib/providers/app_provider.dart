@@ -305,6 +305,12 @@ class AppProvider extends ChangeNotifier {
       showToast('⚠ Transaksi tidak tersimpan ke server. Cek koneksi.');
     });
 
+    if (paymentMethod == 'Tunai') {
+      final kasKet = 'Penjualan $id';
+      dummyKasLog.insert(0, KasLog(ket: kasKet, jam: timeStr, nominal: total, tipe: 'masuk'));
+      DbService.saveKas(kasKet, 'masuk', total, kasirName);
+    }
+
     lastTrxObj = trx;
     lastTransaction = {
       'id': id,

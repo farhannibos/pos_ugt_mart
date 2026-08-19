@@ -16,15 +16,13 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   String _filter = 'Semua';
-  final List<String> _filters = ['Semua', 'Lunas', 'Piutang', 'Tunai', 'Non Tunai'];
+  final List<String> _filters = ['Semua', 'Lunas', 'Piutang'];
 
   List<Transaction> get _filtered {
     switch (_filter) {
-      case 'Lunas':     return dummyHistory.where((h) => h.status == 'Lunas').toList();
-      case 'Piutang':   return dummyHistory.where((h) => h.status == 'Piutang').toList();
-      case 'Tunai':     return dummyHistory.where((h) => h.metode == 'Tunai').toList();
-      case 'Non Tunai': return dummyHistory.where((h) => h.metode != 'Tunai').toList();
-      default:          return dummyHistory;
+      case 'Lunas':   return dummyHistory.where((h) => h.status == 'Lunas').toList();
+      case 'Piutang': return dummyHistory.where((h) => h.status == 'Piutang').toList();
+      default:        return dummyHistory;
     }
   }
 

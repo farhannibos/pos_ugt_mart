@@ -6,6 +6,7 @@ import '../providers/app_provider.dart';
 import '../models/product.dart';
 import '../widgets/ugt_widgets.dart';
 import 'product_screen.dart';
+import 'history_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -40,6 +41,15 @@ class DashboardScreen extends StatelessWidget {
       kasTunaiTrend = parts.join(' ');
     }
 
+    String shiftLabel;
+    if (prov.activeShift == null) {
+      shiftLabel = 'Belum ada shift aktif';
+    } else {
+      final buka = prov.activeShift!.jamBuka;
+      final jam = '${buka.hour.toString().padLeft(2, '0')}:${buka.minute.toString().padLeft(2, '0')}';
+      shiftLabel = 'Shift Aktif sejak $jam';
+    }
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: RefreshIndicator(
@@ -48,7 +58,7 @@ class DashboardScreen extends StatelessWidget {
         child: CustomScrollView(
         slivers: [
           // Green header
-          SliverToBoxAdapter(child: _DashHeader(kasir: prov.kasirName)),
+          SliverToBoxAdapter(child: _DashHeader(kasir: prov.kasirName, shiftLabel: shiftLabel)),
           SliverToBoxAdapter(
             child: Align(
               alignment: Alignment.topCenter,
@@ -63,7 +73,13 @@ class DashboardScreen extends StatelessWidget {
                         children: [
                           Expanded(child: _StatCard(label: 'Kas Tunai', value: formatRp(kasTunai), trend: kasTunaiTrend, trendPositive: null)),
                           const SizedBox(width: 12),
-                          Expanded(child: _StatCard(label: 'Total Transaksi', value: '$trxCount', trend: rataRata > 0 ? 'rata-rata ${formatRp(rataRata)}' : 'belum ada transaksi', trendPositive: null)),
+                          Expanded(child: _StatCard(
+                            label: 'Total Transaksi',
+                            value: '$trxCount',
+                            trend: rataRata > 0 ? 'rata-rata ${formatRp(rataRata)}' : 'belum ada transaksi',
+                            trendPositive: null,
+                            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryScreen())),
+                          )),
                         ],
                       ),
                       const SizedBox(height: 14),
@@ -102,7 +118,8 @@ class DashboardScreen extends StatelessWidget {
 
 class _DashHeader extends StatelessWidget {
   final String kasir;
-  const _DashHeader({required this.kasir});
+  final String shiftLabel;
+  const _DashHeader({required this.kasir, required this.shiftLabel});
 
   @override
   Widget build(BuildContext context) {
@@ -164,7 +181,7 @@ class _DashHeader extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Shift Pagi · 08:00–16:00',
+                              shiftLabel,
                               style: GoogleFonts.inter(fontSize: 11, color: Colors.white.withValues(alpha: 0.78)),
                             ),
                             const SizedBox(height: 1),
@@ -223,17 +240,21 @@ class _StatCard extends StatelessWidget {
   final String value;
   final String trend;
   final bool? trendPositive;
+  final VoidCallback? onTap;
 
   const _StatCard({
     required this.label,
     required this.value,
     required this.trend,
     required this.trendPositive,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return UGTCard(
+    return GestureDetector(
+      onTap: onTap,
+      child: UGTCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -265,6 +286,7 @@ class _StatCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

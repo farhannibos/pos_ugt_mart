@@ -17,10 +17,7 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _namaTokoCtrl  = TextEditingController();
-  final _alamatCtrl    = TextEditingController();
   final _noHpCtrl      = TextEditingController();
-  final _namaOwnerCtrl = TextEditingController();
   final _usernameCtrl  = TextEditingController();
   final _passCtrl      = TextEditingController();
   final _konfirmCtrl   = TextEditingController();
@@ -32,10 +29,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
-    _namaTokoCtrl.dispose();
-    _alamatCtrl.dispose();
     _noHpCtrl.dispose();
-    _namaOwnerCtrl.dispose();
     _usernameCtrl.dispose();
     _passCtrl.dispose();
     _konfirmCtrl.dispose();
@@ -46,12 +40,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() { _loading = true; _error = ''; });
 
+    final username = _usernameCtrl.text.trim();
     final result = await DbService.registerToko(
-      namaToko:   _namaTokoCtrl.text.trim(),
-      alamat:     _alamatCtrl.text.trim(),
+      namaToko:   'Toko $username',
+      alamat:     '',
       noHp:       _noHpCtrl.text.trim(),
-      namaOwner:  _namaOwnerCtrl.text.trim(),
-      username:   _usernameCtrl.text.trim(),
+      namaOwner:  username,
+      username:   username,
       password:   _passCtrl.text,
     );
 
@@ -65,7 +60,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     // Auto-login setelah daftar
     final prov = context.read<AppProvider>();
-    final loginOk = await prov.login(_usernameCtrl.text.trim(), _passCtrl.text);
+    final loginOk = await prov.login(username, _passCtrl.text);
     if (!mounted) return;
 
     if (loginOk) {
@@ -101,8 +96,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Daftar Toko Baru', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
-                      Text('Gratis selamanya untuk fitur dasar', style: GoogleFonts.inter(fontSize: 11, color: Colors.white.withValues(alpha: 0.8))),
+                      Text('Daftar Akun', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                      Text('Detail toko bisa diatur di Pengaturan', style: GoogleFonts.inter(fontSize: 11, color: Colors.white.withValues(alpha: 0.8))),
                     ],
                   ),
                 ],
@@ -115,45 +110,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
                   children: [
-                    _SectionLabel('Informasi Toko'),
-                    const SizedBox(height: 12),
-                    _Field(
-                      ctrl: _namaTokoCtrl,
-                      label: 'Nama Toko',
-                      hint: 'contoh: Toko Maju Jaya',
-                      icon: Icons.storefront_outlined,
-                      validator: (v) => v!.trim().isEmpty ? 'Wajib diisi' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    _Field(
-                      ctrl: _alamatCtrl,
-                      label: 'Alamat',
-                      hint: 'Jl. Contoh No.1, Kota',
-                      icon: Icons.location_on_outlined,
-                      maxLines: 2,
-                    ),
-                    const SizedBox(height: 12),
-                    _Field(
-                      ctrl: _noHpCtrl,
-                      label: 'No. HP / WhatsApp',
-                      hint: '08xxxxxxxxxx',
-                      icon: Icons.phone_outlined,
-                      keyboardType: TextInputType.phone,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      validator: (v) => v!.trim().length < 9 ? 'No. HP tidak valid' : null,
-                    ),
-
-                    const SizedBox(height: 24),
-                    _SectionLabel('Akun Owner'),
-                    const SizedBox(height: 12),
-                    _Field(
-                      ctrl: _namaOwnerCtrl,
-                      label: 'Nama Lengkap',
-                      hint: 'Nama pemilik toko',
-                      icon: Icons.person_outline,
-                      validator: (v) => v!.trim().isEmpty ? 'Wajib diisi' : null,
-                    ),
-                    const SizedBox(height: 12),
                     _Field(
                       ctrl: _usernameCtrl,
                       label: 'Username',
@@ -164,6 +120,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         if (v.contains(' ')) return 'Tidak boleh ada spasi';
                         return null;
                       },
+                    ),
+                    const SizedBox(height: 12),
+                    _Field(
+                      ctrl: _noHpCtrl,
+                      label: 'No. HP / WhatsApp',
+                      hint: '08xxxxxxxxxx',
+                      icon: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      validator: (v) => v!.trim().length < 9 ? 'No. HP tidak valid' : null,
                     ),
                     const SizedBox(height: 12),
                     _PasswordField(
@@ -236,22 +202,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  const _SectionLabel(this.text);
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMuted, letterSpacing: 0.3),
-  );
-}
-
 class _Field extends StatelessWidget {
   final TextEditingController ctrl;
   final String label;
   final String hint;
   final IconData icon;
-  final int maxLines;
   final TextInputType keyboardType;
   final List<TextInputFormatter>? inputFormatters;
   final String? Function(String?)? validator;
@@ -261,7 +216,6 @@ class _Field extends StatelessWidget {
     required this.label,
     required this.hint,
     required this.icon,
-    this.maxLines = 1,
     this.keyboardType = TextInputType.text,
     this.inputFormatters,
     this.validator,
@@ -276,7 +230,6 @@ class _Field extends StatelessWidget {
         const SizedBox(height: 6),
         TextFormField(
           controller: ctrl,
-          maxLines: maxLines,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
           validator: validator,

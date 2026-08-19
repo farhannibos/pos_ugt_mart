@@ -17,6 +17,7 @@ class PaymentScreen extends StatefulWidget {
 class _PaymentScreenState extends State<PaymentScreen> {
   final _cashCtrl = TextEditingController();
   final _voucherCtrl = TextEditingController();
+  bool _isProcessing = false;
 
   static const _methods = [
     _PayMethod(id: 'Tunai',              label: 'Tunai',   asset: 'assets/icons/ic_wallet.png'),
@@ -33,6 +34,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   void _processPayment(AppProvider prov) {
+    if (_isProcessing) return;
     if (prov.cartItemCount == 0) {
       prov.showToast('Keranjang masih kosong');
       return;
@@ -41,6 +43,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       prov.showToast('Uang diterima belum cukup');
       return;
     }
+    setState(() => _isProcessing = true);
     prov.processPayment();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const SuccessScreen()),
@@ -54,6 +57,53 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: Material(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(15),
+              child: InkWell(
+                onTap: () => _processPayment(prov),
+                borderRadius: BorderRadius.circular(15),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Text('Proses Pembayaran',
+                        style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.20),
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Text(formatRp(prov.total),
+                          style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
       body: Column(
         children: [
           // ── AppBar ──
@@ -219,55 +269,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       ),
                     ),
                   ],
-                ),
-              ),
-            ),
-          ),
-
-          // ── Bottom button ──
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 16,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              top: false,
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: Material(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(15),
-                  child: InkWell(
-                    onTap: () => _processPayment(prov),
-                    borderRadius: BorderRadius.circular(15),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
-                        const SizedBox(width: 8),
-                        Text('Proses Pembayaran',
-                            style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.20),
-                            borderRadius: BorderRadius.circular(100),
-                          ),
-                          child: Text(formatRp(prov.total),
-                              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
               ),
             ),
@@ -610,33 +611,31 @@ class _KartuPanelState extends State<_KartuPanel> {
           ),
           const SizedBox(height: 14),
 
-          // Input 4 digit terakhir
-          Text('4 Digit Terakhir Kartu',
+          // Input nomor referensi EDC
+          Text('Nomor Referensi EDC',
               style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
           const SizedBox(height: 8),
           TextField(
             controller: _cardCtrl,
-            keyboardType: TextInputType.number,
-            maxLength: 4,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: 8, color: AppColors.text),
-            textAlign: TextAlign.center,
+            keyboardType: TextInputType.text,
+            maxLength: 20,
+            style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text),
             decoration: InputDecoration(
               counterText: '',
-              hintText: '••••',
-              hintStyle: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: 8, color: AppColors.textDim),
+              hintText: 'cth: REF001234',
+              hintStyle: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textDim),
               filled: true,
               fillColor: AppColors.bg,
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(13), borderSide: const BorderSide(color: AppColors.border)),
               enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(13), borderSide: const BorderSide(color: AppColors.border)),
               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(13), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
-              prefixIcon: const Icon(Icons.lock_outline_rounded, size: 18, color: AppColors.textDim),
+              prefixIcon: const Icon(Icons.receipt_outlined, size: 18, color: AppColors.textDim),
             ),
           ),
           const SizedBox(height: 10),
           Text(
-            'Gesek atau tempel kartu pada mesin EDC, lalu masukkan 4 digit terakhir nomor kartu untuk konfirmasi.',
+            'Gesek atau tempel kartu pada mesin EDC, lalu masukkan nomor referensi dari struk EDC untuk konfirmasi.',
             style: GoogleFonts.inter(fontSize: 11, color: AppColors.textDim, height: 1.5),
           ),
         ],

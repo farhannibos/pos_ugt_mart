@@ -24,7 +24,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _loading = false;
   String _error = '';
   String _info = '';
-  String? _devOtp; // hanya terisi selama gateway WhatsApp asli belum terpasang
 
   @override
   void dispose() {
@@ -59,7 +58,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final noHpMasked = result['no_hp_masked'] as String?;
     setState(() {
       _step = 1;
-      _devOtp = result['dev_otp'] as String?;
       _info = 'Kode OTP telah dikirim ke WhatsApp ${noHpMasked ?? "toko"}';
     });
   }
@@ -182,32 +180,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   List<Widget> _buildStepOtp() {
     return [
       if (_info.isNotEmpty) _InfoBox(_info),
-      if (_devOtp != null) ...[
-        const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.yellowLight,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.yellow),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'MODE TESTING — gateway WhatsApp belum terpasang',
-                style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.yellowText),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Kode OTP kamu: $_devOtp',
-                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.yellowText),
-              ),
-            ],
-          ),
-        ),
-      ],
       const SizedBox(height: 16),
       _Field(
         ctrl: _otpCtrl,
@@ -253,7 +225,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     _step = 0;
                     _error = '';
                     _info = '';
-                    _devOtp = null;
                     _otpCtrl.clear();
                   }),
           child: Text(

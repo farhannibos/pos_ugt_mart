@@ -78,6 +78,7 @@ class _CartScreenState extends State<CartScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
+      bottomNavigationBar: _CartSummary(prov: prov),
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
@@ -103,9 +104,10 @@ class _CartScreenState extends State<CartScreen> {
                   children: [
                     Expanded(
                       child: _InfoChip(
-                        asset: 'assets/icons/ic_premium.png',
+                        asset: 'assets/icons/ic_member.png',
                         label: 'Pelanggan',
-                        value: prov.selectedCustomer ?? 'Umum',
+                        value: prov.selectedCustomer ?? 'Pilih Member',
+                        showArrow: true,
                         onTap: () async {
                           await Navigator.of(context).push(
                             MaterialPageRoute(builder: (_) => const MemberScreen(selectMode: true)),
@@ -184,8 +186,6 @@ class _CartScreenState extends State<CartScreen> {
               ],
             ),
           ),
-          // Bottom summary
-          _CartSummary(prov: prov),
         ],
           ),
         ),
@@ -242,9 +242,10 @@ class _InfoChip extends StatelessWidget {
   final String? asset;
   final String label;
   final String value;
+  final bool showArrow;
   final VoidCallback onTap;
 
-  const _InfoChip({this.asset, required this.label, required this.value, required this.onTap});
+  const _InfoChip({this.asset, required this.label, required this.value, this.showArrow = false, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -286,6 +287,8 @@ class _InfoChip extends StatelessWidget {
                   ],
                 ),
               ),
+              if (showArrow)
+                const Icon(Icons.chevron_right, size: 16, color: AppColors.textDim),
             ],
           ),
         ),
