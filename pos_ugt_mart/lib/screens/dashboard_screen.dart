@@ -548,15 +548,14 @@ class _QuickMenu extends StatelessWidget {
         )).toList(),
       );
     }
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      child: Row(
-        children: items.map((item) => SizedBox(
-          width: 80,
-          child: _QuickMenuItem(item: item),
-        )).toList(),
-      ),
+    // Mobile: semua item dalam 1 baris rata, ukuran compact
+    return Row(
+      children: items.asMap().entries.map((e) => Expanded(
+        child: Padding(
+          padding: EdgeInsets.only(left: e.key == 0 ? 0 : 6),
+          child: _QuickMenuItem(item: e.value, compact: true),
+        ),
+      )).toList(),
     );
   }
 
@@ -574,20 +573,27 @@ class _QuickItem {
 
 class _QuickMenuItem extends StatelessWidget {
   final _QuickItem item;
-  const _QuickMenuItem({required this.item});
+  final bool compact;
+  const _QuickMenuItem({required this.item, this.compact = false});
 
   @override
   Widget build(BuildContext context) {
+    final iconSize  = compact ? 44.0 : 64.0;
+    final fontSize  = compact ? 9.5  : 10.0;
+    final padV      = compact ? 8.0  : 10.0;
+    final padH      = compact ? 4.0  : 6.0;
+    final radius    = compact ? 13.0 : 16.0;
+
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(radius),
       child: InkWell(
         onTap: item.onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(radius),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+          padding: EdgeInsets.symmetric(vertical: padV, horizontal: padH),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(radius),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF101828).withValues(alpha: 0.05),
@@ -599,17 +605,17 @@ class _QuickMenuItem extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Image.asset(
-                item.asset,
-                width: 64,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 6),
+              Image.asset(item.asset, width: iconSize, fit: BoxFit.contain),
+              const SizedBox(height: 5),
               Text(
                 item.label,
                 textAlign: TextAlign.center,
                 maxLines: 2,
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                style: GoogleFonts.inter(
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
           ),
