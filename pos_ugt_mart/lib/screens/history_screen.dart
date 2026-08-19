@@ -143,6 +143,9 @@ class _HistoryCard extends StatelessWidget {
 
   const _HistoryCard({required this.trx, required this.onTap});
 
+  // Ambil nomor urut saja: TRX-1-20260819-001 → #001
+  String get _shortId => '#${trx.id.split('-').last}';
+
   IconData get _icon {
     if (trx.metode == 'QRIS') return Icons.qr_code_2;
     if (trx.metode.contains('EDC') || trx.metode.contains('Kartu')) return Icons.credit_card;
@@ -160,14 +163,14 @@ class _HistoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(13),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF101828).withValues(alpha: 0.05),
@@ -178,58 +181,75 @@ class _HistoryCard extends StatelessWidget {
           ),
           child: Row(
             children: [
+              // Icon metode
               Container(
-                width: 42,
-                height: 42,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: _iconBg,
-                  borderRadius: BorderRadius.circular(13),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(_icon, size: 18, color: _iconFg),
               ),
               const SizedBox(width: 12),
+              // Info tengah
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Flexible(
-                          child: Text(
-                            trx.id,
-                            style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.text),
-                            overflow: TextOverflow.ellipsis,
+                        Text(
+                          _shortId,
+                          style: GoogleFonts.poppins(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.text,
                           ),
                         ),
                         const SizedBox(width: 7),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
                             color: _badgeBg,
                             borderRadius: BorderRadius.circular(100),
                           ),
-                          child: Text(trx.status, style: GoogleFonts.inter(fontSize: 9.5, fontWeight: FontWeight.w600, color: _badgeFg)),
+                          child: Text(
+                            trx.status,
+                            style: GoogleFonts.inter(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w600,
+                              color: _badgeFg,
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
-                      '${trx.tanggal}  ${trx.jam}',
-                      style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textDim),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      '${trx.metode} · ${trx.items} item · ${trx.customer}',
-                      style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textDim),
+                      '${trx.jam}  ·  ${trx.items} item  ·  ${trx.metode}',
+                      style: GoogleFonts.inter(fontSize: 11, color: AppColors.textDim),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              Text(
-                formatRp(trx.total),
-                style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.text),
+              const SizedBox(width: 10),
+              // Nominal + chevron
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    formatRp(trx.total),
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: _isWarning ? AppColors.yellow : AppColors.text,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  const Icon(Icons.chevron_right, size: 14, color: AppColors.textDim),
+                ],
               ),
             ],
           ),
