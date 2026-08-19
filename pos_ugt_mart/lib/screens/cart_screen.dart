@@ -78,13 +78,15 @@ class _CartScreenState extends State<CartScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      bottomNavigationBar: _CartSummary(prov: prov),
-      body: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: isWide ? 640.0 : double.infinity),
-          child: Column(
+      body: Column(
         children: [
+          Expanded(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: isWide ? 640.0 : double.infinity),
+                child: Column(
+                  children: [
           // AppBar
           _CartAppBar(
             count: prov.cartItemCount,
@@ -94,10 +96,10 @@ class _CartScreenState extends State<CartScreen> {
               Navigator.of(context).pop();
             },
           ),
-          // Content
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                    // Content
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
               children: [
                 // Customer & Discount row
                 Row(
@@ -185,10 +187,14 @@ class _CartScreenState extends State<CartScreen> {
                 ),
               ],
             ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
           ),
+          _CartSummary(prov: prov),
         ],
-          ),
-        ),
       ),
     );
   }
@@ -473,7 +479,10 @@ class _CartSummary extends StatelessWidget {
             ),
             if (prov.taxEnabled) ...[
               const SizedBox(height: 5),
-              _SummaryRow(label: 'PPN 11%', value: formatRp(prov.taxValue)),
+              _SummaryRow(
+                label: 'PPN ${prov.taxRate % 1 == 0 ? prov.taxRate.toInt() : prov.taxRate}%',
+                value: formatRp(prov.taxValue),
+              ),
             ],
             if (prov.roundUpEnabled) ...[
               const SizedBox(height: 5),

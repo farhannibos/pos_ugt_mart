@@ -193,7 +193,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           ],
                           if (prov.taxEnabled) ...[
                             const SizedBox(height: 5),
-                            _TotalRow('PPN 11%', formatRp(prov.taxValue)),
+                            _TotalRow(
+                              'PPN ${prov.taxRate % 1 == 0 ? prov.taxRate.toInt() : prov.taxRate}%',
+                              formatRp(prov.taxValue),
+                            ),
                           ],
                           const SizedBox(height: 12),
                           Row(
@@ -271,7 +274,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 200),
                       child: KeyedSubtree(
-                        key: ValueKey(prov.paymentMethod),
+                        key: ValueKey('${prov.paymentMethod}_${prov.piutangMode}'),
                         child: _buildPanel(prov),
                       ),
                     ),
@@ -320,7 +323,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Widget _buildPanel(AppProvider prov) {
     switch (prov.paymentMethod) {
       case 'Tunai':
-        return _TunaiPanel(prov: prov, cashCtrl: _cashCtrl);
+        return _TunaiPanel(prov: prov, cashCtrl: _cashCtrl, piutangMode: prov.piutangMode);
       case 'QRIS':
         return _QrisPanel(prov: prov);
       case 'Kartu Debit/Kredit':
@@ -337,10 +340,35 @@ class _PaymentScreenState extends State<PaymentScreen> {
 class _TunaiPanel extends StatelessWidget {
   final AppProvider prov;
   final TextEditingController cashCtrl;
-  const _TunaiPanel({required this.prov, required this.cashCtrl});
+  final bool piutangMode;
+  const _TunaiPanel({required this.prov, required this.cashCtrl, this.piutangMode = false});
 
   @override
   Widget build(BuildContext context) {
+    if (piutangMode) {
+      return UGTCard(
+        borderRadius: 18,
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.yellowLight,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.info_outline, size: 16, color: AppColors.yellowText),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Jumlah uang tunai yang diterima diisi di bagian "DP / Bayar Sekarang" di bawah.',
+                style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.textMuted, height: 1.4),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     final quickCash = [prov.total, 50000, 100000, 200000];
     return UGTCard(
       borderRadius: 18,
