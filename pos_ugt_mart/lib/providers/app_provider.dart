@@ -688,6 +688,12 @@ class AppProvider extends ChangeNotifier {
         .fold(0, (s, t) => s + t.total);
   }
 
+  int get totalPiutangAktif =>
+      dummyHistory.where((t) => t.status == 'Piutang').fold(0, (s, t) => s + t.sisaPiutang);
+
+  int get jumlahPiutangAktif =>
+      dummyHistory.where((t) => t.status == 'Piutang').length;
+
   int get todayItemsCount {
     final prefix = _todayPrefix();
     return dummyHistory

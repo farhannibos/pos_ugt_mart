@@ -20,26 +20,11 @@ class DashboardScreen extends StatelessWidget {
     final lowStockProducts = dummyProducts.where((p) => p.isLowStock).take(3).toList();
 
     // Real stat calculations
-    final trxCount = prov.todayTrxCount;
-    final rataRata = trxCount > 0 ? prov.todayTotalPenjualan ~/ trxCount : 0;
-
-    final modalAwal    = prov.activeShift?.modalAwal ?? 0;
-    final tunaiJual    = prov.todayTunaiTotal;
-    final kasMasuk     = prov.shiftKasMasuk;
-    final kasKeluar    = prov.shiftKasKeluar;
-    final kasTunai     = prov.shiftSaldoSeharusnya;
-
-    String kasTunaiTrend;
-    if (prov.activeShift == null) {
-      kasTunaiTrend = 'shift belum dibuka';
-    } else {
-      final parts = <String>[];
-      parts.add('modal ${formatRp(modalAwal)}');
-      if (tunaiJual > 0) parts.add('+jual ${formatRp(tunaiJual)}');
-      if (kasMasuk > 0)  parts.add('+masuk ${formatRp(kasMasuk)}');
-      if (kasKeluar > 0) parts.add('-keluar ${formatRp(kasKeluar)}');
-      kasTunaiTrend = parts.join(' ');
-    }
+    final trxCount   = prov.todayTrxCount;
+    final omzet      = prov.todayTotalPenjualan;
+    final rataRata   = trxCount > 0 ? omzet ~/ trxCount : 0;
+    final piutangVal = prov.totalPiutangAktif;
+    final piutangN   = prov.jumlahPiutangAktif;
 
     String shiftLabel;
     if (prov.activeShift == null) {
@@ -69,19 +54,71 @@ class DashboardScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(child: _StatCard(label: 'Kas Tunai', value: formatRp(kasTunai), trend: kasTunaiTrend, trendPositive: null)),
-                          const SizedBox(width: 12),
-                          Expanded(child: _StatCard(
-                            label: 'Total Transaksi',
-                            value: '$trxCount',
-                            trend: rataRata > 0 ? 'rata-rata ${formatRp(rataRata)}' : 'belum ada transaksi',
-                            trendPositive: null,
-                            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryScreen())),
-                          )),
-                        ],
-                      ),
+                      // ── 3 stat cards responsive ──
+                      if (isWide)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: _StatCard(
+                              icon: Icons.trending_up_rounded,
+                              iconColor: AppColors.primary,
+                              label: 'Omzet Hari Ini',
+                              value: formatRp(omzet),
+                              sub: trxCount > 0 ? 'rata-rata ${formatRp(rataRata)}' : 'belum ada transaksi',
+                            )),
+                            const SizedBox(width: 12),
+                            Expanded(child: _StatCard(
+                              icon: Icons.receipt_long_outlined,
+                              iconColor: AppColors.primary,
+                              label: 'Transaksi',
+                              value: '$trxCount',
+                              sub: trxCount > 0 ? '${prov.todayItemsCount} item terjual' : 'belum ada transaksi',
+                              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryScreen())),
+                            )),
+                            const SizedBox(width: 12),
+                            Expanded(child: _StatCard(
+                              icon: Icons.pending_outlined,
+                              iconColor: piutangN > 0 ? AppColors.yellow : AppColors.primary,
+                              label: 'Piutang Aktif',
+                              value: formatRp(piutangVal),
+                              sub: piutangN > 0 ? '$piutangN transaksi belum lunas' : 'tidak ada piutang',
+                              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryScreen())),
+                            )),
+                          ],
+                        )
+                      else ...[
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: _StatCard(
+                              icon: Icons.pending_outlined,
+                              iconColor: piutangN > 0 ? AppColors.yellow : AppColors.primary,
+                              label: 'Piutang Aktif',
+                              value: formatRp(piutangVal),
+                              sub: piutangN > 0 ? '$piutangN belum lunas' : 'tidak ada piutang',
+                              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryScreen())),
+                            )),
+                            const SizedBox(width: 12),
+                            Expanded(child: _StatCard(
+                              icon: Icons.receipt_long_outlined,
+                              iconColor: AppColors.primary,
+                              label: 'Transaksi',
+                              value: '$trxCount',
+                              sub: trxCount > 0 ? '${prov.todayItemsCount} item terjual' : 'belum ada transaksi',
+                              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryScreen())),
+                            )),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        _StatCard(
+                          icon: Icons.trending_up_rounded,
+                          iconColor: AppColors.primary,
+                          label: 'Omzet Hari Ini',
+                          value: formatRp(omzet),
+                          sub: trxCount > 0 ? 'rata-rata ${formatRp(rataRata)}' : 'belum ada transaksi',
+                          isWide: true,
+                        ),
+                      ],
                       const SizedBox(height: 14),
                       _NewTransactionButton(onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => const ProductScreen()))),
@@ -236,17 +273,21 @@ class _DashHeader extends StatelessWidget {
 }
 
 class _StatCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
   final String label;
   final String value;
-  final String trend;
-  final bool? trendPositive;
+  final String sub;
+  final bool isWide;
   final VoidCallback? onTap;
 
   const _StatCard({
+    required this.icon,
+    required this.iconColor,
     required this.label,
     required this.value,
-    required this.trend,
-    required this.trendPositive,
+    required this.sub,
+    this.isWide = false,
     this.onTap,
   });
 
@@ -255,38 +296,68 @@ class _StatCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: UGTCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.trending_up, size: 15, color: AppColors.primary),
-              const SizedBox(width: 7),
-              Expanded(
-                child: Text(
-                  label,
-                  style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
-                  overflow: TextOverflow.ellipsis,
-                ),
+        child: isWide
+            ? Row(
+                children: [
+                  Container(
+                    width: 38, height: 38,
+                    decoration: BoxDecoration(
+                      color: iconColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: Icon(icon, size: 18, color: iconColor),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(label, style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted)),
+                        const SizedBox(height: 2),
+                        Text(value,
+                            style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(sub, style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textDim)),
+                  if (onTap != null) ...[
+                    const SizedBox(width: 4),
+                    const Icon(Icons.chevron_right, size: 14, color: AppColors.textDim),
+                  ],
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 28, height: 28,
+                        decoration: BoxDecoration(
+                          color: iconColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(icon, size: 14, color: iconColor),
+                      ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Text(label,
+                            style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                      if (onTap != null)
+                        const Icon(Icons.chevron_right, size: 13, color: AppColors.textDim),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(value,
+                      style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.text)),
+                  const SizedBox(height: 3),
+                  Text(sub, style: GoogleFonts.inter(fontSize: 10, color: AppColors.textDim)),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 7),
-          Text(
-            value,
-            style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.text),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            trend,
-            style: GoogleFonts.inter(
-              fontSize: 10,
-              color: trendPositive == true ? AppColors.primary : AppColors.textDim,
-            ),
-          ),
-        ],
       ),
-    ),
     );
   }
 }
