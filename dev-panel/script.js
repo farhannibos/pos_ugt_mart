@@ -4,9 +4,6 @@ let _chart = null;
 let _tokoCache = [];
 let _lisensiCache = [];
 let _laporanCache = [];
-let _lanData = [];
-let _hapusTokoId = null;
-let _hapusTokoNama = '';
 
 const rupiah = (n) => 'Rp' + Number(n || 0).toLocaleString('id-ID');
 const tanggal = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -98,7 +95,6 @@ const _pageLoaders = {
     dashboard: loadDashboard,
     member: loadMember,
     aplikasi: loadAplikasi,
-    langganan: loadLangganan,
     transaksi: loadTransaksiPage,
     laporan: loadLaporan,
     'user-management': loadDevUsers,
@@ -301,8 +297,8 @@ function renderAplikasi() {
             <td>${tanggal(r.expired_at)}</td>
             <td>${statusHtml}</td>
             <td>${isAdmin ? `
-                <button class="btn btn-sm btn-primary" onclick="openModalAktivasi('${r.id}','${escapeHtml(r.nama_toko).replace(/'/g, "\\'")}')"><i data-lucide="badge-check"></i>Aktifkan</button>
-                <button class="btn btn-sm btn-danger" onclick="confirmHapusToko('${r.id}','${escapeHtml(r.nama_toko).replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i></button>
+                <button class="btn btn-sm btn-primary" onclick="openModalAktivasi('${r.id_toko}','${escapeHtml(r.nama_toko).replace(/'/g, "\\'")}')"><i data-lucide="badge-check"></i>Aktifkan</button>
+                <button class="btn btn-sm btn-danger" onclick="confirmHapusToko('${r.id_toko}','${escapeHtml(r.nama_toko).replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i></button>
             ` : `<span class="text-dim" style="font-size:11.5px">khusus admin</span>`}</td>
         </tr>`;
     }).join('');
@@ -349,143 +345,10 @@ async function doAktivasiPremium() {
 }
 
 function confirmHapusToko(idToko, namaToko) {
-    showModalHapusToko(idToko, namaToko, () => { loadAplikasi(); });
-}
-
-// ── LANGGANAN ─────────────────────────────────────────────────────────────────
-async function loadLangganan() {
-    try {
-        _lanData = await devListToko();
-    } catch (e) {
-        showToast('error', 'Gagal memuat data langganan: ' + e.message);
-        _lanData = [];
-    }
-    renderLangganan();
-}
-
-function renderLangganan() {
-    const tbody = document.getElementById('lan-tbody');
-    if (!tbody) return;
-
-    const q = (document.getElementById('lan-search')?.value || '').toLowerCase();
-    const planFilter = document.getElementById('lan-filter-plan')?.value || '';
-    const now = new Date();
-
-    const rows = _lanData.filter(r => {
-        const matchQ = (r.nama_toko || '').toLowerCase().includes(q) || (r.owner_nama || '').toLowerCase().includes(q);
-        const matchPlan = !planFilter || (planFilter === 'premium' ? r.plan === 'premium' : r.plan !== 'premium');
-        return matchQ && matchPlan;
-    });
-
-    if (rows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:#94A3B8">Tidak ada data</td></tr>';
-    } else {
-        tbody.innerHTML = rows.map(r => {
-            const isPremium = r.plan === 'premium';
-            const exp = r.expired_at ? new Date(r.expired_at) : null;
-            const expStr = exp ? tanggal(r.expired_at) : '—';
-            const diff = exp ? Math.floor((exp - now) / 86400000) : null;
-
-            let statusHtml;
-            if (!isPremium) {
-                statusHtml = '<span class="badge badge-gray">Free</span>';
-            } else if (diff !== null && diff < 0) {
-                statusHtml = '<span class="badge badge-red">Expired</span>';
-            } else if (diff !== null && diff <= 7) {
-                statusHtml = `<span class="badge badge-yellow">Exp ${diff}h lagi</span>`;
-            } else {
-                statusHtml = '<span class="badge badge-green">Aktif</span>';
-            }
-
-            const isAdmin = (_devUser?.role || 'admin') === 'admin';
-            const namaSafe = escapeHtml(r.nama_toko).replace(/'/g, "\\'");
-            const aksiHtml = isAdmin ? `
-                <button class="btn btn-sm btn-primary" onclick="openModalAktivasi('${r.id}','${namaSafe}')">
-                    <i data-lucide="badge-check"></i>Aktifkan
-                </button>
-                <button class="btn btn-sm btn-danger" onclick="confirmHapusToko('${r.id}','${namaSafe}')">
-                    <i data-lucide="trash-2"></i>
-                </button>` : '—';
-
-            return `<tr>
-                <td><strong>${escapeHtml(r.nama_toko)}</strong></td>
-                <td>${escapeHtml(r.owner_nama || '—')}</td>
-                <td>${escapeHtml(r.no_hp || '—')}</td>
-                <td><span class="badge ${isPremium ? 'badge-purple' : 'badge-gray'}">${isPremium ? 'Premium' : 'Free'}</span></td>
-                <td>${expStr}</td>
-                <td>${statusHtml}</td>
-                <td style="display:flex;gap:6px">${aksiHtml}</td>
-            </tr>`;
-        }).join('');
-    }
-
-    const totalPremium = _lanData.filter(r => r.plan === 'premium' && r.expired_at && new Date(r.expired_at) > now).length;
-    const totalFree = _lanData.filter(r => r.plan !== 'premium').length;
-    const expSoon = _lanData.filter(r => {
-        if (!r.expired_at) return false;
-        const d = Math.floor((new Date(r.expired_at) - now) / 86400000);
-        return d >= 0 && d <= 7;
-    }).length;
-
-    const el = (id) => document.getElementById(id);
-    if (el('lan-premium')) el('lan-premium').textContent = totalPremium;
-    if (el('lan-free')) el('lan-free').textContent = totalFree;
-    if (el('lan-exp-soon')) el('lan-exp-soon').textContent = expSoon;
-
-    lucide.createIcons();
-}
-
-let _afterHapusCb = null;
-
-function showModalHapusToko(id, nama, afterCb) {
-    _hapusTokoId   = parseInt(id);
-    _hapusTokoNama = nama;
-    _afterHapusCb  = afterCb || null;
-
-    document.getElementById('hapus-toko-nama-label').textContent = `"${nama}"`;
-    document.getElementById('hapus-toko-konfirm').value = '';
-    document.getElementById('btn-hapus-toko-konfirm').disabled = true;
-
-    const r = _lanData.find(x => x.id == id) || _tokoCache.find(x => x.id == id) || {};
-    document.getElementById('hapus-toko-info').innerHTML = `
-        <div style="font-weight:700;margin-bottom:6px">📋 ${escapeHtml(nama)}</div>
-        <div>📞 No. HP: ${escapeHtml(r.no_hp || '—')}</div>
-        <div>💳 Plan: ${r.plan === 'premium' ? 'Premium' : 'Free'}</div>
-        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #E2E8F0;color:#DC2626;font-weight:600">Semua data toko ini akan dihapus permanen.</div>`;
-
-    openModal('modal-hapus-toko');
-}
-
-function closeModalHapusToko() {
-    closeModal('modal-hapus-toko');
-    _hapusTokoId = null;
-    _hapusTokoNama = '';
-}
-
-function cekKonfirmasiHapusToko() {
-    const input = document.getElementById('hapus-toko-konfirm').value.trim();
-    document.getElementById('btn-hapus-toko-konfirm').disabled =
-        input.toLowerCase() !== _hapusTokoNama.toLowerCase();
-}
-
-async function doHapusToko() {
-    if (!_hapusTokoId) return;
-    const btn = document.getElementById('btn-hapus-toko-konfirm');
-    btn.disabled = true;
-    btn.textContent = 'Menghapus...';
-    try {
-        const res = await devHapusToko(_hapusTokoId, _devUser.username);
-        if (res?.ok === false) throw new Error(res.pesan || 'Gagal menghapus');
-        closeModalHapusToko();
-        showToast('success', `Toko "${res?.nama_toko || ''}" berhasil dihapus`);
-        if (_afterHapusCb) _afterHapusCb();
-        else { loadAplikasi(); loadLangganan(); }
-    } catch (e) {
-        showToast('error', 'Gagal: ' + e.message);
-        btn.disabled = false;
-        btn.innerHTML = '<i data-lucide="trash-2"></i> Hapus Permanen';
-        lucide.createIcons();
-    }
+    if (!confirm(`Hapus toko "${namaToko}" beserta seluruh datanya secara permanen?`)) return;
+    devHapusToko(parseInt(idToko), _devUser.username)
+        .then((res) => { showToast('success', `Toko "${res.nama_toko || namaToko}" dihapus`); loadAplikasi(); })
+        .catch((e) => showToast('error', 'Gagal menghapus: ' + e.message));
 }
 
 // ── TRANSAKSI ─────────────────────────────────────────────────────────────────
@@ -612,7 +475,7 @@ function renderLisensi() {
 
 function openModalAjukan() {
     const sel = document.getElementById('ajukan-id-toko');
-    sel.innerHTML = '<option value="">-- Pilih Member/Toko --</option>' + _tokoCache.map((t) => `<option value="${t.id}">${escapeHtml(t.nama_toko)}</option>`).join('');
+    sel.innerHTML = '<option value="">-- Pilih Member/Toko --</option>' + _tokoCache.map((t) => `<option value="${t.id_toko}">${escapeHtml(t.nama_toko)}</option>`).join('');
     document.getElementById('ajukan-id-device').value = '';
     document.getElementById('ajukan-durasi').value = 1;
     document.getElementById('ajukan-harga').value = '';
