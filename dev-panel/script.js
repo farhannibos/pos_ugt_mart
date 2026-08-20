@@ -372,7 +372,7 @@ function renderLangganan() {
     const now = new Date();
 
     const rows = _lanData.filter(r => {
-        const matchQ = r.nama_toko.toLowerCase().includes(q) || (r.owner_nama || '').toLowerCase().includes(q);
+        const matchQ = (r.nama_toko || '').toLowerCase().includes(q) || (r.owner_nama || '').toLowerCase().includes(q);
         const matchPlan = !planFilter || (planFilter === 'premium' ? r.plan === 'premium' : r.plan !== 'premium');
         return matchQ && matchPlan;
     });
