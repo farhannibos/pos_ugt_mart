@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
@@ -295,7 +296,7 @@ class _CartScreenState extends State<CartScreen> {
             count: prov.cartItemCount,
             onBack: () => Navigator.of(context).pop(),
             onAddProduct: () => Navigator.of(context).pop('goto_products'),
-            onClear: () => _showHapusSheet(context, prov),
+            onClear: items.isEmpty ? null : () => _showHapusSheet(context, prov),
           ),
                     // Content
                     Expanded(
@@ -403,13 +404,13 @@ class _CartAppBar extends StatelessWidget {
   final int count;
   final VoidCallback onBack;
   final VoidCallback onAddProduct;
-  final VoidCallback onClear;
+  final VoidCallback? onClear;
 
   const _CartAppBar({
     required this.count,
     required this.onBack,
     required this.onAddProduct,
-    required this.onClear,
+    this.onClear,
   });
 
   @override
@@ -437,16 +438,56 @@ class _CartAppBar extends StatelessWidget {
                   style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.text),
                 ),
               ),
-              IconButton(
-                tooltip: 'Tambah Produk',
-                icon: const Icon(Icons.add_circle_outline, size: 22, color: AppColors.primary),
-                onPressed: onAddProduct,
+              Tooltip(
+                message: 'Tambah Produk',
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onAddProduct,
+                    borderRadius: BorderRadius.circular(9),
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(9),
+                        border: Border.all(color: AppColors.primaryMid, width: 0.8),
+                      ),
+                      child: const Icon(Icons.add, size: 16, color: AppColors.primaryDark),
+                    ),
+                  ),
+                ),
               ),
-              IconButton(
-                tooltip: 'Kosongkan Keranjang',
-                icon: const Icon(Icons.delete_outline, size: 22, color: AppColors.red),
-                onPressed: onClear,
-              ),
+              if (onClear != null)
+                PopupMenuButton<void>(
+                  tooltip: 'Opsi lainnya',
+                  padding: EdgeInsets.zero,
+                  splashRadius: 15,
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.more_vert, size: 25, color: AppColors.textMuted),
+                  ),
+                  itemBuilder: (context) => [
+                    PopupMenuItem<void>(
+                      onTap: onClear,
+                      child: Row(
+                        children: [
+                          const Icon(Icons.delete_sweep_outlined, size: 17, color: AppColors.red),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Kosongkan Keranjang',
+                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.red),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                )
+              else
+                const SizedBox(width: 8),
+              const SizedBox(width: 6),
             ],
           ),
         ),
@@ -529,76 +570,83 @@ class _CartItem extends StatelessWidget {
       orElse: () => Product(id: '', nama: '', kategori: '', harga: 0, stok: 0, barcode: ''),
     );
     final isBulk = cartItem.isBulk as bool;
-    return UGTCard(
-      padding: const EdgeInsets.all(12),
-      child: Row(
+    return Slidable(
+      key: ValueKey(cartItem.productId),
+      endActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        extentRatio: 0.24,
         children: [
-          _ProductThumb(fotoUrl: produk.fotoUrl, initials: cartItem.initials as String),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  cartItem.nama,
-                  style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.text),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${formatRp(cartItem.harga)} / ${cartItem.satuan}',
-                  style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textDim),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  formatRp(cartItem.subtotal),
-                  style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              GestureDetector(
-                onTap: onDelete,
-                child: const Icon(Icons.delete_outline, size: 18, color: AppColors.red),
-              ),
-              const SizedBox(height: 8),
-              if (isBulk)
-                GestureDetector(
-                  onTap: () async {
-                    final prov = context.read<AppProvider>();
-                    final qty = await showBulkInputDialog(
-                      context, produk, initial: cartItem.qty as double);
-                    if (qty != null) prov.setBulkQty(cartItem.productId as String, qty);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(11),
-                      border: Border.all(color: AppColors.primaryMid),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          formatQty(cartItem.qty as double, cartItem.satuan as String),
-                          style: GoogleFonts.inter(
-                            fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.primaryDark),
-                        ),
-                        const SizedBox(width: 5),
-                        const Icon(Icons.edit_outlined, size: 13, color: AppColors.primaryDark),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                QtyControl(qty: (cartItem.qty as double).round(), onInc: onInc, onDec: onDec),
-            ],
+          SlidableAction(
+            onPressed: (_) => onDelete(),
+            backgroundColor: AppColors.red,
+            foregroundColor: Colors.white,
+            icon: Icons.delete_outline,
+            label: 'Hapus',
+            borderRadius: BorderRadius.circular(18),
           ),
         ],
+      ),
+      child: UGTCard(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            _ProductThumb(fotoUrl: produk.fotoUrl, initials: cartItem.initials as String),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    cartItem.nama,
+                    style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.text),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${formatRp(cartItem.harga)} / ${cartItem.satuan}',
+                    style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textDim),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    formatRp(cartItem.subtotal),
+                    style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary),
+                  ),
+                ],
+              ),
+            ),
+            if (isBulk)
+              GestureDetector(
+                onTap: () async {
+                  final prov = context.read<AppProvider>();
+                  final qty = await showBulkInputDialog(
+                    context, produk, initial: cartItem.qty as double);
+                  if (qty != null) prov.setBulkQty(cartItem.productId as String, qty);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(11),
+                    border: Border.all(color: AppColors.primaryMid),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        formatQty(cartItem.qty as double, cartItem.satuan as String),
+                        style: GoogleFonts.inter(
+                          fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.primaryDark),
+                      ),
+                      const SizedBox(width: 5),
+                      const Icon(Icons.edit_outlined, size: 13, color: AppColors.primaryDark),
+                    ],
+                  ),
+                ),
+              )
+            else
+              QtyControl(qty: (cartItem.qty as double).round(), onInc: onInc, onDec: onDec),
+          ],
+        ),
       ),
     );
   }

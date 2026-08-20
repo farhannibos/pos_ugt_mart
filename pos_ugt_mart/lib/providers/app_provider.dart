@@ -35,6 +35,7 @@ class AppProvider extends ChangeNotifier {
   String cashInput = '';
   String voucherCode = '';
   double taxRate = 0; // persentase PPN, 0 = tidak ada PPN
+  double lastTaxRate = 11; // persentase terakhir dipakai, dipakai lagi saat PPN diaktifkan via toggle
   int piutangTerbayar = 0; // DP dibayar saat catat piutang (bisa 0)
 
   // piutangMode otomatis true saat metode = 'Piutang'
@@ -63,6 +64,8 @@ class AppProvider extends ChangeNotifier {
   String alamatToko = '';
   String namaPemilik = '';
   String noHp = '';
+  String fotoProfilUrl = '';
+  String logoTokoUrl = '';
 
   // QRIS & Rekening Bank
   String qrisProvider = '';
@@ -80,7 +83,10 @@ class AppProvider extends ChangeNotifier {
     alamatToko     = prefs.getString('alamatToko') ?? '';
     namaPemilik    = prefs.getString('namaPemilik') ?? '';
     noHp           = prefs.getString('noHp') ?? '';
+    fotoProfilUrl  = prefs.getString('fotoProfilUrl') ?? '';
+    logoTokoUrl    = prefs.getString('logoTokoUrl') ?? '';
     taxRate        = prefs.getDouble('taxRate') ?? 0;
+    lastTaxRate    = prefs.getDouble('lastTaxRate') ?? (taxRate > 0 ? taxRate : 11);
     storeName      = prefs.getString('storeName') ?? storeName;
     qrisProvider   = prefs.getString('qrisProvider') ?? '';
     qrisAtasNama   = prefs.getString('qrisAtasNama') ?? '';
@@ -99,7 +105,10 @@ class AppProvider extends ChangeNotifier {
     await prefs.setString('alamatToko', alamatToko);
     await prefs.setString('namaPemilik', namaPemilik);
     await prefs.setString('noHp', noHp);
+    await prefs.setString('fotoProfilUrl', fotoProfilUrl);
+    await prefs.setString('logoTokoUrl', logoTokoUrl);
     await prefs.setDouble('taxRate', taxRate);
+    await prefs.setDouble('lastTaxRate', lastTaxRate);
     await prefs.setString('storeName', storeName);
     await prefs.setString('qrisProvider', qrisProvider);
     await prefs.setString('qrisAtasNama', qrisAtasNama);
@@ -108,6 +117,26 @@ class AppProvider extends ChangeNotifier {
     await prefs.setString('bankNama', bankNama);
     await prefs.setString('bankNoRekening', bankNoRekening);
     await prefs.setString('bankAtasNama', bankAtasNama);
+  }
+
+  Future<bool> updateProfilePhoto(Uint8List bytes, String ext) async {
+    final url = await DbService.uploadAvatarImage(bytes, ext);
+    if (url == null) {
+      lastError = 'Gagal mengunggah foto';
+      showToast(lastError);
+      return false;
+    }
+    final ok = await DbService.updateProfileAvatar(kasirUsername, url);
+    if (!ok) {
+      lastError = 'Gagal menyimpan foto profil';
+      showToast(lastError);
+      return false;
+    }
+    fotoProfilUrl = url;
+    notifyListeners();
+    await _saveSettings();
+    showToast('Foto profil diperbarui');
+    return true;
   }
 
   // Last error (for debugging, accessible by UI)
@@ -411,10 +440,17 @@ class AppProvider extends ChangeNotifier {
 
   void setTaxRate(double rate) {
     taxRate = rate < 0 ? 0 : (rate > 100 ? 100 : rate);
+    if (taxRate > 0) lastTaxRate = taxRate;
     notifyListeners();
     _saveSettings();
     _syncTokoSettingsToDb();
     showToast(taxRate > 0 ? 'PPN ${taxRate.toStringAsFixed(taxRate % 1 == 0 ? 0 : 1)}% diaktifkan' : 'PPN dinonaktifkan');
+  }
+
+  // Toggle cepat aktif/nonaktif PPN tanpa perlu isi ulang persentase —
+  // saat dinonaktifkan, persentase terakhir diingat lewat lastTaxRate.
+  void setTaxEnabled(bool enabled) {
+    setTaxRate(enabled ? (lastTaxRate > 0 ? lastTaxRate : 11) : 0);
   }
 
   void setRoundUp(bool v) {
@@ -563,6 +599,29 @@ class AppProvider extends ChangeNotifier {
     selectedMemberId = m.id;
     notifyListeners();
     showToast('${m.nama} dipakai di transaksi ini');
+  }
+
+  static const int freeMemberLimit = 20;
+
+  bool get memberLimitReached => !isPremium && dummyMembers.length >= freeMemberLimit;
+
+  Future<bool> addMember(String nama, String hp) async {
+    if (memberLimitReached) {
+      lastError = 'Plan Free maksimal $freeMemberLimit member. Upgrade ke Premium untuk member tanpa batas.';
+      showToast(lastError);
+      return false;
+    }
+    final result = await DbService.saveMember(nama: nama, hp: hp);
+    if (result['ok'] != true) {
+      lastError = result['error'] as String? ?? 'Gagal menyimpan member';
+      showToast('Gagal simpan member: $lastError');
+      return false;
+    }
+    final id = result['id'] as String;
+    dummyMembers.add(Member(id: id, nama: nama.trim(), hp: hp.trim(), poin: 0, spend: 0));
+    notifyListeners();
+    showToast('Member $nama berhasil ditambahkan');
+    return true;
   }
 
   Future<bool> addKategori(String nama, String deskripsi, String status) async {
@@ -921,7 +980,46 @@ class AppProvider extends ChangeNotifier {
       });
     }
 
+    // Ambil foto profil & logo usaha terbaru dari server (RPC login tidak mengembalikannya)
+    final dbFotoProfil = await DbService.getProfileAvatar(username);
+    if (dbFotoProfil != null && dbFotoProfil.isNotEmpty) {
+      fotoProfilUrl = dbFotoProfil;
+    }
+    if (idTokoInt != null) {
+      final dbLogoToko = await DbService.getTokoLogo(idTokoInt);
+      if (dbLogoToko != null && dbLogoToko.isNotEmpty) {
+        logoTokoUrl = dbLogoToko;
+      }
+    }
+    await _saveSettings();
+
     notifyListeners();
+    return true;
+  }
+
+  Future<bool> updateTokoLogo(Uint8List bytes, String ext) async {
+    final url = await DbService.uploadTokoLogo(bytes, ext);
+    if (url == null) {
+      lastError = 'Gagal mengunggah foto usaha';
+      showToast(lastError);
+      return false;
+    }
+    final idTokoInt = int.tryParse(idToko);
+    if (idTokoInt == null) {
+      lastError = 'Belum login (id_toko null)';
+      showToast(lastError);
+      return false;
+    }
+    final ok = await DbService.updateTokoLogo(idTokoInt, url);
+    if (!ok) {
+      lastError = 'Gagal menyimpan foto usaha';
+      showToast(lastError);
+      return false;
+    }
+    logoTokoUrl = url;
+    notifyListeners();
+    await _saveSettings();
+    showToast('Foto usaha diperbarui');
     return true;
   }
 

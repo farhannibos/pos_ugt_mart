@@ -31,6 +31,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
     'Cetak struk',
     'Pembelian barang dari supplier',
     'Laporan & grafik penjualan',
+    'Member pelanggan (maks 20)',
   ];
 
   static const _fiturPremium = [
@@ -39,6 +40,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
     'Multi kasir & manajemen user',
     'Shift Kasir (buka & tutup shift)',
     'Grafik & analitik lebih lengkap',
+    'Member pelanggan tanpa batas',
   ];
 
   @override

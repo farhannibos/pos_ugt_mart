@@ -110,6 +110,11 @@ class _MainScaffoldState extends State<MainScaffold> {
               currentTab: _currentTab,
               cartCount: prov.cartItemCount,
               onTap: (i) => _handleTabTap(i, context),
+              keyBeranda: _keyBeranda,
+              keyUsahaku: _keyUsahaku,
+              keyKasir:   _keyKasir,
+              keyRiwayat: _keyRiwayat,
+              keyProfil:  _keyProfil,
             ),
             const VerticalDivider(thickness: 1, width: 1, color: AppColors.borderLight),
             Expanded(child: stack),
@@ -138,8 +143,22 @@ class _SideNav extends StatelessWidget {
   final int currentTab;
   final int cartCount;
   final ValueChanged<int> onTap;
+  final GlobalKey keyBeranda;
+  final GlobalKey keyUsahaku;
+  final GlobalKey keyKasir;
+  final GlobalKey keyRiwayat;
+  final GlobalKey keyProfil;
 
-  const _SideNav({required this.currentTab, required this.cartCount, required this.onTap});
+  const _SideNav({
+    required this.currentTab,
+    required this.cartCount,
+    required this.onTap,
+    required this.keyBeranda,
+    required this.keyUsahaku,
+    required this.keyKasir,
+    required this.keyRiwayat,
+    required this.keyProfil,
+  });
 
   int get _railIndex => currentTab <= 1 ? currentTab : currentTab + 1;
 
@@ -157,17 +176,17 @@ class _SideNav extends StatelessWidget {
       unselectedLabelTextStyle: GoogleFonts.inter(fontSize: 10, color: AppColors.textDim),
       destinations: [
         NavigationRailDestination(
-          icon: Opacity(opacity: 0.38, child: Image.asset('assets/icons/ic_home.png', width: 28, fit: BoxFit.contain)),
-          selectedIcon: Image.asset('assets/icons/ic_home.png', width: 28, fit: BoxFit.contain),
+          icon: KeyedSubtree(key: keyBeranda, child: Opacity(opacity: 0.38, child: Image.asset('assets/icons/ic_home.png', width: 28, fit: BoxFit.contain))),
+          selectedIcon: KeyedSubtree(key: keyBeranda, child: Image.asset('assets/icons/ic_home.png', width: 28, fit: BoxFit.contain)),
           label: const Text('Beranda'),
         ),
         NavigationRailDestination(
-          icon: Opacity(opacity: 0.38, child: Image.asset('assets/icons/ic_store.png', width: 28, fit: BoxFit.contain)),
-          selectedIcon: Image.asset('assets/icons/ic_store.png', width: 28, fit: BoxFit.contain),
+          icon: KeyedSubtree(key: keyUsahaku, child: Opacity(opacity: 0.38, child: Image.asset('assets/icons/ic_store.png', width: 28, fit: BoxFit.contain))),
+          selectedIcon: KeyedSubtree(key: keyUsahaku, child: Image.asset('assets/icons/ic_store.png', width: 28, fit: BoxFit.contain)),
           label: const Text('Usahaku'),
         ),
         NavigationRailDestination(
-          icon: Stack(
+          icon: KeyedSubtree(key: keyKasir, child: Stack(
             clipBehavior: Clip.none,
             children: [
               Container(
@@ -206,17 +225,17 @@ class _SideNav extends StatelessWidget {
                   ),
                 ),
             ],
-          ),
+          )),
           label: const Text('Kasir'),
         ),
         NavigationRailDestination(
-          icon: Opacity(opacity: 0.38, child: Image.asset('assets/icons/ic_riwayat.png', width: 28, fit: BoxFit.contain)),
-          selectedIcon: Image.asset('assets/icons/ic_riwayat.png', width: 28, fit: BoxFit.contain),
+          icon: KeyedSubtree(key: keyRiwayat, child: Opacity(opacity: 0.38, child: Image.asset('assets/icons/ic_riwayat.png', width: 28, fit: BoxFit.contain))),
+          selectedIcon: KeyedSubtree(key: keyRiwayat, child: Image.asset('assets/icons/ic_riwayat.png', width: 28, fit: BoxFit.contain)),
           label: const Text('Riwayat'),
         ),
         NavigationRailDestination(
-          icon: Opacity(opacity: 0.38, child: Image.asset('assets/icons/ic_profil.png', width: 28, fit: BoxFit.contain)),
-          selectedIcon: Image.asset('assets/icons/ic_profil.png', width: 28, fit: BoxFit.contain),
+          icon: KeyedSubtree(key: keyProfil, child: Opacity(opacity: 0.38, child: Image.asset('assets/icons/ic_profil.png', width: 28, fit: BoxFit.contain))),
+          selectedIcon: KeyedSubtree(key: keyProfil, child: Image.asset('assets/icons/ic_profil.png', width: 28, fit: BoxFit.contain)),
           label: const Text('Profil'),
         ),
       ],

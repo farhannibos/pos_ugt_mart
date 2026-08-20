@@ -12,6 +12,9 @@ class TourService {
   static Future<void> markNewUser() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_prefKeyPending, true);
+    // Reset flag "done" — user baru daftar harus selalu bisa lihat tour,
+    // walau perangkat ini pernah menandai tour selesai/gagal sebelumnya.
+    await prefs.remove(_prefKeyDone);
   }
 
   // Hanya true kalau user baru daftar (flag pending ada)
@@ -34,6 +37,7 @@ class TourService {
     required GlobalKey keyKasir,
     required GlobalKey keyRiwayat,
     required GlobalKey keyProfil,
+    int retriesLeft = 5,
   }) {
     // Pastikan semua key sudah ter-attach ke widget sebelum tour dimulai
     final targets = <TargetFocus>[];
@@ -63,7 +67,24 @@ class TourService {
         ContentAlign.top, ShapeLightFocus.RRect);
 
     if (targets.isEmpty) {
-      markDone();
+      // Widget target belum ter-attach (mis. masih transisi layout).
+      // Coba lagi sebentar lagi, jangan langsung markDone — kalau ditandai
+      // selesai padahal belum pernah tampil, tour tidak akan pernah muncul lagi.
+      if (retriesLeft > 0) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (context.mounted) {
+            show(
+              context: context,
+              keyBeranda: keyBeranda,
+              keyUsahaku: keyUsahaku,
+              keyKasir: keyKasir,
+              keyRiwayat: keyRiwayat,
+              keyProfil: keyProfil,
+              retriesLeft: retriesLeft - 1,
+            );
+          }
+        });
+      }
       return;
     }
 

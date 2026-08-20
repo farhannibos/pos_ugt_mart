@@ -5,6 +5,8 @@ import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
 import '../widgets/ugt_widgets.dart';
 import '../services/receipt_service.dart';
+import 'main_scaffold.dart';
+import 'product_screen.dart';
 
 class SuccessScreen extends StatefulWidget {
   const SuccessScreen({super.key});
@@ -300,7 +302,16 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
                               child: InkWell(
                                 onTap: () {
                                   prov.startNewTransaction();
-                                  Navigator.of(context).popUntil((route) => route.isFirst);
+                                  // Reset ke Beranda, lalu langsung masuk ke daftar produk
+                                  // supaya kasir bisa langsung mulai transaksi baru.
+                                  final navigator = Navigator.of(context);
+                                  navigator.pushAndRemoveUntil(
+                                    MaterialPageRoute(builder: (_) => const MainScaffold()),
+                                    (route) => false,
+                                  );
+                                  navigator.push(
+                                    MaterialPageRoute(builder: (_) => const ProductScreen()),
+                                  );
                                 },
                                 borderRadius: BorderRadius.circular(15),
                                 child: Container(
@@ -329,19 +340,18 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
                               ),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          GestureDetector(
-                            onTap: () {
-                              prov.startNewTransaction();
-                              Navigator.of(context).popUntil((route) => route.isFirst);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              alignment: Alignment.center,
-                              child: Text(
-                                'Kembali ke Beranda',
-                                style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMuted),
-                              ),
+                          const SizedBox(height: 12),
+                          Center(
+                            child: _BackHomeButton(
+                              onTap: () {
+                                prov.startNewTransaction();
+                                // Selalu mendarat di tab Beranda, bukan tab terakhir
+                                // yang kebetulan aktif sebelum transaksi dimulai.
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  _fadeScaleRoute(const MainScaffold(initialTab: 0)),
+                                  (route) => false,
+                                );
+                              },
                             ),
                           ),
                         ],
@@ -353,6 +363,70 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Transisi fade + scale-in yang lebih halus untuk aksi "kembali ke beranda",
+// supaya tidak terasa kaku seperti slide-push transaksi biasa.
+Route _fadeScaleRoute(Widget page) => PageRouteBuilder(
+  transitionDuration: const Duration(milliseconds: 380),
+  reverseTransitionDuration: const Duration(milliseconds: 300),
+  pageBuilder: (_, __, ___) => page,
+  transitionsBuilder: (_, animation, __, child) {
+    final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+    return FadeTransition(
+      opacity: curved,
+      child: ScaleTransition(
+        scale: Tween(begin: 0.96, end: 1.0).animate(curved),
+        child: child,
+      ),
+    );
+  },
+);
+
+class _BackHomeButton extends StatefulWidget {
+  final VoidCallback onTap;
+  const _BackHomeButton({required this.onTap});
+
+  @override
+  State<_BackHomeButton> createState() => _BackHomeButtonState();
+}
+
+class _BackHomeButtonState extends State<_BackHomeButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _pressed ? 0.95 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.bg,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.home_outlined, size: 14, color: AppColors.textMuted),
+              const SizedBox(width: 6),
+              Text(
+                'Kembali ke Beranda',
+                style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

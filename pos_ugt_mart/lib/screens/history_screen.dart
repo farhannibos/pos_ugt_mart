@@ -312,62 +312,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    // Quick chips
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          // Semua — reset semua filter
-                          _QuickChip(
-                            label: 'Semua',
-                            active: _allDefault,
-                            onTap: _resetFilters,
-                          ),
-                          const SizedBox(width: 8),
-                          // Hari ini
-                          _QuickChip(
-                            label: 'Hari ini',
-                            active: _filterTanggal == 'Hari ini',
-                            onTap: () => setState(() {
-                              _filterTanggal = _filterTanggal == 'Hari ini' ? 'Semua' : 'Hari ini';
-                              _tanggalPilih  = null;
-                            }),
-                          ),
-                          const SizedBox(width: 8),
-                          // Lunas
-                          _QuickChip(
-                            label: 'Lunas',
-                            active: _filterStatus == 'Lunas',
-                            onTap: () => setState(() =>
-                                _filterStatus = _filterStatus == 'Lunas' ? 'Semua' : 'Lunas'),
-                          ),
-                          const SizedBox(width: 8),
-                          // Piutang
-                          _QuickChip(
-                            label: 'Piutang',
-                            active: _filterStatus == 'Piutang',
-                            activeColor: AppColors.yellow,
-                            onTap: () => setState(() =>
-                                _filterStatus = _filterStatus == 'Piutang' ? 'Semua' : 'Piutang'),
-                          ),
-                          const SizedBox(width: 8),
-                          // Tunai
-                          _QuickChip(
-                            label: 'Tunai',
-                            active: _filterMetode == 'Tunai',
-                            onTap: () => setState(() =>
-                                _filterMetode = _filterMetode == 'Tunai' ? 'Semua' : 'Tunai'),
-                          ),
-                          const SizedBox(width: 8),
-                          // Non-Tunai
-                          _QuickChip(
-                            label: 'Non-Tunai',
-                            active: _filterMetode == 'Non-Tunai',
-                            onTap: () => setState(() =>
-                                _filterMetode = _filterMetode == 'Non-Tunai' ? 'Semua' : 'Non-Tunai'),
-                          ),
-                        ],
-                      ),
+                    // Quick chips — sisanya (Lunas/Piutang/Tunai/Non-Tunai)
+                    // sudah lengkap di sheet Filter, tidak perlu diduplikasi di sini.
+                    Row(
+                      children: [
+                        // Semua — reset semua filter
+                        _QuickChip(
+                          label: 'Semua',
+                          active: _allDefault,
+                          onTap: _resetFilters,
+                        ),
+                        const SizedBox(width: 8),
+                        // Hari ini
+                        _QuickChip(
+                          label: 'Hari ini',
+                          active: _filterTanggal == 'Hari ini',
+                          onTap: () => setState(() {
+                            _filterTanggal = _filterTanggal == 'Hari ini' ? 'Semua' : 'Hari ini';
+                            _tanggalPilih  = null;
+                          }),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -447,14 +412,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
 class _QuickChip extends StatelessWidget {
   final String label;
   final bool active;
-  final Color activeColor;
   final VoidCallback onTap;
 
   const _QuickChip({
     required this.label,
     required this.active,
     required this.onTap,
-    this.activeColor = AppColors.primary,
   });
 
   @override
@@ -465,9 +428,9 @@ class _QuickChip extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: active ? activeColor : Colors.white,
+          color: active ? AppColors.primary : Colors.white,
           borderRadius: BorderRadius.circular(100),
-          border: Border.all(color: active ? activeColor : AppColors.border),
+          border: Border.all(color: active ? AppColors.primary : AppColors.border),
         ),
         child: Text(
           label,
