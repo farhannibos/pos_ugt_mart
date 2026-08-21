@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
@@ -6,6 +7,7 @@ import '../providers/app_provider.dart';
 import '../models/member.dart';
 import '../widgets/ugt_widgets.dart';
 import 'member_detail_screen.dart';
+import 'upgrade_screen.dart';
 
 class MemberScreen extends StatefulWidget {
   final bool selectMode;
@@ -32,10 +34,191 @@ class _MemberScreenState extends State<MemberScreen> {
     super.dispose();
   }
 
+  void _showMemberLimitDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Batas Member Tercapai', style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700)),
+        content: Text(
+          'Plan Free maksimal ${AppProvider.freeMemberLimit} member. Upgrade ke Premium untuk menambah member tanpa batas.',
+          style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('Nanti Dulu', style: GoogleFonts.inter(fontSize: 13, color: AppColors.textDim)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UpgradeScreen()));
+            },
+            child: Text('Upgrade', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddMemberSheet(BuildContext context) {
+    if (context.read<AppProvider>().memberLimitReached) {
+      _showMemberLimitDialog(context);
+      return;
+    }
+    final namaCtrl = TextEditingController();
+    final hpCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool loading = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // drag handle
+                Padding(
+                  padding: const EdgeInsets.only(top: 12, bottom: 4),
+                  child: Container(
+                    width: 36, height: 4,
+                    decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                // fixed header
+                Container(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 12, 14),
+                  decoration: const BoxDecoration(
+                    border: Border(bottom: BorderSide(color: AppColors.borderLight)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Tambah Member Baru',
+                              style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text)),
+                            const SizedBox(height: 3),
+                            Text('Daftarkan pelanggan sebagai member',
+                              style: GoogleFonts.inter(fontSize: 12, color: AppColors.textDim)),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        icon: const Icon(Icons.close, size: 18, color: AppColors.textDim),
+                        style: IconButton.styleFrom(
+                          backgroundColor: AppColors.bg,
+                          shape: const CircleBorder(),
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                      ),
+                    ],
+                  ),
+                ),
+                // scrollable content
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+                    child: Form(
+                      key: formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _fieldLabel('Nama Member'),
+                          TextFormField(
+                            controller: namaCtrl,
+                            textCapitalization: TextCapitalization.words,
+                            autofocus: true,
+                            style: GoogleFonts.inter(fontSize: 14, color: AppColors.text),
+                            decoration: _inputDeco('Contoh: Budi Santoso'),
+                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Nama wajib diisi' : null,
+                          ),
+                          const SizedBox(height: 14),
+                          _fieldLabel('No. HP / WhatsApp'),
+                          TextFormField(
+                            controller: hpCtrl,
+                            keyboardType: TextInputType.phone,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            style: GoogleFonts.inter(fontSize: 14, color: AppColors.text),
+                            decoration: _inputDeco('08xxxxxxxxxx'),
+                            validator: (v) => (v == null || v.trim().length < 9) ? 'No. HP tidak valid' : null,
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: Material(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(14),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(14),
+                                onTap: loading ? null : () async {
+                                  if (!(formKey.currentState?.validate() ?? false)) return;
+                                  final prov = ctx.read<AppProvider>();
+                                  final nama = namaCtrl.text.trim();
+                                  final hp = hpCtrl.text.trim();
+                                  setSheet(() => loading = true);
+                                  final ok = await prov.addMember(nama, hp);
+                                  if (!ctx.mounted) return;
+                                  if (ok) {
+                                    Navigator.of(ctx).pop();
+                                  } else {
+                                    setSheet(() => loading = false);
+                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          prov.lastError.isEmpty
+                                            ? 'Gagal menyimpan member'
+                                            : 'Gagal: ${prov.lastError}',
+                                        ),
+                                        backgroundColor: AppColors.red,
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Center(
+                                  child: loading
+                                    ? const SizedBox(
+                                        width: 22, height: 22,
+                                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                      )
+                                    : Text('Simpan Member',
+                                        style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ).then((_) => setState(() {}));
+  }
+
   @override
   Widget build(BuildContext context) {
     final members = _filtered;
     final isWide = MediaQuery.of(context).size.width > 600;
+    final prov = context.watch<AppProvider>();
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -65,6 +248,25 @@ class _MemberScreenState extends State<MemberScreen> {
                             style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.text),
                           ),
                         ),
+                        if (!prov.isPremium)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: prov.memberLimitReached ? AppColors.redBg : AppColors.bg,
+                              borderRadius: BorderRadius.circular(100),
+                              border: Border.all(
+                                color: prov.memberLimitReached ? AppColors.redBorder : AppColors.border,
+                              ),
+                            ),
+                            child: Text(
+                              '${dummyMembers.length}/${AppProvider.freeMemberLimit} member',
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: prov.memberLimitReached ? AppColors.red : AppColors.textMuted,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -159,6 +361,12 @@ class _MemberScreenState extends State<MemberScreen> {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAddMemberSheet(context),
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: Text('Tambah Member', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
+      ),
     );
   }
 }
@@ -239,3 +447,21 @@ extension IntExt on int {
     );
   }
 }
+
+Widget _fieldLabel(String text) => Padding(
+  padding: const EdgeInsets.only(bottom: 7),
+  child: Text(text, style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+);
+
+InputDecoration _inputDeco(String hint) => InputDecoration(
+  hintText: hint,
+  hintStyle: GoogleFonts.inter(fontSize: 14, color: AppColors.textDim),
+  filled: true,
+  fillColor: AppColors.bg,
+  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+  errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.red)),
+  focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.red, width: 1.5)),
+);

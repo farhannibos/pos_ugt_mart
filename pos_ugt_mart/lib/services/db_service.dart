@@ -225,6 +225,80 @@ class DbService {
     }
   }
 
+  // ── FOTO PROFIL ───────────────────────────────────────────────────────────
+  static Future<String?> uploadAvatarImage(Uint8List bytes, String fileExt) async {
+    if (_idToko == null) return null;
+    try {
+      final path = '$_idToko/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      await _db.storage.from('avatar-foto').uploadBinary(
+        path,
+        bytes,
+        fileOptions: const FileOptions(upsert: true),
+      );
+      return _db.storage.from('avatar-foto').getPublicUrl(path);
+    } catch (e) {
+      debugPrint('[DB] uploadAvatarImage ERROR: $e');
+      return null;
+    }
+  }
+
+  static Future<bool> updateProfileAvatar(String username, String fotoUrl) async {
+    try {
+      await _db.from('profiles').update({'foto_url': fotoUrl}).eq('username', username);
+      return true;
+    } catch (e) {
+      debugPrint('[DB] updateProfileAvatar ERROR: $e');
+      return false;
+    }
+  }
+
+  static Future<String?> getProfileAvatar(String username) async {
+    try {
+      final row = await _db.from('profiles').select('foto_url').eq('username', username).maybeSingle();
+      return row?['foto_url'] as String?;
+    } catch (e) {
+      debugPrint('[DB] getProfileAvatar ERROR: $e');
+      return null;
+    }
+  }
+
+  // ── LOGO USAHA ────────────────────────────────────────────────────────────
+  static Future<String?> uploadTokoLogo(Uint8List bytes, String fileExt) async {
+    if (_idToko == null) return null;
+    try {
+      final path = '$_idToko/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      await _db.storage.from('toko-logo').uploadBinary(
+        path,
+        bytes,
+        fileOptions: const FileOptions(upsert: true),
+      );
+      return _db.storage.from('toko-logo').getPublicUrl(path);
+    } catch (e) {
+      debugPrint('[DB] uploadTokoLogo ERROR: $e');
+      return null;
+    }
+  }
+
+  static Future<bool> updateTokoLogo(int idToko, String logoUrl) async {
+    try {
+      await _db.from('toko').update({'logo_url': logoUrl}).eq('id', idToko);
+      return true;
+    } catch (e) {
+      debugPrint('[DB] updateTokoLogo ERROR: $e');
+      return false;
+    }
+  }
+
+  static Future<String?> getTokoLogo(int idToko) async {
+    try {
+      final row = await _db.from('toko').select('logo_url').eq('id', idToko).maybeSingle();
+      return row?['logo_url'] as String?;
+    } catch (e) {
+      debugPrint('[DB] getTokoLogo ERROR: $e');
+      return null;
+    }
+  }
+
   static Future<bool> deleteProduct(String id) async {
     try {
       await _db.from('produk').delete().eq('id', int.parse(id));
@@ -446,6 +520,29 @@ class DbService {
         .eq('id', int.tryParse(memberId) ?? 0)
         .then((_) {})
         .catchError((_) {});
+  }
+
+  static Future<Map<String, dynamic>> saveMember({
+    required String nama,
+    required String hp,
+  }) async {
+    if (_idToko == null) return {'ok': false, 'error': 'Belum login (id_toko null)'};
+    final namaClean = nama.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
+    final prefix = namaClean.substring(0, namaClean.length.clamp(1, 4));
+    final kode = 'MBR-$prefix-${DateTime.now().millisecondsSinceEpoch % 10000}';
+    try {
+      final result = await _db.from('member').insert({
+        'id_toko': _idToko,
+        'kode':    kode,
+        'nama':    nama.trim(),
+        'no_hp':   hp.trim(),
+      }).select('id').single();
+      debugPrint('[DB] saveMember OK: id=${result['id']}');
+      return {'ok': true, 'id': result['id'].toString()};
+    } catch (e) {
+      debugPrint('[DB] saveMember ERROR: $e');
+      return {'ok': false, 'error': e.toString()};
+    }
   }
 
   // ── SUPPLIERS ──────────────────────────────────────────────────────────────

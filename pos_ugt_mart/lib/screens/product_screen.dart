@@ -61,23 +61,49 @@ class _ProductScreenState extends State<ProductScreen> {
                     decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
                   ),
                 ),
+                // fixed header — tetap terlihat walau form di-scroll
+                Container(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 12, 14),
+                  decoration: const BoxDecoration(
+                    border: Border(bottom: BorderSide(color: AppColors.borderLight)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Tambah Produk Baru',
+                              style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text)),
+                            const SizedBox(height: 3),
+                            Text('Isi data produk untuk ditambahkan ke daftar',
+                              style: GoogleFonts.inter(fontSize: 12, color: AppColors.textDim)),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        icon: const Icon(Icons.close, size: 18, color: AppColors.textDim),
+                        style: IconButton.styleFrom(
+                          backgroundColor: AppColors.bg,
+                          shape: const CircleBorder(),
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                      ),
+                    ],
+                  ),
+                ),
                 // scrollable content
                 Flexible(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
                     child: Form(
                       key: formKey,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('Tambah Produk Baru',
-                            style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.text)),
-                          const SizedBox(height: 2),
-                          Text('Isi data produk untuk ditambahkan ke daftar',
-                            style: GoogleFonts.inter(fontSize: 12, color: AppColors.textDim)),
-                          const SizedBox(height: 18),
-
                           _fieldLabel('Foto Produk (opsional)'),
                           _FotoPicker(
                             bytes: fotoBytes,
@@ -239,23 +265,25 @@ class _ProductScreenState extends State<ProductScreen> {
                               ),
                             ],
                           ),
-                          TextFormField(
-                            controller: barcodeCtrl,
-                            style: GoogleFonts.inter(fontSize: 14, color: AppColors.text),
-                            decoration: _inputDeco('Scan atau ketik barcode').copyWith(
-                              suffixIcon: IconButton(
-                                icon: const Icon(Icons.qr_code_scanner, size: 20, color: AppColors.primary),
-                                onPressed: () async {
-                                  final result = await Navigator.of(ctx).push<String>(
-                                    MaterialPageRoute(
-                                      builder: (_) => const BarcodeScannerScreen(returnRawOnly: true),
-                                    ),
-                                  );
-                                  if (result != null) setSheet(() => barcodeCtrl.text = result);
-                                },
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: barcodeCtrl,
+                                  style: GoogleFonts.inter(fontSize: 14, color: AppColors.text),
+                                  decoration: _inputDeco('Scan atau ketik barcode'),
+                                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Barcode wajib diisi atau generate otomatis' : null,
+                                ),
                               ),
-                            ),
-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Barcode wajib diisi atau generate otomatis' : null,
+                              const SizedBox(width: 8),
+                              _scanBarcodeButton(() async {
+                                final result = await Navigator.of(ctx).push<String>(
+                                  MaterialPageRoute(builder: (_) => const BarcodeScannerScreen(returnRawOnly: true)),
+                                );
+                                if (result != null && result.isNotEmpty) setSheet(() => barcodeCtrl.text = result);
+                              }),
+                            ],
                           ),
                           const SizedBox(height: 14),
 
@@ -719,23 +747,25 @@ class _ProductScreenState extends State<ProductScreen> {
                               ),
                             ],
                           ),
-                          TextFormField(
-                            controller: barcodeCtrl,
-                            style: GoogleFonts.inter(fontSize: 14, color: AppColors.text),
-                            decoration: _inputDeco('Scan atau ketik barcode').copyWith(
-                              suffixIcon: IconButton(
-                                icon: const Icon(Icons.qr_code_scanner, size: 20, color: AppColors.primary),
-                                onPressed: () async {
-                                  final result = await Navigator.of(ctx).push<String>(
-                                    MaterialPageRoute(
-                                      builder: (_) => const BarcodeScannerScreen(returnRawOnly: true),
-                                    ),
-                                  );
-                                  if (result != null) setSheet(() => barcodeCtrl.text = result);
-                                },
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: barcodeCtrl,
+                                  style: GoogleFonts.inter(fontSize: 14, color: AppColors.text),
+                                  decoration: _inputDeco('Scan atau ketik barcode'),
+                                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Barcode wajib diisi atau generate otomatis' : null,
+                                ),
                               ),
-                            ),
-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Barcode wajib diisi atau generate otomatis' : null,
+                              const SizedBox(width: 8),
+                              _scanBarcodeButton(() async {
+                                final result = await Navigator.of(ctx).push<String>(
+                                  MaterialPageRoute(builder: (_) => const BarcodeScannerScreen(returnRawOnly: true)),
+                                );
+                                if (result != null && result.isNotEmpty) setSheet(() => barcodeCtrl.text = result);
+                              }),
+                            ],
                           ),
                           const SizedBox(height: 14),
 
@@ -997,7 +1027,6 @@ class _ProductScreenState extends State<ProductScreen> {
                         itemBuilder: (_, i) => _ProductCard(
                           product: products[i],
                           onLongPress: () => _showProductActions(context, products[i]),
-                          onMoreTap: () => _showProductActions(context, products[i]),
                         ),
                       )
                     : GridView.builder(
@@ -1013,7 +1042,6 @@ class _ProductScreenState extends State<ProductScreen> {
                         itemBuilder: (_, i) => _ProductCard(
                           product: products[i],
                           onLongPress: () => _showProductActions(context, products[i]),
-                          onMoreTap: () => _showProductActions(context, products[i]),
                         ),
                       ),
             ),
@@ -1146,6 +1174,7 @@ class _FotoPicker extends StatelessWidget {
         onTap: () => _pick(context),
         child: Container(
           height: 100,
+          width: double.infinity,
           decoration: BoxDecoration(
             color: AppColors.bg,
             borderRadius: BorderRadius.circular(14),
@@ -1223,6 +1252,19 @@ Widget _fieldLabel(String text) => Padding(
   child: Text(text, style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
 );
 
+Widget _scanBarcodeButton(VoidCallback onTap) => GestureDetector(
+  onTap: onTap,
+  child: Container(
+    width: 48, height: 48,
+    decoration: BoxDecoration(
+      color: AppColors.primaryLight,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: AppColors.primaryMid),
+    ),
+    child: const Icon(Icons.qr_code_scanner, color: AppColors.primaryDark, size: 20),
+  ),
+);
+
 InputDecoration _inputDeco(String hint, {String? prefix}) => InputDecoration(
   hintText: hint,
   prefixText: prefix != null ? '$prefix ' : null,
@@ -1268,8 +1310,7 @@ class _ActionTile extends StatelessWidget {
 class _ProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback? onLongPress;
-  final VoidCallback? onMoreTap;
-  const _ProductCard({required this.product, this.onLongPress, this.onMoreTap});
+  const _ProductCard({required this.product, this.onLongPress});
 
   @override
   Widget build(BuildContext context) {
@@ -1294,7 +1335,7 @@ class _ProductCard extends StatelessWidget {
         child: Stack(
           children: [
             Container(
-              padding: const EdgeInsets.fromLTRB(12, 12, 52, 12),
+              padding: const EdgeInsets.fromLTRB(12, 12, 56, 12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [
@@ -1348,19 +1389,42 @@ class _ProductCard extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 5),
-                        Row(
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Text(
                               formatRp(product.harga),
                               style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primary),
                             ),
-                            const SizedBox(width: 8),
                             Text(
                               'Stok ${product.stok} ${product.satuan}',
                               style: GoogleFonts.inter(
                                 fontSize: 10.5,
                                 color: product.isLowStock ? AppColors.red : AppColors.textDim,
                               ),
+                            ),
+                            Consumer<AppProvider>(
+                              builder: (_, prov, __) {
+                                final qty = prov.cart[product.id]?.qty;
+                                if (qty == null) return const SizedBox.shrink();
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryLight,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    '${formatQty(qty, product.satuan)} di keranjang',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primaryDark,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),
@@ -1370,59 +1434,49 @@ class _ProductCard extends StatelessWidget {
                 ],
               ),
             ),
-            // ⋮ menu — pojok kanan atas
-            Positioned(
-              top: 8,
-              right: 8,
-              child: GestureDetector(
-                onTap: onMoreTap ?? onLongPress,
-                child: Container(
-                  width: 28, height: 28,
-                  decoration: BoxDecoration(
-                    color: AppColors.bg,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: const Icon(Icons.more_vert, size: 15, color: AppColors.textMuted),
-                ),
-              ),
-            ),
-            // tombol + — pojok kanan bawah
+            // tombol + — tengah, sejajar vertikal dengan kartu
             if (!isNonAktif)
               Positioned(
-                bottom: 8,
-                right: 8,
-                child: Consumer<AppProvider>(
-                  builder: (_, prov, __) {
-                    final inCart = prov.cart.containsKey(product.id);
-                    return GestureDetector(
-                      onTap: () async {
-                        if (product.isBulk) {
-                          final qty = await showBulkInputDialog(context, product,
-                              initial: prov.cart[product.id]?.qty);
-                          if (qty != null && context.mounted) prov.addBulkToCart(product, qty);
-                        } else {
-                          prov.addToCart(product);
-                        }
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        width: 36, height: 36,
-                        decoration: BoxDecoration(
-                          color: inCart ? AppColors.primaryDark : AppColors.primary,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.28),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+                top: 0,
+                bottom: 0,
+                right: 10,
+                child: Center(
+                  child: Consumer<AppProvider>(
+                    builder: (_, prov, __) {
+                      final inCart = prov.cart.containsKey(product.id);
+                      final atMax = !product.isBulk &&
+                          (prov.cart[product.id]?.qty ?? 0) >= product.stok;
+                      return GestureDetector(
+                        onTap: atMax
+                            ? null
+                            : () async {
+                                if (product.isBulk) {
+                                  final qty = await showBulkInputDialog(context, product,
+                                      initial: prov.cart[product.id]?.qty);
+                                  if (qty != null && context.mounted) prov.addBulkToCart(product, qty);
+                                } else {
+                                  prov.addToCart(product);
+                                }
+                              },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: 38, height: 38,
+                          decoration: BoxDecoration(
+                            color: atMax ? AppColors.border : (inCart ? AppColors.primaryDark : AppColors.primary),
+                            borderRadius: BorderRadius.circular(13),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: atMax ? 0 : 0.28),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Icon(Icons.add, color: atMax ? AppColors.textDim : Colors.white, size: 19),
                         ),
-                        child: const Icon(Icons.add, color: Colors.white, size: 18),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
           ],

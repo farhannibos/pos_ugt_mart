@@ -67,9 +67,6 @@
                 <div class="nav-item" data-page="aplikasi" onclick="navigate('aplikasi',this,'Aplikasi')">
                     <i data-lucide="layers" class="nav-icon"></i><span class="nav-label">Aplikasi</span>
                 </div>
-                <div class="nav-item" data-page="langganan" onclick="navigate('langganan',this,'Manajemen Langganan')">
-                    <i data-lucide="badge-check" class="nav-icon"></i><span class="nav-label">Langganan</span>
-                </div>
                 <div class="nav-item" data-page="transaksi" onclick="navigate('transaksi',this,'Transaksi')">
                     <i data-lucide="receipt" class="nav-icon"></i><span class="nav-label">Transaksi</span>
                 </div>
@@ -161,34 +158,6 @@
                         <table>
                             <thead><tr><th>Toko</th><th>Owner</th><th>No. HP</th><th>Plan</th><th>Berlaku s/d</th><th>Status</th><th>Aksi</th></tr></thead>
                             <tbody id="aplikasi-tbody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ===== LANGGANAN ===== -->
-            <section class="page" id="page-langganan">
-                <div class="stat-grid">
-                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#8B5CF6;--stat-bg:#EDE9FE"><i data-lucide="crown"></i></div><div><div class="stat-value" id="lan-premium">—</div><div class="stat-label">Toko Premium Aktif</div></div></div>
-                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#64748B;--stat-bg:#F1F5F9"><i data-lucide="store"></i></div><div><div class="stat-value" id="lan-free">—</div><div class="stat-label">Toko Free</div></div></div>
-                    <div class="stat-card"><div class="stat-icon" style="--stat-color:#F59E0B;--stat-bg:#FEF3C7"><i data-lucide="alert-triangle"></i></div><div><div class="stat-value" id="lan-exp-soon">—</div><div class="stat-label">Exp. &lt; 7 Hari</div></div></div>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title"><i data-lucide="badge-check"></i>Daftar Toko &amp; Status Langganan</div>
-                        <div class="toolbar">
-                            <select class="form-control" id="lan-filter-plan" style="width:140px" onchange="renderLangganan()">
-                                <option value="">Semua Plan</option>
-                                <option value="premium">Premium</option>
-                                <option value="free">Free</option>
-                            </select>
-                            <input class="form-control search-input" id="lan-search" placeholder="Cari nama toko..." oninput="renderLangganan()">
-                        </div>
-                    </div>
-                    <div class="card-body table-wrap">
-                        <table>
-                            <thead><tr><th>Nama Toko</th><th>Owner</th><th>No. HP</th><th>Plan</th><th>Berlaku Hingga</th><th>Status</th><th>Aksi</th></tr></thead>
-                            <tbody id="lan-tbody"></tbody>
                         </table>
                     </div>
                 </div>

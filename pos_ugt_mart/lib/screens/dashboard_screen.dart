@@ -40,7 +40,7 @@ class DashboardScreen extends StatelessWidget {
         child: CustomScrollView(
         slivers: [
           // Green header
-          SliverToBoxAdapter(child: _DashHeader(kasir: prov.kasirName, shiftLabel: shiftLabel)),
+          SliverToBoxAdapter(child: _DashHeader(kasir: prov.kasirName, shiftLabel: shiftLabel, fotoUrl: prov.fotoProfilUrl)),
           SliverToBoxAdapter(
             child: Align(
               alignment: Alignment.topCenter,
@@ -148,7 +148,8 @@ class DashboardScreen extends StatelessWidget {
 class _DashHeader extends StatelessWidget {
   final String kasir;
   final String shiftLabel;
-  const _DashHeader({required this.kasir, required this.shiftLabel});
+  final String fotoUrl;
+  const _DashHeader({required this.kasir, required this.shiftLabel, this.fotoUrl = ''});
 
   @override
   Widget build(BuildContext context) {
@@ -198,10 +199,24 @@ class _DashHeader extends StatelessWidget {
                           borderRadius: BorderRadius.circular(13),
                         ),
                         alignment: Alignment.center,
-                        child: Text(
-                          kasir.split(' ').map((w) => w[0]).take(2).join().toUpperCase(),
-                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
-                        ),
+                        child: fotoUrl.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(13),
+                                child: Image.network(
+                                  fotoUrl,
+                                  width: 40,
+                                  height: 40,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Text(
+                                    kasir.split(' ').map((w) => w[0]).take(2).join().toUpperCase(),
+                                    style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                                  ),
+                                ),
+                              )
+                            : Text(
+                                kasir.split(' ').map((w) => w[0]).take(2).join().toUpperCase(),
+                                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                              ),
                       ),
                       const SizedBox(width: 11),
                       Expanded(

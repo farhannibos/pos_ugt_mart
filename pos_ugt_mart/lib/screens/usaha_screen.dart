@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
@@ -92,30 +93,45 @@ class UsahaScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   // Logo toko
                   Center(
-                    child: Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: prov.storeName.isNotEmpty
-                            ? Text(
-                                prov.storeName
-                                    .split(' ')
-                                    .map((w) => w[0])
-                                    .take(2)
-                                    .join()
-                                    .toUpperCase(),
-                                style: GoogleFonts.poppins(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(Icons.store,
-                                size: 36, color: Colors.white),
+                    child: GestureDetector(
+                      onTap: () => _pickAndUploadLogo(context),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: ClipOval(
+                              child: prov.logoTokoUrl.isNotEmpty
+                                  ? Image.network(
+                                      prov.logoTokoUrl,
+                                      width: 80,
+                                      height: 80,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => _StoreInitials(storeName: prov.storeName),
+                                    )
+                                  : _StoreInitials(storeName: prov.storeName),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: -2,
+                            right: -2,
+                            child: Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: const Icon(Icons.camera_alt, size: 13, color: Colors.white),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -135,39 +151,64 @@ class UsahaScreen extends StatelessWidget {
             const SizedBox(height: 12),
 
             // ── Card: Pajak ───────────────────────────────────────────────
-            _TapCard(
-              onTap: () => _showPpnSheet(context, prov.taxRate),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
               child: Row(
                 children: [
-                  Image.asset(
-                    'assets/icons/ic_tax.png',
-                    width: 44,
-                    height: 44,
-                  ),
-                  const SizedBox(width: 14),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Pajak (${taxRate > 0 ? 'Aktif' : 'Tidak Aktif'})',
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.text,
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        onTap: () => _showPpnSheet(context, prov.taxRate),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          child: Row(
+                            children: [
+                              Image.asset(
+                                'assets/icons/ic_tax.png',
+                                width: 44,
+                                height: 44,
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Pajak (${taxRate > 0 ? 'Aktif' : 'Tidak Aktif'})',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.text,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      taxLabel,
+                                      style: GoogleFonts.inter(
+                                          fontSize: 13, color: AppColors.textDim),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 3),
-                        Text(
-                          taxLabel,
-                          style: GoogleFonts.inter(
-                              fontSize: 13, color: AppColors.textDim),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                  const Icon(Icons.chevron_right,
-                      color: AppColors.textDim, size: 20),
+                  Switch(
+                    value: taxRate > 0,
+                    activeThumbColor: AppColors.primary,
+                    onChanged: (v) => prov.setTaxEnabled(v),
+                  ),
+                  const SizedBox(width: 10),
                 ],
               ),
             ),
@@ -538,6 +579,73 @@ class UsahaScreen extends StatelessWidget {
 }
 
 // ── Widgets ───────────────────────────────────────────────────────────────────
+
+class _StoreInitials extends StatelessWidget {
+  final String storeName;
+  const _StoreInitials({required this.storeName});
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: storeName.isNotEmpty
+            ? Text(
+                storeName.split(' ').map((w) => w[0]).take(2).join().toUpperCase(),
+                style: GoogleFonts.poppins(fontSize: 26, fontWeight: FontWeight.w700, color: Colors.white),
+              )
+            : const Icon(Icons.store, size: 36, color: Colors.white),
+      );
+}
+
+Future<void> _pickAndUploadLogo(BuildContext context) async {
+  final source = await showModalBottomSheet<ImageSource>(
+    context: context,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 32, height: 4,
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Text('Foto Usaha', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.text)),
+            const SizedBox(height: 4),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined, color: AppColors.primary),
+              title: Text('Ambil Foto', style: GoogleFonts.inter(fontSize: 14)),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
+              title: Text('Pilih dari Galeri', style: GoogleFonts.inter(fontSize: 14)),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  if (source == null) return;
+
+  final picker = ImagePicker();
+  final file = await picker.pickImage(source: source, maxWidth: 600, maxHeight: 600, imageQuality: 85);
+  if (file == null) return;
+  if (!context.mounted) return;
+  final prov = context.read<AppProvider>();
+
+  final data = await file.readAsBytes();
+  final ext = file.name.split('.').last.toLowerCase();
+  prov.showToast('Mengunggah foto...');
+  await prov.updateTokoLogo(data, ext);
+}
 
 class _SectionCard extends StatelessWidget {
   final Widget child;

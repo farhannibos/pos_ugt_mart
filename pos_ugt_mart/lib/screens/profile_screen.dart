@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
@@ -17,6 +18,58 @@ Color _roleColor(String role) {
     case 'Admin': return const Color(0xFF8B5CF6);
     default:      return const Color(0xFF3B82F6);
   }
+}
+
+Future<void> _pickAndUploadAvatar(BuildContext context) async {
+  final source = await showModalBottomSheet<ImageSource>(
+    context: context,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 32, height: 4,
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Text('Foto Profil', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.text)),
+            const SizedBox(height: 4),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined, color: AppColors.primary),
+              title: Text('Ambil Foto', style: GoogleFonts.inter(fontSize: 14)),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
+              title: Text('Pilih dari Galeri', style: GoogleFonts.inter(fontSize: 14)),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  if (source == null) return;
+
+  final picker = ImagePicker();
+  final file = await picker.pickImage(source: source, maxWidth: 600, maxHeight: 600, imageQuality: 85);
+  if (file == null) return;
+  if (!context.mounted) return;
+  final prov = context.read<AppProvider>();
+
+  final data = await file.readAsBytes();
+  final ext = file.name.split('.').last.toLowerCase();
+  prov.showToast('Mengunggah foto...');
+  await prov.updateProfilePhoto(data, ext);
 }
 
 class ProfileScreen extends StatelessWidget {
@@ -86,17 +139,53 @@ class ProfileScreen extends StatelessWidget {
                               const SizedBox(height: 14),
                               Row(
                                 children: [
-                                  Container(
-                                    width: 60,
-                                    height: 60,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.18),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      initials,
-                                      style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
+                                  GestureDetector(
+                                    onTap: () => _pickAndUploadAvatar(context),
+                                    child: Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        Container(
+                                          width: 60,
+                                          height: 60,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withValues(alpha: 0.18),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: prov.fotoProfilUrl.isNotEmpty
+                                              ? ClipRRect(
+                                                  borderRadius: BorderRadius.circular(20),
+                                                  child: Image.network(
+                                                    prov.fotoProfilUrl,
+                                                    width: 60,
+                                                    height: 60,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (_, __, ___) => Text(
+                                                      initials,
+                                                      style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
+                                                    ),
+                                                  ),
+                                                )
+                                              : Text(
+                                                  initials,
+                                                  style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
+                                                ),
+                                        ),
+                                        Positioned(
+                                          bottom: -4,
+                                          right: -4,
+                                          child: Container(
+                                            width: 22,
+                                            height: 22,
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primary,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(color: Colors.white, width: 1.5),
+                                            ),
+                                            child: const Icon(Icons.camera_alt, size: 11, color: Colors.white),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                   const SizedBox(width: 14),
