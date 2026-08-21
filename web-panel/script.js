@@ -431,6 +431,22 @@ function updateDashboard() {
             </tr>`).join('');
     }
 
+    // ── Barang favorit (paling banyak terjual)
+    const terjualPerBarang = {};
+    for (const t of DATA_PENJUALAN) {
+        for (const it of (t.items || [])) {
+            if (!it.nama) continue;
+            terjualPerBarang[it.nama] = (terjualPerBarang[it.nama] || 0) + (it.qty || 0);
+        }
+    }
+    const barangFavorit = Object.entries(terjualPerBarang).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const tblBrgFav = document.querySelector('#tbl-dash-barang-favorit tbody');
+    if (tblBrgFav) {
+        tblBrgFav.innerHTML = barangFavorit.length
+            ? barangFavorit.map(([nama, qty]) => `<tr><td>${escapeHtml(nama)}</td><td>${qty}</td></tr>`).join('')
+            : tableEmptyHTML(2, 'Belum ada penjualan', 'Data akan muncul setelah ada transaksi');
+    }
+
     // ── Stok hampir habis
     const lowStock = DATA_BARANG.filter(b => b.stok <= b.stokMin && b.status === 'Aktif').slice(0, 5);
     const tbl2 = document.querySelector('#tbl-dash-stok tbody');
@@ -1741,20 +1757,6 @@ function initCharts() {
                 ]
             },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { usePointStyle: true, font: { size: 11, family: 'Inter' }, padding: 16 } }, tooltip: { mode: 'index', intersect: false } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#94A3B8' } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 }, color: '#94A3B8', callback: v => v ? v + 'jt' : '0' }, beginAtZero: true } } }
-        });
-    }
-
-    const ctxCat = document.getElementById('chartCategory');
-    if (ctxCat && !ctxCat._chart) {
-        const aktif = DATA_KATEGORI.filter(k => k.status === 'Aktif').slice(0, 5);
-        const vals = aktif.map(k => DATA_BARANG.filter(b => b.kategori === k.nama).length);
-        ctxCat._chart = new Chart(ctxCat, {
-            type: 'doughnut',
-            data: {
-                labels: aktif.map(k => k.nama),
-                datasets: [{ data: vals, backgroundColor: ['#16A34A', '#3B82F6', '#F59E0B', '#8B5CF6', '#94A3B8'], borderWidth: 0, hoverOffset: 8 }]
-            },
-            options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, font: { size: 11, family: 'Inter' }, padding: 10 } } } }
         });
     }
 }

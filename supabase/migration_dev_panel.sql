@@ -332,8 +332,8 @@ BEGIN
   SELECT
     h.tanggal,
     COALESCE((SELECT COUNT(*) FROM toko t WHERE t.created_at::date = h.tanggal), 0),
-    COALESCE((SELECT COUNT(*) FROM lisensi_request r
-              WHERE r.status = 'approved' AND r.diproses_at::date = h.tanggal), 0)
+    COALESCE((SELECT COUNT(DISTINCT l.id_toko) FROM langganan_log l
+              WHERE l.mulai <= h.tanggal AND l.selesai >= h.tanggal), 0)
   FROM hari h
   ORDER BY h.tanggal;
 END;

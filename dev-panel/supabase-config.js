@@ -97,15 +97,6 @@ async function devListLisensiRequests() {
     return data || [];
 }
 
-async function devAjukanLisensi(idToko, idDevice, durasiBulan, harga, catatan) {
-    const { data, error } = await _sb.rpc('dev_ajukan_lisensi', {
-        p_id_toko: idToko, p_id_device: idDevice, p_durasi_bulan: durasiBulan,
-        p_harga: harga, p_catatan: catatan,
-    });
-    if (error) throw error;
-    return data;
-}
-
 async function devApproveLisensi(idRequest, byUsername) {
     const { data, error } = await _sb.rpc('dev_approve_lisensi', {
         p_id_request: idRequest, p_by_username: byUsername,

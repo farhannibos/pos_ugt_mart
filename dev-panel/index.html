@@ -197,7 +197,6 @@
                         <div class="card-title"><i data-lucide="ticket"></i>Pengajuan Lisensi Premium</div>
                         <div class="toolbar">
                             <input class="form-control search-input" id="lr-search" placeholder="Cari invoice / device / member..." oninput="renderLisensi()">
-                            <button class="btn btn-primary btn-sm" onclick="openModalAjukan()"><i data-lucide="plus"></i>Ajukan Baru</button>
                         </div>
                     </div>
                     <div class="card-body table-wrap">
@@ -289,40 +288,6 @@
                 <button id="btn-hapus-toko-konfirm" class="btn btn-danger" onclick="doHapusToko()" disabled>
                     <i data-lucide="trash-2" style="width:14px;height:14px"></i> Hapus Permanen
                 </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== MODAL: AJUKAN LISENSI ========== -->
-    <div class="modal-overlay" id="modal-ajukan">
-        <div class="modal">
-            <div class="modal-header"><h3>Ajukan Lisensi Premium</h3><button class="modal-close" onclick="closeModal('modal-ajukan')"><i data-lucide="x"></i></button></div>
-            <div class="modal-body">
-                <div id="ajukan-err" style="display:none;padding:10px 14px;background:var(--danger-bg);color:#B91C1C;border-radius:8px;font-size:12.5px;margin-bottom:14px"></div>
-                <div class="form-group">
-                    <label>Member (Toko)</label>
-                    <select class="form-control" id="ajukan-id-toko"></select>
-                </div>
-                <div class="form-group">
-                    <label>ID Device</label>
-                    <input class="form-control" id="ajukan-id-device" placeholder="mis. android-9f2a1c...">
-                </div>
-                <div class="form-group">
-                    <label>Durasi (bulan)</label>
-                    <input class="form-control" id="ajukan-durasi" type="number" min="1" value="1">
-                </div>
-                <div class="form-group">
-                    <label>Harga (Rp)</label>
-                    <input class="form-control" id="ajukan-harga" type="number" min="0" placeholder="mis. 150000">
-                </div>
-                <div class="form-group">
-                    <label>Catatan (opsional)</label>
-                    <textarea class="form-control" id="ajukan-catatan" rows="2"></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('modal-ajukan')">Batal</button>
-                <button class="btn btn-primary" id="ajukan-btn" onclick="submitAjukanLisensi()"><i data-lucide="send"></i>Ajukan</button>
             </div>
         </div>
     </div>

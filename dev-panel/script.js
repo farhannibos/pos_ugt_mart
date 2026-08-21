@@ -473,46 +473,6 @@ function renderLisensi() {
     lucide.createIcons();
 }
 
-function openModalAjukan() {
-    const sel = document.getElementById('ajukan-id-toko');
-    sel.innerHTML = '<option value="">-- Pilih Member/Toko --</option>' + _tokoCache.map((t) => `<option value="${t.id}">${escapeHtml(t.nama_toko)}</option>`).join('');
-    document.getElementById('ajukan-id-device').value = '';
-    document.getElementById('ajukan-durasi').value = 1;
-    document.getElementById('ajukan-harga').value = '';
-    document.getElementById('ajukan-catatan').value = '';
-    document.getElementById('ajukan-err').style.display = 'none';
-    openModal('modal-ajukan');
-}
-
-async function submitAjukanLisensi() {
-    const idToko = parseInt(document.getElementById('ajukan-id-toko').value);
-    const idDevice = document.getElementById('ajukan-id-device').value.trim();
-    const durasi = parseInt(document.getElementById('ajukan-durasi').value) || 1;
-    const harga = parseInt(document.getElementById('ajukan-harga').value) || 0;
-    const catatan = document.getElementById('ajukan-catatan').value.trim();
-    const errEl = document.getElementById('ajukan-err');
-    const btn = document.getElementById('ajukan-btn');
-
-    if (!idToko) { errEl.textContent = 'Pilih member/toko terlebih dahulu'; errEl.style.display = 'block'; return; }
-    if (!idDevice) { errEl.textContent = 'ID Device wajib diisi'; errEl.style.display = 'block'; return; }
-
-    btn.disabled = true; btn.textContent = 'Memproses...';
-    try {
-        const res = await devAjukanLisensi(idToko, idDevice, durasi, harga, catatan);
-        if (res?.ok) {
-            closeModal('modal-ajukan');
-            showToast('success', `Pengajuan dibuat (${res.no_invoice})`);
-            loadLisensi();
-        } else {
-            errEl.textContent = res?.pesan || 'Gagal membuat pengajuan';
-            errEl.style.display = 'block';
-        }
-    } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
-    btn.disabled = false;
-    btn.innerHTML = '<i data-lucide="send"></i>Ajukan';
-    lucide.createIcons();
-}
-
 async function approveLisensi(id) {
     if (!confirm('Setujui pengajuan ini? Toko akan langsung diaktifkan ke premium.')) return;
     try {
