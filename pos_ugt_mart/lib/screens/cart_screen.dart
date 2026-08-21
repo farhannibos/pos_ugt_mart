@@ -644,7 +644,12 @@ class _CartItem extends StatelessWidget {
                 ),
               )
             else
-              QtyControl(qty: (cartItem.qty as double).round(), onInc: onInc, onDec: onDec),
+              QtyControl(
+                qty: (cartItem.qty as double).round(),
+                onInc: onInc,
+                onDec: onDec,
+                atMax: (cartItem.qty as double) >= produk.stok,
+              ),
           ],
         ),
       ),

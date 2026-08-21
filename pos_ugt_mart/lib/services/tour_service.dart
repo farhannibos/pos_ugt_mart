@@ -37,13 +37,19 @@ class TourService {
     required GlobalKey keyKasir,
     required GlobalKey keyRiwayat,
     required GlobalKey keyProfil,
+    bool isSideNav = false,
     int retriesLeft = 5,
   }) {
     // Pastikan semua key sudah ter-attach ke widget sebelum tour dimulai
     final targets = <TargetFocus>[];
 
+    // Di tablet, navigasi berupa rail vertikal di sisi kiri — tooltip di atas
+    // target bisa kepotong/terdorong ke luar layar untuk item yang posisinya
+    // dekat tepi atas. Tampilkan ke kanan target (arah kanvas kosong) saja.
+    final align = isSideNav ? ContentAlign.right : ContentAlign.top;
+
     void addIfAttached(GlobalKey key, String title, String body,
-        ContentAlign align, ShapeLightFocus shape) {
+        ShapeLightFocus shape) {
       if (key.currentContext != null) {
         targets.add(_target(
             key: key, title: title, body: body, align: align, shape: shape));
@@ -52,19 +58,19 @@ class TourService {
 
     addIfAttached(keyBeranda, 'Beranda',
         'Pantau ringkasan usahamu hari ini — penjualan, kas tunai, dan stok menipis.',
-        ContentAlign.top, ShapeLightFocus.RRect);
+        ShapeLightFocus.RRect);
     addIfAttached(keyKasir, 'Kasir',
         'Tap tombol ini untuk memulai transaksi penjualan baru.',
-        ContentAlign.top, ShapeLightFocus.Circle);
+        ShapeLightFocus.Circle);
     addIfAttached(keyUsahaku, 'Usahaku',
         'Lengkapi info toko, atur pajak, dan kelola pengaturan bisnis kamu.',
-        ContentAlign.top, ShapeLightFocus.RRect);
+        ShapeLightFocus.RRect);
     addIfAttached(keyRiwayat, 'Riwayat',
         'Lihat semua transaksi yang sudah dilakukan beserta detailnya.',
-        ContentAlign.top, ShapeLightFocus.RRect);
+        ShapeLightFocus.RRect);
     addIfAttached(keyProfil, 'Profil',
         'Kelola akun, kasir, dan pengaturan akses pengguna.',
-        ContentAlign.top, ShapeLightFocus.RRect);
+        ShapeLightFocus.RRect);
 
     if (targets.isEmpty) {
       // Widget target belum ter-attach (mis. masih transisi layout).
@@ -80,6 +86,7 @@ class TourService {
               keyKasir: keyKasir,
               keyRiwayat: keyRiwayat,
               keyProfil: keyProfil,
+              isSideNav: isSideNav,
               retriesLeft: retriesLeft - 1,
             );
           }

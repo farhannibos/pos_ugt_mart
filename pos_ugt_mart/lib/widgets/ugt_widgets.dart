@@ -76,6 +76,7 @@ class _BulkInputDialogState extends State<_BulkInputDialog> {
   Widget build(BuildContext context) {
     final product = widget.product;
     final hasQty = _qty > 0;
+    final exceedsStock = hasQty && _qty > product.stok;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -104,7 +105,12 @@ class _BulkInputDialogState extends State<_BulkInputDialog> {
               decoration: BoxDecoration(
                 color: AppColors.bg,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: hasQty ? AppColors.primary : AppColors.border, width: hasQty ? 1.5 : 1),
+                border: Border.all(
+                  color: exceedsStock
+                      ? AppColors.red
+                      : (hasQty ? AppColors.primary : AppColors.border),
+                  width: hasQty ? 1.5 : 1,
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -128,19 +134,29 @@ class _BulkInputDialogState extends State<_BulkInputDialog> {
               ),
             ),
             const SizedBox(height: 6),
-            // Subtotal
+            // Subtotal / peringatan stok
             SizedBox(
               height: 20,
-              child: hasQty
+              child: exceedsStock
                   ? Text(
-                      'Subtotal: ${formatRp(_subtotal)}',
+                      'Stok tidak mencukupi (tersisa ${formatQty(product.stok.toDouble(), product.satuan)})',
                       style: GoogleFonts.inter(
-                        fontSize: 12.5,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
+                        color: AppColors.red,
                       ),
+                      textAlign: TextAlign.center,
                     )
-                  : null,
+                  : hasQty
+                      ? Text(
+                          'Subtotal: ${formatRp(_subtotal)}',
+                          style: GoogleFonts.inter(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        )
+                      : null,
             ),
             const SizedBox(height: 12),
             // Numpad
@@ -165,7 +181,7 @@ class _BulkInputDialogState extends State<_BulkInputDialog> {
                 Expanded(
                   flex: 2,
                   child: ElevatedButton(
-                    onPressed: hasQty ? () => Navigator.of(context).pop(_qty) : null,
+                    onPressed: hasQty && !exceedsStock ? () => Navigator.of(context).pop(_qty) : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       disabledBackgroundColor: AppColors.border,
@@ -626,8 +642,9 @@ class QtyControl extends StatelessWidget {
   final int qty;
   final VoidCallback onInc;
   final VoidCallback onDec;
+  final bool atMax;
 
-  const QtyControl({super.key, required this.qty, required this.onInc, required this.onDec});
+  const QtyControl({super.key, required this.qty, required this.onInc, required this.onDec, this.atMax = false});
 
   @override
   Widget build(BuildContext context) {
@@ -662,15 +679,15 @@ class QtyControl extends StatelessWidget {
             ),
           ),
           GestureDetector(
-            onTap: onInc,
+            onTap: atMax ? null : onInc,
             child: Container(
               width: 24,
               height: 24,
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
+              decoration: BoxDecoration(
+                color: atMax ? AppColors.border : AppColors.primary,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.add, size: 13, color: Colors.white),
+              child: Icon(Icons.add, size: 13, color: atMax ? AppColors.textDim : Colors.white),
             ),
           ),
         ],

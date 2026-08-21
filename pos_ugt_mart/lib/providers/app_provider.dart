@@ -207,6 +207,11 @@ class AppProvider extends ChangeNotifier {
     if (qty <= 0) {
       cart.remove(productId);
     } else {
+      final idx = dummyProducts.indexWhere((p) => p.id == productId);
+      if (idx >= 0 && qty > dummyProducts[idx].stok) {
+        showToast('Stok tidak mencukupi (tersisa ${dummyProducts[idx].stok} ${dummyProducts[idx].satuan})');
+        return;
+      }
       cart[productId]!.qty = qty;
     }
     notifyListeners();

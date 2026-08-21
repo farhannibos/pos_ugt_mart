@@ -1349,19 +1349,42 @@ class _ProductCard extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 5),
-                        Row(
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Text(
                               formatRp(product.harga),
                               style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primary),
                             ),
-                            const SizedBox(width: 8),
                             Text(
                               'Stok ${product.stok} ${product.satuan}',
                               style: GoogleFonts.inter(
                                 fontSize: 10.5,
                                 color: product.isLowStock ? AppColors.red : AppColors.textDim,
                               ),
+                            ),
+                            Consumer<AppProvider>(
+                              builder: (_, prov, __) {
+                                final qty = prov.cart[product.id]?.qty;
+                                if (qty == null) return const SizedBox.shrink();
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryLight,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    '${formatQty(qty, product.satuan)} di keranjang',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primaryDark,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),
@@ -1381,31 +1404,35 @@ class _ProductCard extends StatelessWidget {
                   child: Consumer<AppProvider>(
                     builder: (_, prov, __) {
                       final inCart = prov.cart.containsKey(product.id);
+                      final atMax = !product.isBulk &&
+                          (prov.cart[product.id]?.qty ?? 0) >= product.stok;
                       return GestureDetector(
-                        onTap: () async {
-                          if (product.isBulk) {
-                            final qty = await showBulkInputDialog(context, product,
-                                initial: prov.cart[product.id]?.qty);
-                            if (qty != null && context.mounted) prov.addBulkToCart(product, qty);
-                          } else {
-                            prov.addToCart(product);
-                          }
-                        },
+                        onTap: atMax
+                            ? null
+                            : () async {
+                                if (product.isBulk) {
+                                  final qty = await showBulkInputDialog(context, product,
+                                      initial: prov.cart[product.id]?.qty);
+                                  if (qty != null && context.mounted) prov.addBulkToCart(product, qty);
+                                } else {
+                                  prov.addToCart(product);
+                                }
+                              },
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 150),
                           width: 38, height: 38,
                           decoration: BoxDecoration(
-                            color: inCart ? AppColors.primaryDark : AppColors.primary,
+                            color: atMax ? AppColors.border : (inCart ? AppColors.primaryDark : AppColors.primary),
                             borderRadius: BorderRadius.circular(13),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.28),
+                                color: AppColors.primary.withValues(alpha: atMax ? 0 : 0.28),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
                             ],
                           ),
-                          child: const Icon(Icons.add, color: Colors.white, size: 19),
+                          child: Icon(Icons.add, color: atMax ? AppColors.textDim : Colors.white, size: 19),
                         ),
                       );
                     },

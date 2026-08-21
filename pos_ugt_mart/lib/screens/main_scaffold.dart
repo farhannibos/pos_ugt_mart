@@ -62,6 +62,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   void _startTour() {
     Future.delayed(const Duration(milliseconds: 1200), () {
       if (!mounted) return;
+      final isTablet = MediaQuery.of(context).size.width > 600;
       TourService.show(
         context:    context,
         keyBeranda: _keyBeranda,
@@ -69,6 +70,7 @@ class _MainScaffoldState extends State<MainScaffold> {
         keyKasir:   _keyKasir,
         keyRiwayat: _keyRiwayat,
         keyProfil:  _keyProfil,
+        isSideNav:  isTablet,
       );
     });
   }
