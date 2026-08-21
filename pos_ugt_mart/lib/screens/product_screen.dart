@@ -216,11 +216,46 @@ class _ProductScreenState extends State<ProductScreen> {
                           ],
                           const SizedBox(height: 14),
 
-                          _fieldLabel('Barcode (opsional)'),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _fieldLabel('Barcode'),
+                              GestureDetector(
+                                onTap: () {
+                                  final ts = DateTime.now().millisecondsSinceEpoch.toString();
+                                  setSheet(() => barcodeCtrl.text = 'INT${ts.substring(ts.length - 10)}');
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 7),
+                                  child: Text(
+                                    'Auto-generate',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                           TextFormField(
                             controller: barcodeCtrl,
                             style: GoogleFonts.inter(fontSize: 14, color: AppColors.text),
-                            decoration: _inputDeco('Scan atau ketik barcode'),
+                            decoration: _inputDeco('Scan atau ketik barcode').copyWith(
+                              suffixIcon: IconButton(
+                                icon: const Icon(Icons.qr_code_scanner, size: 20, color: AppColors.primary),
+                                onPressed: () async {
+                                  final result = await Navigator.of(ctx).push<String>(
+                                    MaterialPageRoute(
+                                      builder: (_) => const BarcodeScannerScreen(returnRawOnly: true),
+                                    ),
+                                  );
+                                  if (result != null) setSheet(() => barcodeCtrl.text = result);
+                                },
+                              ),
+                            ),
+                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Barcode wajib diisi atau generate otomatis' : null,
                           ),
                           const SizedBox(height: 14),
 
@@ -661,11 +696,46 @@ class _ProductScreenState extends State<ProductScreen> {
                           ],
                           const SizedBox(height: 14),
 
-                          _fieldLabel('Barcode (opsional)'),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _fieldLabel('Barcode'),
+                              GestureDetector(
+                                onTap: () {
+                                  final ts = DateTime.now().millisecondsSinceEpoch.toString();
+                                  setSheet(() => barcodeCtrl.text = 'INT${ts.substring(ts.length - 10)}');
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 7),
+                                  child: Text(
+                                    'Auto-generate',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                           TextFormField(
                             controller: barcodeCtrl,
                             style: GoogleFonts.inter(fontSize: 14, color: AppColors.text),
-                            decoration: _inputDeco('Scan atau ketik barcode'),
+                            decoration: _inputDeco('Scan atau ketik barcode').copyWith(
+                              suffixIcon: IconButton(
+                                icon: const Icon(Icons.qr_code_scanner, size: 20, color: AppColors.primary),
+                                onPressed: () async {
+                                  final result = await Navigator.of(ctx).push<String>(
+                                    MaterialPageRoute(
+                                      builder: (_) => const BarcodeScannerScreen(returnRawOnly: true),
+                                    ),
+                                  );
+                                  if (result != null) setSheet(() => barcodeCtrl.text = result);
+                                },
+                              ),
+                            ),
+                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Barcode wajib diisi atau generate otomatis' : null,
                           ),
                           const SizedBox(height: 14),
 

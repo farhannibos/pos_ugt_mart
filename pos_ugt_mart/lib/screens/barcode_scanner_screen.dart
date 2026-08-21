@@ -5,7 +5,11 @@ import '../theme/app_theme.dart';
 import '../models/product.dart';
 
 class BarcodeScannerScreen extends StatefulWidget {
-  const BarcodeScannerScreen({super.key});
+  /// Jika true, selalu kembalikan raw barcode string (tidak cari produk).
+  /// Dipakai saat scanner dibuka dari form tambah/edit produk.
+  final bool returnRawOnly;
+
+  const BarcodeScannerScreen({super.key, this.returnRawOnly = false});
 
   @override
   State<BarcodeScannerScreen> createState() => _BarcodeScannerScreenState();
@@ -22,6 +26,11 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
 
     _detected = true;
     _ctrl.stop();
+
+    if (widget.returnRawOnly) {
+      Navigator.of(context).pop(barcode);
+      return;
+    }
 
     final product = dummyProducts.where((p) => p.barcode == barcode).firstOrNull;
     Navigator.of(context).pop(product ?? barcode);
