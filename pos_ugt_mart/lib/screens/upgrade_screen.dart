@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
+import '../services/device_id_service.dart';
 
 class UpgradeScreen extends StatefulWidget {
   const UpgradeScreen({super.key});
@@ -16,6 +18,32 @@ class UpgradeScreen extends StatefulWidget {
 
 class _UpgradeScreenState extends State<UpgradeScreen> {
   int _selectedPlan = 1; // 0=1bln, 1=3bln, 2=12bln
+  String _deviceId = '';
+  String _deviceLabel = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDeviceId();
+  }
+
+  Future<void> _loadDeviceId() async {
+    final id = await DeviceIdService.getDeviceId();
+    final label = await DeviceIdService.getDeviceLabel();
+    if (!mounted) return;
+    setState(() {
+      _deviceId = id;
+      _deviceLabel = label;
+    });
+  }
+
+  void _copyDeviceId(BuildContext context) {
+    if (_deviceId.isEmpty) return;
+    Clipboard.setData(ClipboardData(text: _deviceId));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('ID Device disalin'), duration: Duration(seconds: 2)),
+    );
+  }
 
   static const _plans = [
     {'label': '1 Bulan',  'harga': 'Rp 99.000',  'per': 'Rp 99rb/bln',  'nominal': 99000,  'bulan': 1},
@@ -59,6 +87,8 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
             padding: EdgeInsets.fromLTRB(hPad, 20, hPad, 40),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
+                _buildDeviceIdCard(context),
+                const SizedBox(height: 20),
                 if (!isPremium) ...[
                   _buildFiturSection(),
                   const SizedBox(height: 24),
@@ -167,6 +197,50 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDeviceIdCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(color: const Color(0xFFEDE9FE), borderRadius: BorderRadius.circular(12)),
+            child: const Icon(Icons.smartphone_rounded, color: Color(0xFF7C3AED), size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('ID Device', style: GoogleFonts.inter(fontSize: 11, color: AppColors.textDim)),
+                const SizedBox(height: 2),
+                Text(
+                  _deviceId.isEmpty ? 'Memuat...' : _deviceId,
+                  style: GoogleFonts.robotoMono(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.text),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (_deviceLabel.isNotEmpty)
+                  Text(_deviceLabel, style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textDim)),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: _deviceId.isEmpty ? null : () => _copyDeviceId(context),
+            icon: const Icon(Icons.copy_rounded, size: 18),
+            color: const Color(0xFF7C3AED),
+            tooltip: 'Salin ID Device',
+          ),
+        ],
       ),
     );
   }
@@ -405,6 +479,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
       '🏪 Nama Toko: ${prov.storeName}\n'
       '👤 Username: ${prov.kasirName}\n'
       '🆔 ID Toko: ${prov.idToko}\n'
+      '📱 ID Device: $_deviceId\n'
       '📦 Paket: ${plan['label']} — ${plan['harga']}\n\n'
       'Mohon informasi rekening dan langkah selanjutnya. Terima kasih!',
     );
