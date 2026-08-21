@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
 import '../services/device_id_service.dart';
+import '../services/db_service.dart';
 
 class UpgradeScreen extends StatefulWidget {
   const UpgradeScreen({super.key});
@@ -20,11 +21,14 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
   int _selectedPlan = 1; // 0=1bln, 1=3bln, 2=12bln
   String _deviceId = '';
   String _deviceLabel = '';
+  Map<String, dynamic>? _pendingRequest;
+  bool _submitting = false;
 
   @override
   void initState() {
     super.initState();
     _loadDeviceId();
+    _checkPending();
   }
 
   Future<void> _loadDeviceId() async {
@@ -34,6 +38,16 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
     setState(() {
       _deviceId = id;
       _deviceLabel = label;
+    });
+  }
+
+  Future<void> _checkPending() async {
+    final idToko = int.tryParse(context.read<AppProvider>().idToko);
+    if (idToko == null) return;
+    final res = await DbService.cekPengajuanLisensiPending(idToko);
+    if (!mounted) return;
+    setState(() {
+      _pendingRequest = (res['ada'] == true) ? res : null;
     });
   }
 
@@ -407,6 +421,8 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
   }
 
   Widget _buildCTA(BuildContext context, AppProvider prov) {
+    if (_pendingRequest != null) return _buildPendingBanner();
+
     final plan = _plans[_selectedPlan];
     return Column(
       children: [
@@ -414,7 +430,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
           width: double.infinity,
           height: 54,
           child: ElevatedButton(
-            onPressed: () => _hubungiAdmin(context, prov, plan),
+            onPressed: _submitting ? null : () => _ajukanPremium(context, prov, plan),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF25D366),
               foregroundColor: Colors.white,
@@ -422,20 +438,25 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
               elevation: 0,
               shadowColor: Colors.transparent,
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.chat_rounded, size: 20),
-                const SizedBox(width: 10),
-                Text('Hubungi Admin via WhatsApp',
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 14)),
-              ],
-            ),
+            child: _submitting
+                ? const SizedBox(
+                    width: 22, height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.send_rounded, size: 20),
+                      const SizedBox(width: 10),
+                      Text('Ajukan Premium Sekarang',
+                          style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 14)),
+                    ],
+                  ),
           ),
         ),
         const SizedBox(height: 12),
         Text(
-          'Paket dipilih: ${plan['label']} — ${plan['harga']}\nSetelah transfer, kirim bukti ke admin. Aktif dalam 1×24 jam.',
+          'Paket dipilih: ${plan['label']} — ${plan['harga']}\nPengajuan langsung masuk ke admin untuk diverifikasi. Aktif dalam 1×24 jam setelah disetujui.',
           textAlign: TextAlign.center,
           style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.textDim, height: 1.6),
         ),
@@ -444,6 +465,9 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
   }
 
   Widget _buildRenewButton(BuildContext context, AppProvider prov) {
+    if (_pendingRequest != null) {
+      return Column(children: [const SizedBox(height: 8), _buildPendingBanner()]);
+    }
     return Column(
       children: [
         const SizedBox(height: 8),
@@ -451,37 +475,114 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
           width: double.infinity,
           height: 54,
           child: ElevatedButton(
-            onPressed: () => _hubungiAdmin(context, prov, _plans[_selectedPlan]),
+            onPressed: _submitting ? null : () => _ajukanPremium(context, prov, _plans[_selectedPlan]),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF25D366),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               elevation: 0,
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.chat_rounded, size: 20),
-                const SizedBox(width: 10),
-                Text('Perpanjang Langganan', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 14)),
-              ],
-            ),
+            child: _submitting
+                ? const SizedBox(
+                    width: 22, height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.send_rounded, size: 20),
+                      const SizedBox(width: 10),
+                      Text('Ajukan Perpanjangan', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 14)),
+                    ],
+                  ),
           ),
         ),
       ],
     );
   }
 
-  void _hubungiAdmin(BuildContext context, AppProvider prov, Map<String, Object?> plan) {
+  Widget _buildPendingBanner() {
+    final noInvoice = _pendingRequest?['no_invoice']?.toString() ?? '-';
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF3C7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFDE68A)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.hourglass_top_rounded, color: Color(0xFFD97706)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Menunggu persetujuan admin',
+                    style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF92400E))),
+                const SizedBox(height: 2),
+                Text('Invoice $noInvoice sudah diajukan. Admin akan meninjau dan mengaktifkan premium Anda.',
+                    style: GoogleFonts.inter(fontSize: 11.5, color: const Color(0xFF92400E), height: 1.4)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _ajukanPremium(BuildContext context, AppProvider prov, Map<String, Object?> plan) async {
+    if (_deviceId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ID Device belum siap, coba lagi sebentar')),
+      );
+      return;
+    }
+    final idToko = int.tryParse(prov.idToko);
+    if (idToko == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ID Toko tidak valid')),
+      );
+      return;
+    }
+
+    setState(() => _submitting = true);
+    final res = await DbService.ajukanLisensiPremium(
+      idToko: idToko,
+      idDevice: _deviceId,
+      durasiBulan: plan['bulan'] as int,
+      harga: plan['nominal'] as int,
+      catatan: 'Paket ${plan['label']}',
+    );
+    if (!mounted) return;
+    setState(() => _submitting = false);
+
+    if (res['ok'] != true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(res['pesan']?.toString() ?? 'Gagal mengajukan premium')),
+      );
+      return;
+    }
+
+    await _checkPending();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Pengajuan terkirim (${res['no_invoice']}). Menunggu persetujuan admin.')),
+    );
+    _bukaWhatsAppAdmin(prov, plan, res['no_invoice']?.toString());
+  }
+
+  void _bukaWhatsAppAdmin(AppProvider prov, Map<String, Object?> plan, String? noInvoice) {
     final pesan = Uri.encodeComponent(
       'Halo Admin FABIZO! 👋\n\n'
-      'Saya ingin berlangganan Premium.\n\n'
+      'Saya sudah mengajukan Premium lewat aplikasi.\n\n'
       '🏪 Nama Toko: ${prov.storeName}\n'
       '👤 Username: ${prov.kasirName}\n'
       '🆔 ID Toko: ${prov.idToko}\n'
       '📱 ID Device: $_deviceId\n'
-      '📦 Paket: ${plan['label']} — ${plan['harga']}\n\n'
-      'Mohon informasi rekening dan langkah selanjutnya. Terima kasih!',
+      '📦 Paket: ${plan['label']} — ${plan['harga']}\n'
+      '${noInvoice != null ? '🧾 No. Invoice: $noInvoice\n' : ''}'
+      '\nMohon informasi rekening dan langkah selanjutnya. Terima kasih!',
     );
     final url = 'https://wa.me/${UpgradeScreen._adminWa}?text=$pesan';
     launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);

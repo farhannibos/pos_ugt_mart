@@ -297,8 +297,8 @@ function renderAplikasi() {
             <td>${tanggal(r.expired_at)}</td>
             <td>${statusHtml}</td>
             <td>${isAdmin ? `
-                <button class="btn btn-sm btn-primary" onclick="openModalAktivasi('${r.id_toko}','${escapeHtml(r.nama_toko).replace(/'/g, "\\'")}')"><i data-lucide="badge-check"></i>Aktifkan</button>
-                <button class="btn btn-sm btn-danger" onclick="confirmHapusToko('${r.id_toko}','${escapeHtml(r.nama_toko).replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i></button>
+                <button class="btn btn-sm btn-primary" onclick="openModalAktivasi('${r.id}','${escapeHtml(r.nama_toko).replace(/'/g, "\\'")}')"><i data-lucide="badge-check"></i>Aktifkan</button>
+                <button class="btn btn-sm btn-danger" onclick="confirmHapusToko('${r.id}','${escapeHtml(r.nama_toko).replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i></button>
             ` : `<span class="text-dim" style="font-size:11.5px">khusus admin</span>`}</td>
         </tr>`;
     }).join('');
@@ -475,7 +475,7 @@ function renderLisensi() {
 
 function openModalAjukan() {
     const sel = document.getElementById('ajukan-id-toko');
-    sel.innerHTML = '<option value="">-- Pilih Member/Toko --</option>' + _tokoCache.map((t) => `<option value="${t.id_toko}">${escapeHtml(t.nama_toko)}</option>`).join('');
+    sel.innerHTML = '<option value="">-- Pilih Member/Toko --</option>' + _tokoCache.map((t) => `<option value="${t.id}">${escapeHtml(t.nama_toko)}</option>`).join('');
     document.getElementById('ajukan-id-device').value = '';
     document.getElementById('ajukan-durasi').value = 1;
     document.getElementById('ajukan-harga').value = '';

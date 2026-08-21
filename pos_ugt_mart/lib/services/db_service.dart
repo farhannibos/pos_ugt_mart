@@ -1022,6 +1022,40 @@ class DbService {
     }
   }
 
+  static Future<Map<String, dynamic>> ajukanLisensiPremium({
+    required int idToko,
+    required String idDevice,
+    required int durasiBulan,
+    required int harga,
+    String? catatan,
+  }) async {
+    try {
+      final res = await _db.rpc('dev_ajukan_lisensi', params: {
+        'p_id_toko': idToko,
+        'p_id_device': idDevice,
+        'p_durasi_bulan': durasiBulan,
+        'p_harga': harga,
+        'p_catatan': catatan,
+      });
+      if (res is Map) return Map<String, dynamic>.from(res);
+      return {'ok': false, 'pesan': 'Terjadi kesalahan'};
+    } catch (e) {
+      return {'ok': false, 'pesan': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> cekPengajuanLisensiPending(int idToko) async {
+    try {
+      final res = await _db.rpc('cek_pengajuan_lisensi_pending', params: {
+        'p_id_toko': idToko,
+      });
+      if (res is Map) return Map<String, dynamic>.from(res);
+      return {'ada': false};
+    } catch (e) {
+      return {'ada': false};
+    }
+  }
+
   static Future<bool> lunasiPiutangDb(String noFaktur, int total) async {
     try {
       await _db
