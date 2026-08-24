@@ -3585,13 +3585,23 @@ async function openTutupShift() {
         </table>`;
     document.getElementById('fts-saldo-fisik').value = '';
     document.getElementById('tutup-shift-selisih').style.display = 'none';
+    const btn = document.getElementById('fts-btn-tutup');
+    if (btn) btn.disabled = true;
     openModal('modal-tutup-shift');
 }
 
 async function hitungSelisihTutup() {
     if (!DATA_SHIFT_AKTIF) return;
     const s = DATA_SHIFT_AKTIF;
-    const saldoFisik = parseInt(document.getElementById('fts-saldo-fisik').value, 10) || 0;
+    const saldoFisikRaw = document.getElementById('fts-saldo-fisik').value;
+    const btn = document.getElementById('fts-btn-tutup');
+    if (btn) btn.disabled = saldoFisikRaw === '';
+    if (saldoFisikRaw === '') {
+        const el = document.getElementById('tutup-shift-selisih');
+        if (el) el.style.display = 'none';
+        return;
+    }
+    const saldoFisik = parseInt(saldoFisikRaw, 10) || 0;
     const local = kasUntukShift(s.id);
     const saldoServer = await dbShiftSaldo(s.id);
     const saldoSeharusnya = saldoServer != null ? saldoServer : (s.modalAwal + local.masuk - local.keluar);
@@ -3611,7 +3621,12 @@ async function hitungSelisihTutup() {
 async function simpanTutupShift() {
     if (!DATA_SHIFT_AKTIF) return;
     const s = DATA_SHIFT_AKTIF;
-    const saldoFisik = parseInt(document.getElementById('fts-saldo-fisik').value, 10) || 0;
+    const saldoFisikRaw = document.getElementById('fts-saldo-fisik').value;
+    if (saldoFisikRaw === '' || saldoFisikRaw == null) {
+        showToast('warning', 'Masukkan jumlah uang fisik di kasir sebelum menutup shift.');
+        return;
+    }
+    const saldoFisik = parseInt(saldoFisikRaw, 10) || 0;
     const local = kasUntukShift(s.id);
     const saldoServer = await dbShiftSaldo(s.id);
     const saldoSeharusnya = saldoServer != null ? saldoServer : (s.modalAwal + local.masuk - local.keluar);
