@@ -774,6 +774,14 @@ class AppProvider extends ChangeNotifier {
   int get jumlahPiutangAktif =>
       dummyHistory.where((t) => t.status == 'Piutang').length;
 
+  // Total piutang belum lunas milik member yang sedang dipilih
+  int get selectedMemberPiutang {
+    if (selectedCustomer == null || selectedCustomer!.isEmpty) return 0;
+    return dummyHistory
+        .where((t) => t.customer == selectedCustomer && t.status == 'Piutang')
+        .fold(0, (s, t) => s + t.sisaPiutang);
+  }
+
   int get todayItemsCount {
     final prefix = _todayPrefix();
     return dummyHistory
