@@ -211,7 +211,8 @@ class _KasScreenState extends State<KasScreen> {
                               setState(() {
                                 dummyKasLog.insert(0, KasLog(ket: ket, jam: jam, nominal: amount, tipe: _kasType));
                               });
-                              DbService.saveKas(ket, _kasType, amount, prov.kasirName);
+                              DbService.saveKas(ket, _kasType, amount, prov.kasirName,
+                                  shiftId: prov.activeShift?.id);
                               prov.showToast('Kas $_kasType ${formatRp(amount)} tersimpan');
                               _amountCtrl.clear();
                               _noteCtrl.clear();

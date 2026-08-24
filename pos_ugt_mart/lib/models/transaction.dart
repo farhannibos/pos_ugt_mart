@@ -26,6 +26,7 @@ class CartItem {
 
 class Transaction {
   final String id;
+  int? dbId; // primary key tabel `transaksi` di Supabase — dipakai untuk RPC cicilan
   final String tanggal;
   final String jam;
   final String metode;
@@ -38,6 +39,7 @@ class Transaction {
 
   Transaction({
     required this.id,
+    this.dbId,
     required this.tanggal,
     required this.jam,
     required this.metode,

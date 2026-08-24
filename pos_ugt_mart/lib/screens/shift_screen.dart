@@ -135,7 +135,6 @@ class _ActiveShiftView extends StatelessWidget {
     final shift = prov.activeShift!;
 
     final modalAwal    = shift.modalAwal;
-    final tunaiTotal   = prov.todayTunaiTotal;
     final kasMasuk     = prov.shiftKasMasuk;
     final kasKeluar    = prov.shiftKasKeluar;
     final saldoHitung  = prov.shiftSaldoSeharusnya;
@@ -198,7 +197,10 @@ class _ActiveShiftView extends StatelessWidget {
           child: Column(
             children: [
               _KasRow(label: 'Modal Awal', value: modalAwal, showBorder: true),
-              _KasRow(label: 'Penjualan Tunai', value: tunaiTotal, showBorder: true, isPositive: true),
+              // "Kas Masuk" sudah mencakup penjualan tunai shift ini (dicatat
+              // otomatis oleh trigger DB saat transaksi Tunai/Lunas tersimpan)
+              // — TIDAK ditampilkan terpisah lagi supaya tidak terlihat
+              // dobel-hitung terhadap "Total Seharusnya" di bawah.
               _KasRow(label: 'Kas Masuk', value: kasMasuk, showBorder: true, isPositive: true),
               _KasRow(label: 'Kas Keluar', value: kasKeluar, showBorder: true, isPositive: false),
               const SizedBox(height: 4),
@@ -454,7 +456,8 @@ void showTutupShiftSheet(BuildContext context, AppProvider prov) {
                   child: Column(
                     children: [
                       _SheetRow('Modal Awal', formatRp(prov.activeShift?.modalAwal ?? 0)),
-                      _SheetRow('Penjualan Tunai', '+${formatRp(prov.todayTunaiTotal)}', color: AppColors.primary),
+                      // "Kas Masuk" sudah termasuk penjualan tunai shift ini —
+                      // tidak ditampilkan terpisah supaya tidak dobel-hitung.
                       _SheetRow('Kas Masuk', '+${formatRp(prov.shiftKasMasuk)}', color: AppColors.primary),
                       _SheetRow('Kas Keluar', '-${formatRp(prov.shiftKasKeluar)}', color: AppColors.red),
                       const Divider(height: 14, color: AppColors.borderLight),

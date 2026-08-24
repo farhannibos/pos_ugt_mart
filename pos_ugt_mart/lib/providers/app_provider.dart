@@ -306,15 +306,14 @@ class AppProvider extends ChangeNotifier {
 
   Future<bool> lunasiPiutang(Transaction trx) async {
     final sisa = trx.sisaPiutang;
-    final ok = await DbService.lunasiPiutangDb(trx.id, trx.total);
+    // catat_cicilan RPC (server-side) yang mengubah status/terbayar `trx` DAN
+    // mencatat kas masuk otomatis — lihat DbService.lunasiPiutangViaCicilan.
+    final ok = await DbService.lunasiPiutangViaCicilan(trx);
     if (ok) {
-      trx.status = 'Lunas';
-      trx.terbayar = trx.total;
       if (sisa > 0) {
         final now = DateTime.now();
         final jam = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
         dummyKasLog.insert(0, KasLog(ket: 'Lunasi ${trx.id}', jam: jam, nominal: sisa, tipe: 'masuk'));
-        DbService.saveKas('Lunasi ${trx.id}', 'masuk', sisa, kasirName);
       }
       notifyListeners();
     }
@@ -382,14 +381,15 @@ class AppProvider extends ChangeNotifier {
       showToast('⚠ Transaksi tidak tersimpan ke server. Cek koneksi.');
     });
 
+    // Kas masuk (penjualan Tunai / DP piutang) dicatat otomatis oleh trigger DB
+    // fn_catat_kas_transaksi saat baris `transaksi` di-INSERT — lihat
+    // supabase/migration_kas_shift_realtime.sql. `dummyKasLog.insert` di bawah
+    // ini HANYA optimistic UI lokal (tidak dikirim ke server), supaya kartu
+    // kas di layar langsung terasa responsif sebelum data di-refresh dari server.
     if (!piutangMode && paymentMethod == 'Tunai') {
-      final kasKet = 'Penjualan $id';
-      dummyKasLog.insert(0, KasLog(ket: kasKet, jam: timeStr, nominal: total, tipe: 'masuk'));
-      DbService.saveKas(kasKet, 'masuk', total, kasirName);
+      dummyKasLog.insert(0, KasLog(ket: 'Penjualan $id', jam: timeStr, nominal: total, tipe: 'masuk'));
     } else if (piutangMode && piutangTerbayar > 0) {
-      final kasKet = 'DP Piutang $id';
-      dummyKasLog.insert(0, KasLog(ket: kasKet, jam: timeStr, nominal: piutangTerbayar, tipe: 'masuk'));
-      DbService.saveKas(kasKet, 'masuk', piutangTerbayar, kasirName);
+      dummyKasLog.insert(0, KasLog(ket: 'DP Piutang $id', jam: timeStr, nominal: piutangTerbayar, tipe: 'masuk'));
     }
 
     lastTrxObj = trx;
@@ -866,6 +866,12 @@ class AppProvider extends ChangeNotifier {
   }
 
   // ─── Shift getters ───────────────────────────────────────────────────────────
+  // dummyKasLog sekarang sudah difilter per id_shift (bukan per tanggal) oleh
+  // DbService.loadKasLog — jadi hanya berisi mutasi kas shift yang sedang
+  // aktif. Penjualan tunai SUDAH termasuk di dalamnya (dicatat trigger DB
+  // fn_catat_kas_transaksi sebagai kas_log tipe='masuk'), jadi TIDAK ditambah
+  // lagi dengan todayTunaiTotal di sini — dulu itu menyebabkan penjualan
+  // tunai terhitung dobel di saldo seharusnya.
 
   int get shiftKasMasuk =>
       dummyKasLog.where((k) => k.tipe == 'masuk').fold(0, (s, k) => s + k.nominal);
@@ -874,7 +880,7 @@ class AppProvider extends ChangeNotifier {
       dummyKasLog.where((k) => k.tipe == 'keluar').fold(0, (s, k) => s + k.nominal);
 
   int get shiftSaldoSeharusnya =>
-      (activeShift?.modalAwal ?? 0) + todayTunaiTotal + shiftKasMasuk - shiftKasKeluar;
+      (activeShift?.modalAwal ?? 0) + shiftKasMasuk - shiftKasKeluar;
 
   Future<void> loadActiveShift() async {
     activeShift = await DbService.getActiveShift();
@@ -885,6 +891,10 @@ class AppProvider extends ChangeNotifier {
     final shift = await DbService.bukaShift(modalAwal, kasirName);
     if (shift == null) return false;
     activeShift = shift;
+    // Shift baru (atau shift lama hasil fallback race — lihat DbService.bukaShift)
+    // punya id_shift beda dari sebelumnya; muat ulang supaya dummyKasLog tidak
+    // membawa mutasi kas dari shift yang sudah tutup.
+    await DbService.loadKasLog(shift.id);
     notifyListeners();
     return true;
   }
@@ -894,7 +904,13 @@ class AppProvider extends ChangeNotifier {
     final tunai   = todayTunaiTotal;
     final kasIn   = shiftKasMasuk;
     final kasOut  = shiftKasKeluar;
-    final selisih = uangFisik - shiftSaldoSeharusnya;
+    // Pakai saldo dari server (fn_shift_saldo) sebagai acuan final kalau bisa
+    // dijangkau — lebih otoritatif daripada agregasi lokal dummyKasLog, yang
+    // bisa saja belum sempat menerima update realtime terakhir. Fallback ke
+    // getter lokal kalau RPC gagal (offline).
+    final saldoServer = await DbService.shiftSaldo(activeShift!.id);
+    final saldoSeharusnya = saldoServer ?? shiftSaldoSeharusnya;
+    final selisih = uangFisik - saldoSeharusnya;
     final ok = await DbService.tutupShift(
       shiftId:    activeShift!.id,
       totalTunai: tunai,
@@ -905,6 +921,7 @@ class AppProvider extends ChangeNotifier {
     );
     if (ok) {
       activeShift = null;
+      dummyKasLog.clear();
       notifyListeners();
     }
     return ok;
@@ -918,9 +935,9 @@ class AppProvider extends ChangeNotifier {
       DbService.loadSuppliers(),
       DbService.loadPurchases(),
       DbService.loadKategori(),
-      DbService.loadKasLog(),
     ]);
     if (isPremium) activeShift = await DbService.getActiveShift();
+    await DbService.loadKasLog(activeShift?.id);
     notifyListeners();
   }
 
@@ -976,11 +993,13 @@ class AppProvider extends ChangeNotifier {
         DbService.loadSuppliers(),
         DbService.loadPurchases(),
         DbService.loadKategori(),
-        DbService.loadKasLog(),
       ]);
       if (isPremium) activeShift = await DbService.getActiveShift();
+      await DbService.loadKasLog(activeShift?.id);
       DbService.setupRealtime(() async {
         await DbService.loadAll();
+        activeShift = await DbService.getActiveShift();
+        await DbService.loadKasLog(activeShift?.id);
         notifyListeners();
       });
     }

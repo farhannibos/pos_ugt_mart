@@ -33,6 +33,10 @@ function setupRealtime() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'member',    filter: `id_toko=eq.${_currentIdToko}` }, _scheduleReload)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'transaksi', filter: `id_toko=eq.${_currentIdToko}` }, _scheduleReload)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'supplier',  filter: `id_toko=eq.${_currentIdToko}` }, _scheduleReload)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'kas_log',   filter: `id_toko=eq.${_currentIdToko}` }, _scheduleReload)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'shift',     filter: `id_toko=eq.${_currentIdToko}` }, _scheduleReload)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'pembelian', filter: `id_toko=eq.${_currentIdToko}` }, _scheduleReload)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'pembayaran',filter: `id_toko=eq.${_currentIdToko}` }, _scheduleReload)
         .subscribe();
 }
 
@@ -735,8 +739,8 @@ async function dbLoadKas() {
         .from('kas_log')
         .select('*')
         .eq('id_toko', _currentIdToko)
-        .order('tanggal', { ascending: true })
-        .order('jam', { ascending: true })
+        .order('tanggal', { ascending: false })
+        .order('jam', { ascending: false })
         .limit(500);
     if (error) throw error;
     return data;
@@ -761,6 +765,11 @@ async function dbInsertKas(k) {
         id_kasir: idKasir,
     };
     if (_currentIdToko) payload.id_toko = _currentIdToko;
+    // Kalau ada shift aktif, tempelkan mutasi manual ini ke shift itu supaya
+    // ikut terhitung di saldo/rekonsiliasi shift — lihat DATA_SHIFT_AKTIF.
+    if (typeof DATA_SHIFT_AKTIF !== 'undefined' && DATA_SHIFT_AKTIF && _isDbId(DATA_SHIFT_AKTIF.id)) {
+        payload.id_shift = Number(DATA_SHIFT_AKTIF.id);
+    }
     const { data, error } = await _sb.from('kas_log').insert(payload).select('id').single();
     if (error) { console.error('dbInsertKas:', error); return null; }
     return data?.id?.toString() ?? null;
@@ -882,6 +891,13 @@ async function dbBukaShift(s) {
     const { data, error } = await _sb.from('shift').insert(payload).select('id').single();
     if (error) { console.error('dbBukaShift:', error); return null; }
     return data?.id?.toString() ?? null;
+}
+
+async function dbShiftSaldo(id) {
+    if (!_isDbId(id)) return null;
+    const { data, error } = await _sb.rpc('fn_shift_saldo', { p_shift_id: Number(id) });
+    if (error) { console.error('dbShiftSaldo:', error); return null; }
+    return typeof data === 'number' ? data : null;
 }
 
 async function dbTutupShift(id, totalTunai, kasMasuk, kasKeluar, saldoAkhir, selisih) {
@@ -1065,6 +1081,7 @@ async function dbLoadAllExtra() {
                 nominal: r.nominal ?? 0,
                 tipe: r.tipe ?? 'masuk',
                 kasir: r.kasir ?? '—',
+                idShift: r.id_shift != null ? r.id_shift.toString() : null,
             });
         }
     });

@@ -358,7 +358,7 @@ function initPageData() {
 }
 
 // ── DASHBOARD ────────────────────────────────────────────────────
-function updateDashboard() {
+async function updateDashboard() {
     const now      = new Date();
     const curMonth = now.getMonth();
     const curYear  = now.getFullYear();
@@ -411,9 +411,15 @@ function updateDashboard() {
     const totalHutang = hutangAktif.reduce((s, p) => s + (p.total - (p.terbayar || 0)), 0);
     setEl('dash-hutang', formatRp(totalHutang));
 
-    // ── Kas kasir (saldo = masuk - keluar)
-    const saldoKas = DATA_KAS.reduce((s, k) => k.tipe === 'masuk' ? s + k.nominal : s - k.nominal, 0);
-    setEl('dash-kas', formatRp(saldoKas));
+    // ── Kas Aktif (saldo shift kasir yang sedang berjalan, bukan all-time)
+    if (DATA_SHIFT_AKTIF) {
+        const saldoAktif = await dbShiftSaldo(DATA_SHIFT_AKTIF.id);
+        setEl('dash-kas', saldoAktif != null ? formatRp(saldoAktif) : '—');
+        setEl('dash-kas-sub', `Shift berjalan: ${DATA_SHIFT_AKTIF.kasirNama || '—'}`);
+    } else {
+        setEl('dash-kas', '—');
+        setEl('dash-kas-sub', 'Tidak ada shift aktif');
+    }
 
     // ── Supplier aktif
     const supAktif  = DATA_SUPPLIER.filter(s => s.status === 'Aktif').length;
@@ -1228,11 +1234,11 @@ async function simpanPenjualanBaru() {
     }
 
     DATA_PENJUALAN.unshift(data);
-    if (!isPiutang) {
-        await catatKasOtomatis('masuk', totalRaw, `Penjualan #${noFaktur}`, tanggal);
-    } else if (dp > 0) {
-        await catatKasOtomatis('masuk', dp, `DP Penjualan #${noFaktur}`, tanggal);
-    }
+    // Kas masuk (penjualan Tunai / DP piutang) sekarang dicatat otomatis oleh
+    // trigger DB fn_catat_kas_transaksi saat baris `transaksi` di-INSERT —
+    // lihat supabase/migration_kas_shift_realtime.sql. Jangan catat manual di
+    // sini lagi, supaya tidak dobel (dan supaya metode non-Tunai tidak lagi
+    // salah ikut tercatat sebagai kas fisik).
     closeModal('modal-penjualan');
     renderPenjualan();
     if (isPiutang) renderPiutang();
@@ -1258,7 +1264,8 @@ function lunasiPiutang(id) {
                 sisa, 'Tunai', hariIni());
             if (!ok) showToast('warning', 'Pelunasan tercatat lokal, gagal sync ke server.');
             DATA_PEMBAYARAN.unshift({ jenis: 'piutang', ref: trx.id, nominal: sisa, metode: 'Tunai', tanggal: hariIni() });
-            await catatKasOtomatis('masuk', sisa, `Pelunasan piutang #${trx.id}`, hariIni());
+            // Kas masuk dicatat otomatis oleh RPC catat_cicilan (server-side) — lihat
+            // supabase/migration_kas_shift_realtime.sql, jangan catat manual di sini lagi.
         } else {
             // Sisa 0: tidak ada nominal baru, cukup update status saja.
             await dbLunasiPiutang(trx.dbId || trx.id, trx.terbayar);
@@ -1937,7 +1944,13 @@ function escapeHtml(value) {
 }
 
 function hariIni() {
-    return new Date().toISOString().split('T')[0];
+    // Tanggal lokal (WIB), BUKAN toISOString() yang UTC — supaya jam 00:00-06:59
+    // WIB tidak salah mundur 1 hari.
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const t = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${t}`;
 }
 
 function tambahHari(tanggal, jumlah) {
@@ -2432,10 +2445,9 @@ async function simpanPembelian() {
             const ok = await terapkanStok(it.nama, it.qty);
             if (!ok) showToast('warning', `Stok "${it.nama}" gagal diperbarui.`);
         }
-        // Catat kas keluar untuk PO tunai
-        if (bayar !== 'Hutang') {
-            await catatKasOtomatis('keluar', total, `Pembelian PO ${data.noFaktur}`, tanggal);
-        }
+        // Kas keluar untuk PO Lunas dicatat otomatis oleh trigger DB
+        // fn_catat_kas_pembelian saat baris `pembelian` di-INSERT — lihat
+        // supabase/migration_kas_shift_realtime.sql. Jangan catat manual lagi.
     }
 
     closeModal('modal-pembelian');
@@ -2810,10 +2822,8 @@ async function simpanBayarPiutang() {
 
     DATA_PEMBAYARAN.unshift({ jenis: 'piutang', ref: trx.id, nominal, metode, tanggal });
 
-    // Pelunasan piutang tunai otomatis jadi kas masuk.
-    if (metode === 'Tunai') {
-        await catatKasOtomatis('masuk', nominal, `Pelunasan piutang #${trx.id}`, tanggal);
-    }
+    // Pelunasan piutang tunai dicatat otomatis sebagai kas masuk oleh RPC
+    // catat_cicilan (server-side) — lihat supabase/migration_kas_shift_realtime.sql.
 
     closeModal('modal-bayar-piutang');
     renderPiutang();
@@ -2918,10 +2928,8 @@ async function simpanBayarHutang() {
 
     DATA_PEMBAYARAN.unshift({ jenis: 'hutang', ref: po.noFaktur, nominal, metode, tanggal });
 
-    // Pembayaran hutang tunai otomatis jadi kas keluar.
-    if (metode === 'Tunai') {
-        await catatKasOtomatis('keluar', nominal, `Pembayaran hutang ${po.noFaktur}`, tanggal);
-    }
+    // Pembayaran hutang tunai dicatat otomatis sebagai kas keluar oleh RPC
+    // catat_cicilan (server-side) — lihat supabase/migration_kas_shift_realtime.sql.
 
     closeModal('modal-bayar-hutang');
     renderHutang();
@@ -3424,7 +3432,9 @@ function renderShiftKasir() {
     if (aktifCard && aktifContent) {
         if (DATA_SHIFT_AKTIF) {
             const s = DATA_SHIFT_AKTIF;
-            const saldoSeharusnya = s.modalAwal + s.totalTunai + s.kasMasuk - s.kasKeluar;
+            const local = kasUntukShift(s.id);
+            const kasMasukLainnya = local.masuk - local.totalTunai;
+            const saldoSeharusnya = s.modalAwal + local.masuk - local.keluar;
             aktifContent.innerHTML = `
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
                     <span class="badge badge-green" style="font-size:12px;padding:4px 12px">● SHIFT AKTIF</span>
@@ -3438,15 +3448,15 @@ function renderShiftKasir() {
                     </div>
                     <div style="background:var(--bg);border-radius:10px;padding:12px">
                         <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Total Tunai</div>
-                        <div style="font-size:15px;font-weight:700;color:var(--primary)">${formatRp(s.totalTunai)}</div>
+                        <div style="font-size:15px;font-weight:700;color:var(--primary)">${formatRp(local.totalTunai)}</div>
                     </div>
                     <div style="background:var(--bg);border-radius:10px;padding:12px">
-                        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Kas Masuk</div>
-                        <div style="font-size:15px;font-weight:700;color:var(--primary)">${formatRp(s.kasMasuk)}</div>
+                        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Kas Masuk Lainnya</div>
+                        <div style="font-size:15px;font-weight:700;color:var(--primary)">${formatRp(kasMasukLainnya)}</div>
                     </div>
                     <div style="background:var(--bg);border-radius:10px;padding:12px">
                         <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Kas Keluar</div>
-                        <div style="font-size:15px;font-weight:700;color:var(--danger)">${formatRp(s.kasKeluar)}</div>
+                        <div style="font-size:15px;font-weight:700;color:var(--danger)">${formatRp(local.keluar)}</div>
                     </div>
                     <div style="background:var(--primary-light,#f0fdf4);border-radius:10px;padding:12px;border:1px solid var(--primary-border,#bbf7d0)">
                         <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Saldo Seharusnya</div>
@@ -3540,18 +3550,37 @@ async function simpanBukaShift() {
     showToast('success', `Shift dibuka — modal awal ${formatRp(modalAwal)}`);
 }
 
-function openTutupShift() {
+// Kas masuk/keluar sesi shift ini, dihitung dari kas_log yang sudah difilter
+// id_shift (bukan dari s.totalTunai/kasMasuk/kasKeluar lokal yang tidak
+// pernah di-increment) — lihat supabase/migration_kas_shift_realtime.sql.
+// `totalTunai` = subset penjualan tunai (keterangan diawali 'Penjualan '),
+// `masuk` = SEMUA kas masuk shift ini (penjualan tunai + DP piutang +
+// pelunasan cicilan + manual) — dipakai untuk saldoSeharusnya supaya tidak
+// dobel-hitung. `masuk - totalTunai` = kas masuk selain penjualan (buat
+// ditampilkan terpisah di riwayat shift).
+function kasUntukShift(shiftId) {
+    const rows = DATA_KAS.filter(k => k.idShift === String(shiftId));
+    const masuk  = rows.filter(k => k.tipe === 'masuk').reduce((s, k) => s + Number(k.nominal || 0), 0);
+    const keluar = rows.filter(k => k.tipe === 'keluar').reduce((s, k) => s + Number(k.nominal || 0), 0);
+    const totalTunai = rows
+        .filter(k => k.tipe === 'masuk' && String(k.keterangan || '').startsWith('Penjualan '))
+        .reduce((s, k) => s + Number(k.nominal || 0), 0);
+    return { masuk, keluar, totalTunai };
+}
+
+async function openTutupShift() {
     if (!DATA_SHIFT_AKTIF) { showToast('warning', 'Tidak ada shift aktif.'); return; }
     const s = DATA_SHIFT_AKTIF;
-    const saldoSeharusnya = s.modalAwal + s.totalTunai + s.kasMasuk - s.kasKeluar;
+    const local = kasUntukShift(s.id);
+    const saldoServer = await dbShiftSaldo(s.id);
+    const saldoSeharusnya = saldoServer != null ? saldoServer : (s.modalAwal + local.masuk - local.keluar);
     document.getElementById('tutup-shift-ringkasan').innerHTML = `
         <table style="width:100%;border-collapse:collapse;font-size:14px">
             <tr><td style="padding:6px 0;color:var(--text-muted)">Kasir</td><td style="padding:6px 0;text-align:right;font-weight:600">${escapeHtml(s.kasirNama)}</td></tr>
             <tr><td style="padding:6px 0;color:var(--text-muted)">Jam Buka</td><td style="padding:6px 0;text-align:right">${_formatJam(s.waktuBuka)}</td></tr>
             <tr><td style="padding:6px 0;color:var(--text-muted);border-top:1px solid var(--border)">Modal Awal</td><td style="padding:6px 0;text-align:right;border-top:1px solid var(--border)">${formatRp(s.modalAwal)}</td></tr>
-            <tr><td style="padding:6px 0;color:var(--text-muted)">Total Tunai Penjualan</td><td style="padding:6px 0;text-align:right;color:var(--primary)">${formatRp(s.totalTunai)}</td></tr>
-            <tr><td style="padding:6px 0;color:var(--text-muted)">Kas Masuk</td><td style="padding:6px 0;text-align:right;color:var(--primary)">${formatRp(s.kasMasuk)}</td></tr>
-            <tr><td style="padding:6px 0;color:var(--text-muted)">Kas Keluar</td><td style="padding:6px 0;text-align:right;color:var(--danger)">− ${formatRp(s.kasKeluar)}</td></tr>
+            <tr><td style="padding:6px 0;color:var(--text-muted)">Kas Masuk (termasuk penjualan tunai)</td><td style="padding:6px 0;text-align:right;color:var(--primary)">${formatRp(local.masuk)}</td></tr>
+            <tr><td style="padding:6px 0;color:var(--text-muted)">Kas Keluar</td><td style="padding:6px 0;text-align:right;color:var(--danger)">− ${formatRp(local.keluar)}</td></tr>
             <tr style="font-weight:700"><td style="padding:8px 0;border-top:2px solid var(--border)">Saldo Seharusnya</td><td style="padding:8px 0;text-align:right;border-top:2px solid var(--border);color:var(--primary);font-size:16px">${formatRp(saldoSeharusnya)}</td></tr>
         </table>`;
     document.getElementById('fts-saldo-fisik').value = '';
@@ -3559,11 +3588,13 @@ function openTutupShift() {
     openModal('modal-tutup-shift');
 }
 
-function hitungSelisihTutup() {
+async function hitungSelisihTutup() {
     if (!DATA_SHIFT_AKTIF) return;
     const s = DATA_SHIFT_AKTIF;
     const saldoFisik = parseInt(document.getElementById('fts-saldo-fisik').value, 10) || 0;
-    const saldoSeharusnya = s.modalAwal + s.totalTunai + s.kasMasuk - s.kasKeluar;
+    const local = kasUntukShift(s.id);
+    const saldoServer = await dbShiftSaldo(s.id);
+    const saldoSeharusnya = saldoServer != null ? saldoServer : (s.modalAwal + local.masuk - local.keluar);
     const selisih = saldoFisik - saldoSeharusnya;
     const el = document.getElementById('tutup-shift-selisih');
     if (!el) return;
@@ -3581,15 +3612,24 @@ async function simpanTutupShift() {
     if (!DATA_SHIFT_AKTIF) return;
     const s = DATA_SHIFT_AKTIF;
     const saldoFisik = parseInt(document.getElementById('fts-saldo-fisik').value, 10) || 0;
-    const saldoSeharusnya = s.modalAwal + s.totalTunai + s.kasMasuk - s.kasKeluar;
+    const local = kasUntukShift(s.id);
+    const saldoServer = await dbShiftSaldo(s.id);
+    const saldoSeharusnya = saldoServer != null ? saldoServer : (s.modalAwal + local.masuk - local.keluar);
     const selisih = saldoFisik - saldoSeharusnya;
 
-    const ok = await dbTutupShift(s.id, s.totalTunai, s.kasMasuk, s.kasKeluar, saldoFisik, selisih);
+    // total_tunai = penjualan tunai saja; kas_masuk = kas masuk LAINNYA (DP
+    // piutang, pelunasan cicilan, manual) — supaya tidak dobel dengan
+    // total_tunai saat keduanya ditampilkan berdampingan di riwayat shift.
+    const kasMasukLainnya = local.masuk - local.totalTunai;
+    const ok = await dbTutupShift(s.id, local.totalTunai, kasMasukLainnya, local.keluar, saldoFisik, selisih);
 
     const inList = DATA_SHIFT_LIST.find(x => x.id === s.id);
     if (inList) {
         inList.status = 'tutup';
         inList.waktuTutup = new Date().toISOString();
+        inList.totalTunai = local.totalTunai;
+        inList.kasMasuk = kasMasukLainnya;
+        inList.kasKeluar = local.keluar;
         inList.saldoAkhir = saldoFisik;
         inList.selisih = selisih;
     }

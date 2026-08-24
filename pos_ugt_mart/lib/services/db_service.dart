@@ -57,6 +57,50 @@ class DbService {
           ),
           callback: (_) => onChanged(),
         )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'kas_log',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id_toko',
+            value: _idToko!,
+          ),
+          callback: (_) => onChanged(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'shift',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id_toko',
+            value: _idToko!,
+          ),
+          callback: (_) => onChanged(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'pembelian',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id_toko',
+            value: _idToko!,
+          ),
+          callback: (_) => onChanged(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'pembayaran',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id_toko',
+            value: _idToko!,
+          ),
+          callback: (_) => onChanged(),
+        )
         .subscribe();
   }
 
@@ -345,6 +389,7 @@ class DbService {
       )).toList();
       dummyHistory.add(Transaction(
         id:       r['no_faktur'] as String? ?? r['id'].toString(),
+        dbId:     r['id'] as int?,
         tanggal:  r['tanggal']?.toString() ?? '',
         jam:      r['jam']?.toString() ?? '',
         metode:   r['metode_bayar'] as String? ?? '',
@@ -392,7 +437,8 @@ class DbService {
     void Function(String)? onError,
   }) async {
     if (_idToko == null) return;
-    final iso = DateTime.now().toIso8601String().substring(0, 10);
+    final now = DateTime.now();
+    final iso = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     try {
       final result = await _db.from('transaksi').insert({
         'id_toko':      _idToko,
@@ -412,6 +458,7 @@ class DbService {
       }).select('id').single();
 
       final transaksiId = result['id'] as int;
+      trx.dbId = transaksiId;
       debugPrint('[DB] transaksi saved: id=$transaksiId no_faktur=${trx.id}');
 
       await Future.wait(trx.cartItems.map((item) =>
@@ -430,15 +477,22 @@ class DbService {
     }
   }
 
-  static Future<void> loadKasLog() async {
+  // `shiftId` null → belum ada shift aktif, kosongkan (tidak ada kas "shift
+  // ini" untuk ditampilkan). Difilter per id_shift, BUKAN per tanggal — supaya
+  // kalau ada 2 shift dalam 1 hari, kas shift yang sudah tutup tidak ikut
+  // kebawa ke shift berikutnya.
+  static Future<void> loadKasLog(int? shiftId) async {
     if (_idToko == null) return;
+    if (shiftId == null) {
+      dummyKasLog.clear();
+      return;
+    }
     try {
-      final today = DateTime.now().toIso8601String().substring(0, 10);
       final rows = await _db
           .from('kas_log')
           .select()
           .eq('id_toko', _idToko!)
-          .eq('tanggal', today)
+          .eq('id_shift', shiftId)
           .order('jam', ascending: false);
       dummyKasLog.clear();
       for (final r in rows) {
@@ -454,18 +508,23 @@ class DbService {
     }
   }
 
-  static Future<void> saveKas(String ket, String tipe, int nominal, String kasir) async {
+  // `shiftId` (kalau ada shift aktif) ditempelkan supaya mutasi manual ini
+  // ikut terhitung di saldo/rekonsiliasi shift tersebut.
+  static Future<void> saveKas(String ket, String tipe, int nominal, String kasir, {int? shiftId}) async {
     if (_idToko == null) return;
     try {
       final now = DateTime.now();
+      final tanggalIso =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       await _db.from('kas_log').insert({
         'id_toko':    _idToko,
         'keterangan': ket,
         'tipe':       tipe,
         'nominal':    nominal,
-        'tanggal':    now.toIso8601String().substring(0, 10),
+        'tanggal':    tanggalIso,
         'jam':        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
         'kasir':      kasir,
+        if (shiftId != null) 'id_shift': shiftId,
       });
     } catch (e) {
       debugPrint('[DB] saveKas ERROR: $e');
@@ -749,13 +808,15 @@ class DbService {
   static Future<Shift?> getActiveShift() async {
     if (_idToko == null) return null;
     try {
-      final today = DateTime.now().toIso8601String().substring(0, 10);
+      // TIDAK difilter tanggal — shift yang dibuka sebelum tengah malam WIB
+      // harus tetap terdeteksi aktif keesokan harinya, bukan "hilang" lalu
+      // memaksa buka shift kedua. Cukup filter status='buka'; unique index
+      // idx_shift_satu_aktif di DB menjamin hanya ada 1 baris seperti itu.
       final rows = await _db
           .from('shift')
           .select()
           .eq('id_toko', _idToko!)
           .eq('status', 'buka')
-          .gte('jam_buka', today)
           .order('jam_buka', ascending: false)
           .limit(1);
       if (rows.isEmpty) return null;
@@ -788,8 +849,31 @@ class DbService {
         modalAwal: row['modal_awal'] as int? ?? modalAwal,
         jamBuka:   DateTime.parse(row['jam_buka'] as String).toLocal(),
       );
+    } on PostgrestException catch (e) {
+      if (e.code == '23505') {
+        // Sudah ada shift 'buka' untuk toko ini (unique index idx_shift_satu_aktif)
+        // — mis. race dari device lain, atau shift lama yang belum tertutup.
+        // Jangan gagalkan kasir, pakai shift yang sudah ada.
+        debugPrint('[DB] bukaShift: shift sudah aktif, pakai yang ada');
+        return getActiveShift();
+      }
+      debugPrint('[DB] bukaShift ERROR: $e');
+      return null;
     } catch (e) {
       debugPrint('[DB] bukaShift ERROR: $e');
+      return null;
+    }
+  }
+
+  // Saldo kas live sebuah shift (modal awal + kas masuk - kas keluar shift
+  // itu saja), dihitung server-side via fn_shift_saldo — lihat
+  // supabase/migration_kas_shift_realtime.sql.
+  static Future<int?> shiftSaldo(int shiftId) async {
+    try {
+      final res = await _db.rpc('fn_shift_saldo', params: {'p_shift_id': shiftId});
+      return res is int ? res : int.tryParse(res.toString());
+    } catch (e) {
+      debugPrint('[DB] shiftSaldo ERROR: $e');
       return null;
     }
   }
@@ -1056,15 +1140,54 @@ class DbService {
     }
   }
 
-  static Future<bool> lunasiPiutangDb(String noFaktur, int total) async {
-    try {
-      await _db
-          .from('transaksi')
-          .update({'status': 'Lunas', 'terbayar': total})
-          .eq('no_faktur', noFaktur);
+  // Lunasi piutang penuh lewat RPC catat_cicilan (jalur yang sama dipakai
+  // web-panel) — supaya riwayat tersimpan di tabel `pembayaran` dan kas masuk
+  // tercatat otomatis server-side (lihat supabase/migration_kas_shift_realtime.sql),
+  // bukan lewat UPDATE langsung yang dulu melewati keduanya.
+  static Future<bool> lunasiPiutangViaCicilan(Transaction trx) async {
+    if (_idToko == null) return false;
+    final sisa = trx.sisaPiutang;
+    if (sisa <= 0) {
+      trx.status = 'Lunas';
       return true;
+    }
+    try {
+      var id = trx.dbId;
+      if (id == null) {
+        final row = await _db
+            .from('transaksi')
+            .select('id')
+            .eq('no_faktur', trx.id)
+            .eq('id_toko', _idToko!)
+            .maybeSingle();
+        id = row?['id'] as int?;
+      }
+      if (id == null) return false;
+
+      final now = DateTime.now();
+      final tanggalIso =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+      final ok = await _db.rpc('catat_cicilan', params: {
+        'p_jenis':        'piutang',
+        'p_id_induk':     id,
+        'p_id_toko':      _idToko,
+        'p_no_referensi': trx.id,
+        'p_terbayar':     trx.total,
+        'p_status':       'Lunas',
+        'p_nominal':      sisa,
+        'p_metode':       'Tunai',
+        'p_tanggal':      tanggalIso,
+      }) as bool? ?? false;
+
+      if (ok) {
+        trx.dbId = id;
+        trx.terbayar = trx.total;
+        trx.status = 'Lunas';
+      }
+      return ok;
     } catch (e) {
-      debugPrint('[DB] lunasiPiutangDb ERROR: $e');
+      debugPrint('[DB] lunasiPiutangViaCicilan ERROR: $e');
       return false;
     }
   }
