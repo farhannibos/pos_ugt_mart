@@ -148,7 +148,7 @@
                 <div class="nav-sub-item" data-page="lap-hutang" onclick="navigate('lap-hutang',this,'Laporan > Hutang')"><i data-lucide="file-minus" style="width:14px;height:14px;flex-shrink:0"></i> Hutang</div>
                 <div class="nav-sub-item" data-page="lap-kas" onclick="navigate('lap-kas',this,'Laporan > Kas')"><i data-lucide="banknote" style="width:14px;height:14px;flex-shrink:0"></i> Kas</div>
                 <div class="nav-sub-item" data-page="lap-stok" onclick="navigate('lap-stok',this,'Laporan > Stok')"><i data-lucide="boxes" style="width:14px;height:14px;flex-shrink:0"></i> Stok</div>
-                <div class="nav-sub-item" data-page="lap-log-stok" onclick="navigate('lap-log-stok',this,'Laporan > Log Stok')"><i data-lucide="activity" style="width:14px;height:14px;flex-shrink:0"></i> Log Stok</div>
+                <div class="nav-sub-item" data-page="lap-log-stok" onclick="navigate('lap-log-stok',this,'Laporan > Log Kartu Stok')"><i data-lucide="activity" style="width:14px;height:14px;flex-shrink:0"></i> Log Kartu Stok</div>
             </div>
 
             <div class="nav-section-label">SISTEM</div>
@@ -1189,20 +1189,28 @@
                 </div>
             </div>
 
-            <!-- ===== LOG STOK ===== -->
+            <!-- ===== LOG KARTU STOK ===== -->
             <div id="page-lap-log-stok" class="page">
                 <div class="page-header">
                     <div class="page-title">
-                        <h2>Log Pergerakan Stok</h2>
+                        <h2>Log Kartu Stok</h2>
                         <p>Audit trail setiap perubahan stok barang</p>
                     </div>
                     <div class="page-actions"><button class="btn btn-secondary btn-sm" onclick="exportCSV('tbl-stok-log','log-stok')"><i data-lucide="download"></i> Export</button></div>
                 </div>
+                <div class="card" style="margin-bottom:16px">
+                    <form class="laporan-filter" onsubmit="event.preventDefault();filterStokLog()">
+                        <div class="form-group"><label>Cari Barang</label><input type="text" id="ls-cari" class="form-control" placeholder="Nama barang..."></div>
+                        <div class="form-group"><label>Tipe</label>
+                            <select id="ls-tipe" class="form-control"><option value="">Semua Tipe</option><option>penjualan</option><option>pembelian</option><option>retur</option><option>opname</option><option>koreksi</option></select>
+                        </div>
+                        <div class="form-group"><label>Dari Tanggal</label><input type="date" id="ls-dari" class="form-control"></div>
+                        <div class="form-group"><label>Sampai Tanggal</label><input type="date" id="ls-sampai" class="form-control"></div>
+                        <button type="submit" class="btn btn-primary" style="margin-top:20px"><i data-lucide="search"></i> Filter</button>
+                        <button type="button" class="btn btn-secondary" style="margin-top:20px" onclick="resetStokLog()">Reset</button>
+                    </form>
+                </div>
                 <div class="card">
-                    <div class="table-toolbar">
-                        <div class="search-box"><i data-lucide="search"></i><input type="text" placeholder="Cari barang..." oninput="filterTable(this,'tbl-stok-log',1)"></div>
-                        <div class="table-filter"><select onchange="filterTable({value:this.value},'tbl-stok-log',5)"><option value="">Semua Tipe</option><option>penjualan</option><option>pembelian</option><option>retur</option><option>opname</option><option>koreksi</option></select></div>
-                    </div>
                     <div class="table-scroll">
                         <table class="data-table" id="tbl-stok-log">
                             <thead><tr>

@@ -3855,12 +3855,13 @@ async function simpanTutupShift() {
 }
 
 // ── LOG STOK ─────────────────────────────────────────────────────────────────
-function renderStokLog() {
+function renderStokLog(data) {
+    data = data || DATA_STOK_LOG;
     const tbody = document.querySelector('#tbl-stok-log tbody');
     if (!tbody) return;
     const tipeBadge = { penjualan: 'badge-red', pembelian: 'badge-green', retur: 'badge-yellow', opname: 'badge-blue', koreksi: 'badge-gray' };
-    tbody.innerHTML = DATA_STOK_LOG.length
-        ? DATA_STOK_LOG.map(l => `<tr>
+    tbody.innerHTML = data.length
+        ? data.map(l => `<tr>
             <td>${formatTanggal(l.tanggal)}</td>
             <td><strong>${escapeHtml(l.namaProduk)}</strong></td>
             <td>${l.stokSebelum}</td>
@@ -3871,8 +3872,27 @@ function renderStokLog() {
         </tr>`).join('')
         : tableEmptyHTML(7, 'Belum ada log pergerakan stok', 'Log akan muncul setelah ada penyesuaian stok');
     const info = document.getElementById('info-stok-log');
-    if (info) info.textContent = `Menampilkan ${DATA_STOK_LOG.length} entri`;
+    if (info) info.textContent = `Menampilkan ${data.length} dari ${DATA_STOK_LOG.length} entri`;
     lucide.createIcons();
+}
+
+function filterStokLog() {
+    const cari   = (document.getElementById('ls-cari')?.value || '').toLowerCase().trim();
+    const tipe   = document.getElementById('ls-tipe')?.value || '';
+    const dari   = document.getElementById('ls-dari')?.value || '';
+    const sampai = document.getElementById('ls-sampai')?.value || '';
+    let data = DATA_STOK_LOG;
+    if (cari)   data = data.filter(l => l.namaProduk.toLowerCase().includes(cari));
+    if (tipe)   data = data.filter(l => l.tipe === tipe);
+    if (dari)   data = data.filter(l => l.tanggal >= dari);
+    if (sampai) data = data.filter(l => l.tanggal <= sampai);
+    renderStokLog(data);
+}
+
+function resetStokLog() {
+    const ids = ['ls-cari', 'ls-tipe', 'ls-dari', 'ls-sampai'];
+    ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    renderStokLog();
 }
 
 // ── EXPORT / CETAK / BACKUP ──────────────────────────────────────────────────
