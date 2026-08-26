@@ -354,16 +354,6 @@ CREATE TABLE stock_opname (
   created_at   timestamptz  NOT NULL DEFAULT now()
 );
 
-CREATE TABLE stock_opname_item (
-  id              bigserial    PRIMARY KEY,
-  id_opname       bigint       NOT NULL REFERENCES stock_opname(id) ON DELETE CASCADE,
-  id_produk       bigint       REFERENCES produk(id) ON DELETE SET NULL,
-  nama_produk     text         NOT NULL,
-  stok_sistem     integer      NOT NULL DEFAULT 0,
-  stok_fisik      integer      NOT NULL DEFAULT 0,
-  selisih         integer      GENERATED ALWAYS AS (stok_fisik - stok_sistem) STORED
-);
-
 
 -- ============================================================
 -- INDEXES  (kolom yang sering dipakai untuk filter/join)
@@ -462,10 +452,14 @@ CREATE TABLE IF NOT EXISTS adjustment_stok (
   keterangan   text,
   petugas      text,
   tanggal      date         NOT NULL DEFAULT CURRENT_DATE,
-  created_at   timestamptz  NOT NULL DEFAULT now()
+  created_at   timestamptz  NOT NULL DEFAULT now(),
+  -- Sesi stock opname yang jadi alasan penyesuaian ini dibuat (nullable —
+  -- penyesuaian ad-hoc di luar sesi opname tetap boleh).
+  id_opname    bigint       REFERENCES stock_opname(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_adj_tanggal ON adjustment_stok(tanggal);
+CREATE INDEX IF NOT EXISTS idx_adj_stok_opname ON adjustment_stok(id_opname);
 
 -- 7. Status pembelian perlu nilai 'Lunas'/'Hutang'/'Pending' — sudah sesuai.
 --    Status transaksi perlu 'Piutang' — sudah sesuai.

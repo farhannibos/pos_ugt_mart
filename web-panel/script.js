@@ -421,6 +421,23 @@ async function updateDashboard() {
         setEl('dash-kas-sub', 'Tidak ada shift aktif');
     }
 
+    // ── Rincian Kas Kasir (breakdown formula, lihat rincianKasKasir())
+    const cardRincianKas = document.getElementById('card-rincian-kas');
+    if (DATA_SHIFT_AKTIF) {
+        const r = rincianKasKasir(DATA_SHIFT_AKTIF);
+        setEl('rk-omzet', formatRp(r.omzet));
+        setEl('rk-kas-terakhir', formatRp(r.kasTerakhir));
+        setEl('rk-kas-masuk', '+ ' + formatRp(r.kasMasuk));
+        setEl('rk-piutang', '− ' + formatRp(r.piutang));
+        setEl('rk-nontunai', '− ' + formatRp(r.nontunai));
+        setEl('rk-kas-keluar', '− ' + formatRp(r.kasKeluarLain));
+        setEl('rk-pembelian', '− ' + formatRp(r.pembelianTunai));
+        setEl('rk-total', formatRp(r.total));
+        if (cardRincianKas) cardRincianKas.style.display = '';
+    } else if (cardRincianKas) {
+        cardRincianKas.style.display = 'none';
+    }
+
     // ── Supplier aktif
     const supAktif  = DATA_SUPPLIER.filter(s => s.status === 'Aktif').length;
     setEl('dash-supplier-aktif', supAktif);
@@ -3160,7 +3177,8 @@ async function simpanOpname() {
     };
 
     const savedId = await dbUpsertOpname(data);
-    if (!savedId) showToast('warning', 'Tersimpan lokal, gagal sync ke server.');
+    if (savedId) data.dbId = savedId;
+    else showToast('warning', 'Tersimpan lokal, gagal sync ke server.');
 
     DATA_OPNAME.unshift(data);
     closeModal('modal-stock-opname');
@@ -3168,9 +3186,15 @@ async function simpanOpname() {
     showToast('success', `Sesi opname dimulai untuk ${cakupan.length} barang. Catat selisihnya lewat Penyesuaian Stok.`);
 }
 
+// Sesi opname 'Draft' terbaru milik petugas tertentu — dipakai untuk menautkan
+// Penyesuaian Stok yang dibuat berikutnya ke sesi opname yang sedang berjalan.
+function opnameAktifUntuk(petugas) {
+    return DATA_OPNAME.find(o => o.status === 'Draft' && o.petugas === petugas) || null;
+}
+
 function lihatOpname(idx) {
     const o = DATA_OPNAME[idx];
-    const terkait = DATA_ADJ.filter(a => a.tanggal === o.tanggal && a.petugas === o.petugas);
+    const terkait = o.dbId ? DATA_ADJ.filter(a => a.idOpname === o.dbId) : [];
     const rincian = terkait.length
         ? terkait.map(a => `• ${a.namaProduk}: ${a.stokSistem} → ${a.stokFisik} (${a.selisih > 0 ? '+' : ''}${a.selisih})`).join('\n')
         : 'Belum ada penyesuaian stok yang tercatat pada tanggal ini.';
@@ -3182,7 +3206,7 @@ function lihatOpname(idx) {
 function selesaikanOpname(idx) {
     const o = DATA_OPNAME[idx];
     showConfirm('Selesaikan Opname', `Tandai sesi "${o.id}" sebagai selesai? Selisih akan dikunci dari penyesuaian stok tanggal ${formatTanggal(o.tanggal)}.`, async () => {
-        o.selisih = DATA_ADJ.filter(a => a.tanggal === o.tanggal && a.petugas === o.petugas).reduce((s, a) => s + Number(a.selisih || 0), 0);
+        o.selisih = (o.dbId ? DATA_ADJ.filter(a => a.idOpname === o.dbId) : []).reduce((s, a) => s + Number(a.selisih || 0), 0);
         o.status  = 'Selesai';
         await dbUpsertOpname(o);
         renderOpname();
@@ -3257,6 +3281,9 @@ async function simpanAdjStok() {
         return;
     }
 
+    const petugas = namaPetugas();
+    const opname = opnameAktifUntuk(petugas);
+
     const data = {
         id: 'ADJ-' + Date.now(),
         tanggal: hariIni(),
@@ -3265,7 +3292,8 @@ async function simpanAdjStok() {
         stokFisik: fisik,
         selisih,
         keterangan: ket,
-        petugas: namaPetugas(),
+        petugas,
+        idOpname: opname ? opname.dbId : null,
     };
 
     const savedId = await dbInsertAdjustment(data);
@@ -3566,6 +3594,56 @@ function kasUntukShift(shiftId) {
         .filter(k => k.tipe === 'masuk' && String(k.keterangan || '').startsWith('Penjualan '))
         .reduce((s, k) => s + Number(k.nominal || 0), 0);
     return { masuk, keluar, totalTunai };
+}
+
+// Rincian kas kasir shift berjalan, dipecah per komponen sesuai rumus:
+//   kas kasir = (omzet + kas terakhir/modal awal + kas masuk)
+//             − (piutang + nontunai + kas keluar + pembelian tunai)
+// `omzet/piutang/nontunai` dihitung dari transaksi yang jatuh di rentang jam
+// shift ini (tanggal+jam, bukan cuma tanggal — supaya benar walau toko buka
+// >1 shift/hari). `kas masuk/keluar/pembelian tunai` dihitung dari kas_log
+// yang sudah ditandai id_shift oleh trigger DB — lihat kasUntukShift() &
+// supabase/migration_kas_shift_realtime.sql.
+//
+// `total` di sini harus SELALU sama dengan saldoSeharusnya (modalAwal + masuk
+// − keluar dari kasUntukShift/fn_shift_saldo) — omzet-piutang-nontunai secara
+// matematis persis sama dengan "penjualan tunai + DP piutang" yang sudah
+// tercatat otomatis di kas_log. Kalau angkanya beda, curigai ada transaksi
+// yang jam-nya di luar rentang shift (mis. input backdated).
+function rincianKasKasir(shift) {
+    const mulai   = new Date(shift.waktuBuka);
+    const selesai = shift.waktuTutup ? new Date(shift.waktuTutup) : new Date();
+
+    const trxShift = DATA_PENJUALAN.filter(t => {
+        if (!t.tanggal) return false;
+        const waktu = new Date(`${t.tanggal}T${t.jam || '00:00'}:00`);
+        return waktu >= mulai && waktu <= selesai;
+    });
+
+    const omzet    = trxShift.reduce((s, t) => s + Number(t.total || 0), 0);
+    const piutang  = trxShift
+        .filter(t => t.status === 'Piutang')
+        .reduce((s, t) => s + (Number(t.total || 0) - Number(t.terbayar || 0)), 0);
+    const nontunai = trxShift
+        .filter(t => t.metode !== 'Tunai')
+        .reduce((s, t) => s + Number(t.total || 0), 0);
+
+    const rows = DATA_KAS.filter(k => k.idShift === String(shift.id));
+    const sumTipe = (tipe, cocok) => rows
+        .filter(k => k.tipe === tipe && cocok(String(k.keterangan || '')))
+        .reduce((s, k) => s + Number(k.nominal || 0), 0);
+
+    // Kas masuk lain-lain = pelunasan piutang lama + setoran manual (penjualan
+    // tunai & DP piutang sudah terwakili lewat omzet di atas, jangan dobel).
+    const kasMasuk       = sumTipe('masuk',  ket => !ket.startsWith('Penjualan ') && !ket.startsWith('DP Piutang '));
+    // Kas keluar lain-lain = bayar hutang tunai + pengeluaran manual (di luar pembelian).
+    const kasKeluarLain  = sumTipe('keluar', ket => !ket.startsWith('Pembelian '));
+    const pembelianTunai = sumTipe('keluar', ket => ket.startsWith('Pembelian '));
+
+    const kasTerakhir = Number(shift.modalAwal || 0);
+    const total = (omzet + kasTerakhir + kasMasuk) - (piutang + nontunai + kasKeluarLain + pembelianTunai);
+
+    return { omzet, kasTerakhir, kasMasuk, piutang, nontunai, kasKeluarLain, pembelianTunai, total };
 }
 
 async function openTutupShift() {

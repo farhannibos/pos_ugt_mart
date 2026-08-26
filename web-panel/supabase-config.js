@@ -394,6 +394,7 @@ async function dbLoadAll() {
                 id: r.no_faktur ?? r.id?.toString() ?? '',
                 dbId: r.id?.toString() ?? '',
                 tanggal: r.tanggal ?? '',
+                jam: (r.jam ?? '').slice(0, 5),
                 kasir: r.kasir ?? '',
                 pelanggan: r.pelanggan ?? 'Umum',
                 metode: r.metode_bayar ?? '',
@@ -833,6 +834,7 @@ async function dbInsertAdjustment(a) {
         keterangan: a.keterangan,
         petugas: a.petugas,
         tanggal: a.tanggal,
+        id_opname: _isDbId(a.idOpname) ? Number(a.idOpname) : null,
     };
     if (_currentIdToko) payload.id_toko = _currentIdToko;
     const { data, error } = await _sb.from('adjustment_stok').insert(payload).select('id').single();
@@ -1092,6 +1094,7 @@ async function dbLoadAllExtra() {
         for (const r of rows) {
             DATA_OPNAME.push({
                 id: r.no_opname,
+                dbId: r.id != null ? r.id.toString() : null,
                 tanggal: r.tanggal ?? '',
                 petugas: r.petugas ?? '—',
                 jumlahItem: r.jumlah_item ?? 0,
@@ -1115,6 +1118,7 @@ async function dbLoadAllExtra() {
                 selisih: r.selisih ?? 0,
                 keterangan: r.keterangan ?? '',
                 petugas: r.petugas ?? '—',
+                idOpname: r.id_opname != null ? r.id_opname.toString() : null,
             });
         }
     });
