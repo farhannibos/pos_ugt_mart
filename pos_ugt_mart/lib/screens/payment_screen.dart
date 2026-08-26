@@ -25,7 +25,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     _PayMethod(id: 'QRIS',               label: 'QRIS',    asset: 'assets/icons/ic_qr.png'),
     _PayMethod(id: 'Kartu Debit/Kredit', label: 'Kartu',   icon: Icons.credit_card_outlined),
     _PayMethod(id: 'Voucher',            label: 'Voucher', icon: Icons.confirmation_number_outlined),
-    _PayMethod(id: 'Piutang',            label: 'Piutang', icon: Icons.pending_outlined),
+    _PayMethod(id: 'Piutang',            label: 'Kredit',  icon: Icons.pending_outlined),
   ];
 
   @override
@@ -99,7 +99,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      prov.piutangMode ? 'Catat Piutang' : 'Proses Pembayaran',
+                      prov.piutangMode ? 'Catat Kredit' : 'Proses Pembayaran',
                       style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
                     ),
                     const SizedBox(width: 8),
@@ -222,6 +222,48 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         ],
                       ),
                     ),
+
+                    // ── Warning hutang member ──
+                    if (prov.selectedMemberPiutang > 0) ...[
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF7ED),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFFED7AA)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFEDD5),
+                                borderRadius: BorderRadius.circular(9),
+                              ),
+                              child: const Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xFFEA580C)),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${prov.selectedCustomer} masih punya hutang',
+                                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFFEA580C)),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Sisa kredit belum lunas: ${formatRp(prov.selectedMemberPiutang)}',
+                                    style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFFC2410C)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
 
                     const SizedBox(height: 20),
 
@@ -799,14 +841,14 @@ class _DpPanel extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Pelanggan berhutang — bayar nanti. Isi DP jika ada.',
+                  'Transaksi kredit — bayar nanti. Isi DP jika ada.',
                   style: GoogleFonts.inter(fontSize: 11, color: AppColors.yellowText, height: 1.4),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 14),
-          Text('DP / Bayar Sekarang (opsional)',
+          Text('DP / Bayar Sekarang (opsional — bisa dikosongkan)',
               style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
           const SizedBox(height: 8),
           TextField(
@@ -836,7 +878,7 @@ class _DpPanel extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Sisa Piutang',
+              Text('Sisa Kredit',
                   style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMuted)),
               Text(
                 formatRp(sisa < 0 ? 0 : sisa),

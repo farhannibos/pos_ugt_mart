@@ -79,7 +79,7 @@ class DashboardScreen extends StatelessWidget {
                               label: 'Piutang Aktif',
                               value: formatRp(piutangVal),
                               sub: piutangN > 0 ? '$piutangN transaksi belum lunas' : 'tidak ada piutang',
-                              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryScreen())),
+                              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryScreen(initialFilterStatus: 'Piutang'))),
                             )),
                           ],
                         )
@@ -93,7 +93,7 @@ class DashboardScreen extends StatelessWidget {
                               label: 'Piutang Aktif',
                               value: formatRp(piutangVal),
                               sub: piutangN > 0 ? '$piutangN belum lunas' : 'tidak ada piutang',
-                              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryScreen())),
+                              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryScreen(initialFilterStatus: 'Piutang'))),
                             )),
                             const SizedBox(width: 12),
                             Expanded(child: _StatCard(

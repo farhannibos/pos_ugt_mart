@@ -774,6 +774,14 @@ class AppProvider extends ChangeNotifier {
   int get jumlahPiutangAktif =>
       dummyHistory.where((t) => t.status == 'Piutang').length;
 
+  // Total piutang belum lunas milik member yang sedang dipilih
+  int get selectedMemberPiutang {
+    if (selectedCustomer == null || selectedCustomer!.isEmpty) return 0;
+    return dummyHistory
+        .where((t) => t.customer == selectedCustomer && t.status == 'Piutang')
+        .fold(0, (s, t) => s + t.sisaPiutang);
+  }
+
   int get todayItemsCount {
     final prefix = _todayPrefix();
     return dummyHistory
@@ -879,6 +887,14 @@ class AppProvider extends ChangeNotifier {
   int get shiftKasKeluar =>
       dummyKasLog.where((k) => k.tipe == 'keluar').fold(0, (s, k) => s + k.nominal);
 
+  // Subset penjualan tunai dari shiftKasMasuk (bukan dari todayTunaiTotal,
+  // yang di-filter per tanggal kalender dan bisa membawa penjualan shift lain
+  // kalau ada >1 shift dalam sehari). Filter keterangan sama seperti web-panel
+  // (script.js:kasUntukShift) supaya konsisten lintas platform.
+  int get shiftTotalTunai => dummyKasLog
+      .where((k) => k.tipe == 'masuk' && k.ket.startsWith('Penjualan '))
+      .fold(0, (s, k) => s + k.nominal);
+
   int get shiftSaldoSeharusnya =>
       (activeShift?.modalAwal ?? 0) + shiftKasMasuk - shiftKasKeluar;
 
@@ -901,9 +917,13 @@ class AppProvider extends ChangeNotifier {
 
   Future<bool> tutupShift(int uangFisik) async {
     if (activeShift == null) return false;
-    final tunai   = todayTunaiTotal;
-    final kasIn   = shiftKasMasuk;
+    final tunai   = shiftTotalTunai;
     final kasOut  = shiftKasKeluar;
+    // kas_masuk disimpan TANPA penjualan tunai (yang sudah ada di kolom
+    // total_tunai sendiri) — samakan dengan konvensi web-panel
+    // (script.js:simpanTutupShift) supaya riwayat shift tidak dobel-hitung
+    // penjualan tunai saat kolom total_tunai + kas_masuk dijumlahkan di tabel.
+    final kasInLainnya = shiftKasMasuk - tunai;
     // Pakai saldo dari server (fn_shift_saldo) sebagai acuan final kalau bisa
     // dijangkau — lebih otoritatif daripada agregasi lokal dummyKasLog, yang
     // bisa saja belum sempat menerima update realtime terakhir. Fallback ke
@@ -914,7 +934,7 @@ class AppProvider extends ChangeNotifier {
     final ok = await DbService.tutupShift(
       shiftId:    activeShift!.id,
       totalTunai: tunai,
-      kasIn:      kasIn,
+      kasIn:      kasInLainnya,
       kasOut:     kasOut,
       saldoAkhir: uangFisik,
       selisih:    selisih,

@@ -26,7 +26,7 @@ class _ProductScreenState extends State<ProductScreen> {
     final namaCtrl      = TextEditingController();
     final hargaBeliCtrl = TextEditingController();
     final hargaJualCtrl = TextEditingController();
-    final stokCtrl      = TextEditingController(text: '0');
+    final stokCtrl      = TextEditingController();
     final stokMinCtrl   = TextEditingController(text: '10');
     final barcodeCtrl   = TextEditingController();
     final satuanLainCtrl = TextEditingController();

@@ -8,7 +8,8 @@ import '../widgets/ugt_widgets.dart';
 import 'transaction_detail_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key});
+  final String initialFilterStatus;
+  const HistoryScreen({super.key, this.initialFilterStatus = 'Semua'});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -16,10 +17,16 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   // Filter state — independen, bisa dikombinasi
-  String _filterStatus  = 'Semua'; // Semua / Lunas / Piutang
+  late String _filterStatus;  // Semua / Lunas / Piutang
   String _filterMetode  = 'Semua'; // Semua / Tunai / Non-Tunai
   String _filterTanggal = 'Semua'; // Semua / Hari ini / Kemarin / Pilih
   DateTime? _tanggalPilih;
+
+  @override
+  void initState() {
+    super.initState();
+    _filterStatus = widget.initialFilterStatus;
+  }
 
   // ── Helpers ──────────────────────────────────────────────────
   static const _bulan = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
@@ -546,6 +553,36 @@ class _HistoryCard extends StatelessWidget {
   Color get _badgeBg => _isWarning ? AppColors.yellowLight  : AppColors.primaryLight;
   Color get _badgeFg => _isWarning ? AppColors.yellowText   : AppColors.primaryDark;
 
+  int? get _umurHutang {
+    if (trx.status != 'Piutang') return null;
+    DateTime? dt;
+    final t = trx.tanggal;
+    if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(t)) {
+      dt = DateTime.tryParse(t);
+    } else {
+      const bulan = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+      final parts = t.split(' ');
+      if (parts.length == 3) {
+        final m = bulan.indexOf(parts[1]) + 1;
+        if (m > 0) dt = DateTime.tryParse('${parts[2]}-${m.toString().padLeft(2,'0')}-${parts[0].padLeft(2,'0')}');
+      }
+    }
+    if (dt == null) return null;
+    return DateTime.now().difference(dt).inDays;
+  }
+
+  Color _umurBg(int hari) {
+    if (hari > 30) return const Color(0xFFFFE4E6); // merah muda
+    if (hari > 7)  return const Color(0xFFFEF3C7); // kuning muda
+    return const Color(0xFFDCFCE7);                 // hijau muda
+  }
+
+  Color _umurFg(int hari) {
+    if (hari > 30) return const Color(0xFFDC2626); // merah
+    if (hari > 7)  return const Color(0xFFB45309); // kuning tua
+    return const Color(0xFF16A34A);                 // hijau
+  }
+
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -597,6 +634,30 @@ class _HistoryCard extends StatelessWidget {
                       style: GoogleFonts.inter(fontSize: 11, color: AppColors.textDim),
                       overflow: TextOverflow.ellipsis,
                     ),
+                    if (_umurHutang != null) ...[
+                      const SizedBox(height: 5),
+                      Row(
+                        children: [
+                          Icon(Icons.schedule, size: 11, color: _umurFg(_umurHutang!)),
+                          const SizedBox(width: 3),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: _umurBg(_umurHutang!),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              _umurHutang == 0 ? 'Hari ini' : 'Sudah $_umurHutang hari',
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: _umurFg(_umurHutang!),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),

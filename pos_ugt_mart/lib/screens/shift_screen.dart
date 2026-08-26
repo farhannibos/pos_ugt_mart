@@ -510,10 +510,10 @@ void showTutupShiftSheet(BuildContext context, AppProvider prov) {
                   width: double.infinity,
                   height: 50,
                   child: Material(
-                    color: AppColors.red,
+                    color: (loading || ctrl.text.trim().isEmpty) ? AppColors.red.withValues(alpha: 0.4) : AppColors.red,
                     borderRadius: BorderRadius.circular(15),
                     child: InkWell(
-                      onTap: loading
+                      onTap: (loading || ctrl.text.trim().isEmpty)
                           ? null
                           : () async {
                               setState(() => loading = true);
