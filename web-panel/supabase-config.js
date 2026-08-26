@@ -100,6 +100,23 @@ async function dbSignOut() {
     try { await _sb.auth.signOut(); } catch (_) {}
 }
 
+// ── SESI TUNGGAL (1 perangkat per akun) ─────────────────────────────────────
+async function dbSetActiveSession(username, token) {
+    try {
+        const { data, error } = await _sb.rpc('set_active_session', { p_username: username, p_token: token });
+        if (error) { console.error('dbSetActiveSession:', error); return false; }
+        return !!data;
+    } catch { return false; }
+}
+
+async function dbGetActiveSession(username) {
+    try {
+        const { data, error } = await _sb.from('profiles').select('active_session_token').eq('username', username).maybeSingle();
+        if (error) return null;
+        return data?.active_session_token ?? null;
+    } catch { return null; }
+}
+
 // ── PRODUCTS (produk) ─────────────────────────────────────────────────────────
 async function dbLoadProducts() {
     if (!_currentIdToko) return [];
