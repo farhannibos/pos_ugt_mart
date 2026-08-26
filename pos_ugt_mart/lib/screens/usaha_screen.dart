@@ -254,7 +254,7 @@ class UsahaScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // ── Card: Atur Struk ──────────────────────────────────────────
+            // ── Card: Atur Printer ────────────────────────────────────────
             _TapCard(
               onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const PrinterScreen())),
@@ -268,7 +268,7 @@ class UsahaScreen extends StatelessWidget {
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(
-                      'Atur Struk',
+                      'Atur Printer',
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,

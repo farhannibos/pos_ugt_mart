@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
 import '../widgets/ugt_widgets.dart';
+import 'help_screen.dart';
 import 'login_screen.dart';
 import 'printer_screen.dart';
 import 'qr_scanner_screen.dart';
@@ -18,6 +19,61 @@ Color _roleColor(String role) {
     case 'Admin': return const Color(0xFF8B5CF6);
     default:      return const Color(0xFF3B82F6);
   }
+}
+
+Future<void> _confirmLogout(BuildContext context, AppProvider prov) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text('Keluar Akun?', style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700)),
+      content: Text(
+        'Kamu akan keluar dari akun ini dan harus login lagi untuk melanjutkan.',
+        style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary),
+      ),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      actions: [
+        Row(children: [
+          Expanded(
+            child: ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.grayLight,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              child: Text('Batal', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.redBg,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: AppColors.redBorder, width: 1.5),
+                ),
+                elevation: 0,
+              ),
+              child: Text('Ya, Keluar', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.red)),
+            ),
+          ),
+        ]),
+      ],
+    ),
+  );
+  if (confirmed != true) return;
+
+  await prov.logout();
+  if (!context.mounted) return;
+  Navigator.of(context).pushAndRemoveUntil(
+    MaterialPageRoute(builder: (_) => const LoginScreen()),
+    (route) => false,
+  );
 }
 
 Future<void> _pickAndUploadAvatar(BuildContext context) async {
@@ -418,7 +474,7 @@ class ProfileScreen extends StatelessWidget {
                         label: 'Bantuan & Panduan',
                         trailing: const Icon(Icons.chevron_right, size: 16, color: AppColors.placeholder),
                         showBorder: false,
-                        onTap: () => prov.showToast('Fitur bantuan segera hadir'),
+                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpScreen())),
                       ),
                     ],
                   ),
@@ -429,14 +485,7 @@ class ProfileScreen extends StatelessWidget {
                   color: AppColors.redBg,
                   borderRadius: BorderRadius.circular(15),
                   child: InkWell(
-                    onTap: () async {
-                      await prov.logout();
-                      if (!context.mounted) return;
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
-                        (route) => false,
-                      );
-                    },
+                    onTap: () => _confirmLogout(context, prov),
                     borderRadius: BorderRadius.circular(15),
                     child: Container(
                       height: 50,

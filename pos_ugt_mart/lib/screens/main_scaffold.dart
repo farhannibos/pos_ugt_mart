@@ -106,21 +106,24 @@ class _MainScaffoldState extends State<MainScaffold> {
 
     if (isTablet) {
       return Scaffold(
-        body: Row(
-          children: [
-            _SideNav(
-              currentTab: _currentTab,
-              cartCount: prov.cartItemCount,
-              onTap: (i) => _handleTabTap(i, context),
-              keyBeranda: _keyBeranda,
-              keyUsahaku: _keyUsahaku,
-              keyKasir:   _keyKasir,
-              keyRiwayat: _keyRiwayat,
-              keyProfil:  _keyProfil,
-            ),
-            const VerticalDivider(thickness: 1, width: 1, color: AppColors.borderLight),
-            Expanded(child: stack),
-          ],
+        body: SafeArea(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _SideNav(
+                currentTab: _currentTab,
+                cartCount: prov.cartItemCount,
+                onTap: (i) => _handleTabTap(i, context),
+                keyBeranda: _keyBeranda,
+                keyUsahaku: _keyUsahaku,
+                keyKasir:   _keyKasir,
+                keyRiwayat: _keyRiwayat,
+                keyProfil:  _keyProfil,
+              ),
+              const VerticalDivider(thickness: 1, width: 1, color: AppColors.borderLight),
+              Expanded(child: stack),
+            ],
+          ),
         ),
       );
     }
@@ -170,6 +173,7 @@ class _SideNav extends StatelessWidget {
       selectedIndex: _railIndex,
       onDestinationSelected: onTap,
       labelType: NavigationRailLabelType.all,
+      groupAlignment: 0.0,
       backgroundColor: Colors.white,
       indicatorColor: AppColors.primaryLight,
       selectedIconTheme: const IconThemeData(color: AppColors.primary),

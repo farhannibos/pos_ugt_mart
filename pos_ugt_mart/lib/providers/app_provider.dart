@@ -1177,7 +1177,45 @@ class AppProvider extends ChangeNotifier {
     selectedCustomer = null;
     selectedMemberId = null;
     activeShift      = null;
+
+    // Reset info toko/profil ke default — sebelumnya field-field ini
+    // dibiarkan apa adanya saat logout, dan login() hanya menimpanya KALAU
+    // data dari server tidak kosong. Akibatnya akun baru yang belum punya
+    // alamat/foto/nama pemilik di DB mewarisi nilai lama milik akun
+    // sebelumnya yang masih nyangkut di memori/SharedPreferences.
+    storeName      = 'FABIZO';
+    terminalName   = 'Terminal Kasir';
+    alamatToko     = '';
+    namaPemilik    = '';
+    noHp           = '';
+    fotoProfilUrl  = '';
+    logoTokoUrl    = '';
+    roundUpEnabled = false;
+    taxRate        = 0;
+    lastTaxRate    = 11;
+    qrisProvider   = '';
+    qrisAtasNama   = '';
+    qrisNoHp       = '';
+    qrisImageUrl   = '';
+    bankNama       = '';
+    bankNoRekening = '';
+    bankAtasNama   = '';
+
     await DbService.clearLocalData();
+    await _clearStoredSettings();
     notifyListeners();
+  }
+
+  Future<void> _clearStoredSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    const keys = [
+      'roundUp', 'terminalName', 'alamatToko', 'namaPemilik', 'noHp',
+      'fotoProfilUrl', 'logoTokoUrl', 'taxRate', 'lastTaxRate', 'storeName',
+      'qrisProvider', 'qrisAtasNama', 'qrisNoHp', 'qrisImageUrl',
+      'bankNama', 'bankNoRekening', 'bankAtasNama',
+    ];
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
   }
 }
