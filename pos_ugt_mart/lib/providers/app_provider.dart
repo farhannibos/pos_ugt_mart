@@ -313,7 +313,10 @@ class AppProvider extends ChangeNotifier {
       if (sisa > 0) {
         final now = DateTime.now();
         final jam = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-        dummyKasLog.insert(0, KasLog(ket: 'Lunasi ${trx.id}', jam: jam, nominal: sisa, tipe: 'masuk'));
+        // Keterangan disamakan dengan yang ditulis RPC catat_cicilan di server
+        // (migration_kas_shift_realtime.sql) supaya filter shiftKasMasukLain
+        // konsisten sebelum maupun sesudah data di-refresh dari server.
+        dummyKasLog.insert(0, KasLog(ket: 'Pelunasan piutang ${trx.id}', jam: jam, nominal: sisa, tipe: 'masuk'));
       }
       notifyListeners();
     }
@@ -897,6 +900,99 @@ class AppProvider extends ChangeNotifier {
 
   int get shiftSaldoSeharusnya =>
       (activeShift?.modalAwal ?? 0) + shiftKasMasuk - shiftKasKeluar;
+
+  // ─── Kas Kasir (rumus panjang, dipakai kartu "Cash Aktual" di dashboard) ───
+  // kas kasir = (omzet + kas terakhir/modal awal + kas masuk)
+  //           − (piutang + nontunai + kas kasir + pembelian tunai)
+  // Sama persis dengan rincianKasKasir() di web-panel/script.js — hasilnya
+  // matematis identik dengan shiftSaldoSeharusnya di atas, tapi ditelusuri
+  // dari omzet/piutang/nontunai transaksi shift ini (bukan agregat kas_log
+  // langsung) supaya jalur hitungnya sama seperti di web-panel.
+  // `tanggal` dari DB sudah ISO ("yyyy-MM-dd"), tapi transaksi yang baru saja
+  // disimpan lokal (belum di-reload, lihat processPayment()) masih format
+  // Indonesia "26 Agu 2026" — dukung dua-duanya.
+  DateTime? _parseTanggal(String tanggal) {
+    final iso = DateTime.tryParse(tanggal);
+    if (iso != null) return iso;
+    final parts = tanggal.split(' ');
+    if (parts.length != 3) return null;
+    const bulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    final day = int.tryParse(parts[0]);
+    final month = bulan.indexOf(parts[1]) + 1;
+    final year = int.tryParse(parts[2]);
+    if (day == null || month <= 0 || year == null) return null;
+    return DateTime(year, month, day);
+  }
+
+  List<Transaction> get _shiftTransactions {
+    if (activeShift == null) return [];
+    final mulai = activeShift!.jamBuka;
+    return dummyHistory.where((t) {
+      if (t.tanggal.isEmpty || t.jam.isEmpty) return false;
+      final tanggal = _parseTanggal(t.tanggal);
+      if (tanggal == null) return false;
+      // Kolom `jam` di DB bertipe `time` (balik sebagai "HH:mm:ss"); ambil
+      // 2 komponen pertama saja supaya konsisten dengan "HH:mm" lokal.
+      final jamParts = t.jam.split(':');
+      final jam = jamParts.isNotEmpty ? int.tryParse(jamParts[0]) : null;
+      final menit = jamParts.length > 1 ? int.tryParse(jamParts[1]) : null;
+      if (jam == null || menit == null) return false;
+      final waktu = DateTime(tanggal.year, tanggal.month, tanggal.day, jam, menit);
+      return !waktu.isBefore(mulai);
+    }).toList();
+  }
+
+  int get shiftOmzet => _shiftTransactions.fold(0, (s, t) => s + t.total);
+
+  int get shiftPiutangBerjalan => _shiftTransactions
+      .where((t) => t.status == 'Piutang')
+      .fold(0, (s, t) => s + t.sisaPiutang);
+
+  // 'Piutang' bukan metode nontunai riil (QRIS/Kartu/Voucher) — itu cuma
+  // penanda "belum dibayar". Efek kasnya sudah diwakili penuh oleh term
+  // shiftPiutangBerjalan di atas; kalau ikut dihitung di sini juga, transaksi
+  // piutang jadi terpotong dua kali dari kasKasir (lihat riwayat chat: bug
+  // "-5 juta" untuk piutang yang belum dilunasi).
+  int get shiftNonTunai => _shiftTransactions
+      .where((t) => t.metode != 'Tunai' && t.metode != 'Piutang')
+      .fold(0, (s, t) => s + t.total);
+
+  // Kas masuk lain-lain = pelunasan piutang LAMA (dari shift/hari sebelumnya)
+  // + setoran manual. Penjualan tunai & DP piutang sudah terwakili lewat
+  // shiftOmzet, jangan dobel — begitu juga pelunasan piutang yang transaksi
+  // aslinya masih di rentang shift ini (_shiftTransactions): begitu piutang
+  // itu dilunasi, shiftPiutangBerjalan otomatis turun ke 0, jadi entri
+  // "Pelunasan piutang ..."-nya harus dikecualikan di sini supaya tidak
+  // dobel-hitung dua kali (sekali lewat omzet-piutang, sekali lewat sini).
+  int get shiftKasMasukLain => dummyKasLog.where((k) {
+    if (k.tipe != 'masuk') return false;
+    if (k.ket.startsWith('Penjualan ') || k.ket.startsWith('DP Piutang ')) return false;
+    if (k.ket.startsWith('Pelunasan piutang ')) {
+      final trxId = k.ket.substring('Pelunasan piutang '.length);
+      final sudahTerwakiliLewatOmzet = _shiftTransactions.any((t) => t.id == trxId);
+      if (sudahTerwakiliLewatOmzet) return false;
+    }
+    return true;
+  }).fold(0, (s, k) => s + k.nominal);
+
+  // Kas keluar lain-lain = bayar hutang tunai + pengeluaran manual (di luar pembelian).
+  int get shiftKasKeluarLain => dummyKasLog
+      .where((k) => k.tipe == 'keluar' && !k.ket.startsWith('Pembelian '))
+      .fold(0, (s, k) => s + k.nominal);
+
+  int get shiftPembelianTunai => dummyKasLog
+      .where((k) => k.tipe == 'keluar' && k.ket.startsWith('Pembelian '))
+      .fold(0, (s, k) => s + k.nominal);
+
+  int get kasKasir {
+    final kasTerakhir = activeShift?.modalAwal ?? 0;
+    return (shiftOmzet + kasTerakhir + shiftKasMasukLain) -
+        (shiftPiutangBerjalan + shiftNonTunai + shiftKasKeluarLain + shiftPembelianTunai);
+  }
+
+  int get shiftTrxCount => _shiftTransactions.length;
+
+  int get shiftItemsCount => _shiftTransactions.fold(0, (s, t) => s + t.items);
 
   Future<void> loadActiveShift() async {
     activeShift = await DbService.getActiveShift();

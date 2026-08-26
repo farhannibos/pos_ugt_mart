@@ -624,6 +624,29 @@ class _KartuPanel extends StatefulWidget {
 
 class _KartuPanelState extends State<_KartuPanel> {
   final _cardCtrl = TextEditingController();
+  static const _banks = ['BCA', 'Mandiri', 'BRI', 'BNI'];
+  static const _bankLainnya = [
+    'BSI', 'CIMB Niaga', 'Danamon', 'Permata', 'OCBC NISP',
+    'Panin', 'Maybank', 'BTN', 'Bank Mega', 'BTPN', 'Bank Jago',
+    'Bank Sinarmas', 'Bukopin', 'Commonwealth', 'HSBC Indonesia',
+    'DBS Indonesia', 'UOB Indonesia', 'Bank Jatim', 'Bank DKI', 'Bank Jabar Banten',
+  ];
+  String _selectedBank = _banks.first;
+
+  bool get _isBankLainnyaSelected => !_banks.contains(_selectedBank);
+
+  Future<void> _pilihBankLainnya() async {
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _BankPickerSheet(
+        banks: _bankLainnya,
+        selected: _isBankLainnyaSelected ? _selectedBank : null,
+      ),
+    );
+    if (picked != null) setState(() => _selectedBank = picked);
+  }
 
   @override
   void dispose() {
@@ -662,20 +685,63 @@ class _KartuPanelState extends State<_KartuPanel> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Mesin EDC Tersedia',
+                      Text('Pilih Bank EDC',
                           style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.text)),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 6),
                       Wrap(
-                        spacing: 5,
-                        children: ['BCA', 'Mandiri', 'BRI', 'BNI'].map((b) => Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: AppColors.border),
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          ..._banks.map((b) {
+                            final active = _selectedBank == b;
+                            return GestureDetector(
+                              onTap: () => setState(() => _selectedBank = b),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: active ? AppColors.primary : Colors.white,
+                                  borderRadius: BorderRadius.circular(7),
+                                  border: Border.all(color: active ? AppColors.primary : AppColors.border),
+                                ),
+                                child: Text(b,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: active ? Colors.white : AppColors.textSecondary,
+                                    )),
+                              ),
+                            );
+                          }),
+                          // Bank di luar 4 pilihan cepat — buka daftar lengkap.
+                          GestureDetector(
+                            onTap: _pilihBankLainnya,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: _isBankLainnyaSelected ? AppColors.primary : Colors.white,
+                                borderRadius: BorderRadius.circular(7),
+                                border: Border.all(color: _isBankLainnyaSelected ? AppColors.primary : AppColors.border),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(_isBankLainnyaSelected ? _selectedBank : 'Lainnya',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: _isBankLainnyaSelected ? Colors.white : AppColors.textSecondary,
+                                      )),
+                                  const SizedBox(width: 2),
+                                  Icon(Icons.expand_more,
+                                      size: 13,
+                                      color: _isBankLainnyaSelected ? Colors.white : AppColors.textDim),
+                                ],
+                              ),
+                            ),
                           ),
-                          child: Text(b, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
-                        )).toList(),
+                        ],
                       ),
                     ],
                   ),
@@ -713,6 +779,135 @@ class _KartuPanelState extends State<_KartuPanel> {
             style: GoogleFonts.inter(fontSize: 11, color: AppColors.textDim, height: 1.5),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Bottom sheet pemilihan bank di luar 4 pilihan cepat ──
+class _BankPickerSheet extends StatefulWidget {
+  final List<String> banks;
+  final String? selected;
+  const _BankPickerSheet({required this.banks, this.selected});
+
+  @override
+  State<_BankPickerSheet> createState() => _BankPickerSheetState();
+}
+
+class _BankPickerSheetState extends State<_BankPickerSheet> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = widget.banks
+        .where((b) => b.toLowerCase().contains(_query.toLowerCase()))
+        .toList();
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36, height: 4,
+                decoration: BoxDecoration(color: AppColors.grayMid, borderRadius: BorderRadius.circular(4)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Pilih Bank Lain', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _searchCtrl,
+              onChanged: (v) => setState(() => _query = v),
+              style: GoogleFonts.inter(fontSize: 13),
+              decoration: InputDecoration(
+                hintText: 'Cari bank...',
+                hintStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.textDim),
+                prefixIcon: const Icon(Icons.search, size: 18, color: AppColors.textDim),
+                filled: true,
+                fillColor: AppColors.bg,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Bank tidak ada di daftar? Ketik namanya lalu tekan tombol Tambah di bawah.',
+              style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textDim, height: 1.4),
+            ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: filtered.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: Text('Bank tidak ditemukan di daftar',
+                            style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.textDim)),
+                      ),
+                    )
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.borderLight),
+                      itemBuilder: (_, i) {
+                        final b = filtered[i];
+                        final active = widget.selected == b;
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          onTap: () => Navigator.of(context).pop(b),
+                          title: Text(b, style: GoogleFonts.inter(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppColors.text)),
+                          trailing: active ? const Icon(Icons.check_circle, size: 18, color: AppColors.primary) : null,
+                        );
+                      },
+                    ),
+            ),
+            const SizedBox(height: 12),
+            // Selalu terlihat — bukan cuma muncul saat pencarian gagal, supaya
+            // kasir awam langsung tahu ada jalur input manual sejak awal.
+            SizedBox(
+              width: double.infinity,
+              child: Material(
+                color: _query.trim().isEmpty ? AppColors.border : AppColors.primary,
+                borderRadius: BorderRadius.circular(12),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: _query.trim().isEmpty ? null : () => Navigator.of(context).pop(_query.trim()),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    child: Center(
+                      child: Text(
+                        _query.trim().isEmpty ? '+ Tambah Bank Baru' : "+ Tambah '${_query.trim()}'",
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _query.trim().isEmpty ? AppColors.textDim : Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
 import '../widgets/ugt_widgets.dart';
+import '../services/shift_report_service.dart';
+import 'login_screen.dart';
 
 class ShiftScreen extends StatelessWidget {
   const ShiftScreen({super.key});
@@ -405,8 +407,40 @@ void showBukaShiftDialog(BuildContext context, AppProvider prov) {
 
 // ─── Bottom Sheet Tutup Shift ────────────────────────────────────────────────
 
+const _bulanPanjang = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+];
+
+ShiftReportData _buildShiftReportData(AppProvider prov) {
+  final shift = prov.activeShift!;
+  final now = DateTime.now();
+  final jamTutup = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+  final tanggal = '${now.day} ${_bulanPanjang[now.month - 1]} ${now.year}';
+  return ShiftReportData(
+    storeName:       prov.storeName,
+    alamat:          prov.alamatToko,
+    kasir:           shift.kasirNama,
+    tanggal:         tanggal,
+    jamBuka:         shift.jamBukaStr,
+    jamTutup:        jamTutup,
+    modalAwal:       shift.modalAwal,
+    omzet:           prov.shiftOmzet,
+    piutang:         prov.shiftPiutangBerjalan,
+    nonTunai:        prov.shiftNonTunai,
+    kasMasukLain:    prov.shiftKasMasukLain,
+    kasKeluarLain:   prov.shiftKasKeluarLain,
+    pembelianTunai:  prov.shiftPembelianTunai,
+    totalKasKasir:   prov.kasKasir,
+    jumlahTransaksi: prov.shiftTrxCount,
+    jumlahItem:      prov.shiftItemsCount,
+  );
+}
+
 void showTutupShiftSheet(BuildContext context, AppProvider prov) {
-  final ctrl = TextEditingController();
+  // Prefill dengan saldo hitungan sistem — kasir tinggal koreksi kalau
+  // hasil hitung fisik di laci ternyata beda, tidak perlu ngetik dari nol.
+  final ctrl = TextEditingController(text: '${prov.shiftSaldoSeharusnya}');
   bool loading = false;
 
   showModalBottomSheet(
@@ -439,13 +473,28 @@ void showTutupShiftSheet(BuildContext context, AppProvider prov) {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text('Tutup Shift', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text)),
-                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('Tutup Shift', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text)),
+                    ),
+                    IconButton(
+                      tooltip: 'Bagikan laporan',
+                      icon: const Icon(Icons.ios_share, size: 20, color: AppColors.textSecondary),
+                      onPressed: () => ShiftReportService.shareReport(_buildShiftReportData(prov)),
+                    ),
+                    IconButton(
+                      tooltip: 'Cetak laporan',
+                      icon: const Icon(Icons.print_outlined, size: 20, color: AppColors.textSecondary),
+                      onPressed: () => ShiftReportService.printReport(_buildShiftReportData(prov)),
+                    ),
+                  ],
+                ),
                 Text('Hitung uang di laci dan masukkan jumlahnya',
                     style: GoogleFonts.inter(fontSize: 12, color: AppColors.textDim)),
                 const SizedBox(height: 16),
 
-                // Ringkasan singkat
+                // Ringkasan laporan keuangan shift berjalan
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -455,11 +504,16 @@ void showTutupShiftSheet(BuildContext context, AppProvider prov) {
                   ),
                   child: Column(
                     children: [
-                      _SheetRow('Modal Awal', formatRp(prov.activeShift?.modalAwal ?? 0)),
-                      // "Kas Masuk" sudah termasuk penjualan tunai shift ini —
-                      // tidak ditampilkan terpisah supaya tidak dobel-hitung.
-                      _SheetRow('Kas Masuk', '+${formatRp(prov.shiftKasMasuk)}', color: AppColors.primary),
-                      _SheetRow('Kas Keluar', '-${formatRp(prov.shiftKasKeluar)}', color: AppColors.red),
+                      _SheetRow('Jumlah Transaksi', '${prov.shiftTrxCount}'),
+                      _SheetRow('Jumlah Item Terjual', '${prov.shiftItemsCount}'),
+                      const Divider(height: 14, color: AppColors.borderLight),
+                      _SheetRow('Omzet', formatRp(prov.shiftOmzet)),
+                      _SheetRow('Kas Terakhir (Modal Awal)', formatRp(prov.activeShift?.modalAwal ?? 0)),
+                      _SheetRow('Kas Masuk Lainnya', '+${formatRp(prov.shiftKasMasukLain)}', color: AppColors.primary),
+                      _SheetRow('Piutang', '-${formatRp(prov.shiftPiutangBerjalan)}', color: AppColors.red),
+                      _SheetRow('Nontunai', '-${formatRp(prov.shiftNonTunai)}', color: AppColors.red),
+                      _SheetRow('Kas Keluar Lainnya', '-${formatRp(prov.shiftKasKeluarLain)}', color: AppColors.red),
+                      _SheetRow('Pembelian Tunai', '-${formatRp(prov.shiftPembelianTunai)}', color: AppColors.red),
                       const Divider(height: 14, color: AppColors.borderLight),
                       _SheetRow('Seharusnya Ada', formatRp(saldoSeharusnya), isBold: true),
                     ],
@@ -468,6 +522,9 @@ void showTutupShiftSheet(BuildContext context, AppProvider prov) {
                 const SizedBox(height: 16),
 
                 Text('Uang Fisik di Laci', style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                const SizedBox(height: 4),
+                Text('Sudah diisi otomatis sesuai hitungan sistem — koreksi kalau hasil hitung fisik beda.',
+                    style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textDim)),
                 const SizedBox(height: 8),
                 Container(
                   decoration: BoxDecoration(
@@ -484,7 +541,6 @@ void showTutupShiftSheet(BuildContext context, AppProvider prov) {
                           controller: ctrl,
                           keyboardType: TextInputType.number,
                           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          autofocus: true,
                           onChanged: (_) => setState(() {}),
                           style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text),
                           decoration: InputDecoration(
@@ -521,6 +577,13 @@ void showTutupShiftSheet(BuildContext context, AppProvider prov) {
                               if (ctx.mounted) Navigator.of(ctx).pop();
                               if (ok) {
                                 prov.showToast('Shift berhasil ditutup');
+                                await prov.logout();
+                                if (context.mounted) {
+                                  Navigator.of(context).pushAndRemoveUntil(
+                                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                    (route) => false,
+                                  );
+                                }
                               } else {
                                 prov.showToast('Gagal tutup shift, cek koneksi');
                               }

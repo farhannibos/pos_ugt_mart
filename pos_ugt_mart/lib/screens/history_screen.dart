@@ -647,7 +647,7 @@ class _HistoryCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              _umurHutang == 0 ? 'Hari ini' : 'Sudah $_umurHutang hari',
+                              _umurHutang == 0 ? 'Hari ini' : '$_umurHutang hari',
                               style: GoogleFonts.inter(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,

@@ -19,9 +19,9 @@ class DashboardScreen extends StatelessWidget {
     // Real stat calculations
     final trxCount   = prov.todayTrxCount;
     final omzet      = prov.todayTotalPenjualan;
-    final rataRata   = trxCount > 0 ? omzet ~/ trxCount : 0;
     final piutangVal = prov.totalPiutangAktif;
     final piutangN   = prov.jumlahPiutangAktif;
+    final cashAktual = prov.kasKasir;
 
     String shiftLabel;
     if (prov.activeShift == null) {
@@ -61,16 +61,18 @@ class DashboardScreen extends StatelessWidget {
                               iconColor: AppColors.primary,
                               label: 'Omzet Hari Ini',
                               value: formatRp(omzet),
-                              sub: trxCount > 0 ? 'rata-rata ${formatRp(rataRata)}' : 'belum ada transaksi',
+                              sub: trxCount > 0
+                                  ? '$trxCount transaksi hari ini'
+                                  : 'belum ada transaksi',
+                              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryScreen())),
                             )),
                             const SizedBox(width: 12),
                             Expanded(child: _StatCard(
-                              icon: Icons.receipt_long_outlined,
+                              icon: Icons.payments_outlined,
                               iconColor: AppColors.primary,
-                              label: 'Transaksi',
-                              value: '$trxCount',
-                              sub: trxCount > 0 ? '${prov.todayItemsCount} item terjual' : 'belum ada transaksi',
-                              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryScreen())),
+                              label: 'Kas Aktual',
+                              value: formatRp(cashAktual),
+                              sub: prov.activeShift == null ? 'Shift belum dibuka' : 'kas seharusnya saat ini',
                             )),
                             const SizedBox(width: 12),
                             Expanded(child: _StatCard(
@@ -97,12 +99,11 @@ class DashboardScreen extends StatelessWidget {
                             )),
                             const SizedBox(width: 12),
                             Expanded(child: _StatCard(
-                              icon: Icons.receipt_long_outlined,
+                              icon: Icons.payments_outlined,
                               iconColor: AppColors.primary,
-                              label: 'Transaksi',
-                              value: '$trxCount',
-                              sub: trxCount > 0 ? '${prov.todayItemsCount} item terjual' : 'belum ada transaksi',
-                              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryScreen())),
+                              label: 'Kas Aktual',
+                              value: formatRp(cashAktual),
+                              sub: prov.activeShift == null ? 'Shift belum dibuka' : 'kas seharusnya saat ini',
                             )),
                           ],
                         ),
@@ -112,8 +113,11 @@ class DashboardScreen extends StatelessWidget {
                           iconColor: AppColors.primary,
                           label: 'Omzet Hari Ini',
                           value: formatRp(omzet),
-                          sub: trxCount > 0 ? 'rata-rata ${formatRp(rataRata)}' : 'belum ada transaksi',
+                          sub: trxCount > 0
+                              ? '$trxCount transaksi hari ini'
+                              : 'belum ada transaksi',
                           isWide: true,
+                          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryScreen())),
                         ),
                       ],
                       const SizedBox(height: 14),
