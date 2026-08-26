@@ -5,6 +5,7 @@ let _tokoCache = [];
 let _lisensiCache = [];
 let _laporanCache = [];
 
+
 const rupiah = (n) => 'Rp' + Number(n || 0).toLocaleString('id-ID');
 const tanggal = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 const waktuRelatif = (d) => {

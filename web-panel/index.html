@@ -197,7 +197,6 @@
                     </div>
                     <div class="page-actions">
                         <button class="btn btn-secondary btn-sm" onclick="showToast('info','Filter periode belum tersedia.')"><i data-lucide="calendar"></i> <span id="dash-bulan">Juli 2026</span></button>
-                        <button class="btn btn-primary btn-sm" onclick="refreshDashboard()"><i data-lucide="refresh-cw"></i> Refresh</button>
                     </div>
                 </div>
                 <div class="stats-grid">
@@ -236,7 +235,7 @@
                     <div class="stat-card" style="--stat-color:#10B981;--stat-bg:#D1FAE5">
                         <div class="stat-icon"><i data-lucide="wallet"></i></div>
                         <div class="stat-content">
-                            <div class="stat-label">Kas Aktif (Shift Berjalan)</div>
+                            <div class="stat-label">Kas Aktual (Shift Berjalan)</div>
                             <div class="stat-value" id="dash-kas">—</div>
                             <div class="stat-sub" id="dash-kas-sub">Tidak ada shift aktif</div>
                         </div>
@@ -367,6 +366,16 @@
                     <div class="page-actions">
                         <button class="btn btn-secondary btn-sm" onclick="exportCSV('tbl-barang','data-barang')"><i data-lucide="upload"></i> Export</button>
                         <button class="btn btn-primary" onclick="openTambahBarang()"><i data-lucide="plus"></i> Tambah Barang</button>
+                    </div>
+                </div>
+                <div class="stats-grid" style="margin-bottom:16px">
+                    <div class="stat-card" style="--stat-color:#3B82F6;--stat-bg:#DBEAFE">
+                        <div class="stat-icon"><i data-lucide="warehouse"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Nilai Persediaan</div>
+                            <div class="stat-value" id="barang-nilai-persediaan">—</div>
+                            <div class="stat-sub">Berdasarkan harga beli × stok, seluruh barang</div>
+                        </div>
                     </div>
                 </div>
                 <div class="card">

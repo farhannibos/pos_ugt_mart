@@ -481,11 +481,6 @@ async function updateDashboard() {
     lucide.createIcons();
 }
 
-function refreshDashboard() {
-    updateDashboard();
-    showToast('success', 'Dashboard berhasil diperbarui!');
-}
-
 // ── KATEGORI CRUD ─────────────────────────────────────────────────
 let editKategoriIdx = -1;
 
@@ -642,9 +637,20 @@ function _tampilFotoBarang(url) {
     }
 }
 
+// Nilai persediaan = total aset barang berdasarkan harga beli × stok, dihitung
+// dari SELURUH DATA_BARANG (bukan hasil filter/pencarian tabel) supaya angkanya
+// tetap mewakili nilai persediaan toko yang sebenarnya.
+function updateNilaiPersediaan() {
+    const el = document.getElementById('barang-nilai-persediaan');
+    if (!el) return;
+    const total = DATA_BARANG.reduce((s, b) => s + (Number(b.hargaBeli) || 0) * (Number(b.stok) || 0), 0);
+    el.textContent = formatRp(total);
+}
+
 function renderBarang(data) {
     data = data || DATA_BARANG;
     filteredBarang = data;
+    updateNilaiPersediaan();
     const tbody = document.querySelector('#tbl-barang tbody');
     if (!tbody) return;
     tbody.innerHTML = data.length
@@ -3623,8 +3629,12 @@ function rincianKasKasir(shift) {
     const piutang  = trxShift
         .filter(t => t.status === 'Piutang')
         .reduce((s, t) => s + (Number(t.total || 0) - Number(t.terbayar || 0)), 0);
+    // 'Piutang' bukan metode nontunai riil (QRIS/Kartu/Voucher) — itu cuma
+    // penanda "belum dibayar", efek kasnya sudah diwakili penuh oleh `piutang`
+    // di atas. Kalau ikut dihitung di sini juga, transaksi piutang terpotong
+    // dua kali dari `total` (mis. piutang 5jt yang belum lunas tampil -5jt).
     const nontunai = trxShift
-        .filter(t => t.metode !== 'Tunai')
+        .filter(t => t.metode !== 'Tunai' && t.metode !== 'Piutang')
         .reduce((s, t) => s + Number(t.total || 0), 0);
 
     const rows = DATA_KAS.filter(k => k.idShift === String(shift.id));
@@ -3632,9 +3642,25 @@ function rincianKasKasir(shift) {
         .filter(k => k.tipe === tipe && cocok(String(k.keterangan || '')))
         .reduce((s, k) => s + Number(k.nominal || 0), 0);
 
-    // Kas masuk lain-lain = pelunasan piutang lama + setoran manual (penjualan
-    // tunai & DP piutang sudah terwakili lewat omzet di atas, jangan dobel).
-    const kasMasuk       = sumTipe('masuk',  ket => !ket.startsWith('Penjualan ') && !ket.startsWith('DP Piutang '));
+    // Kas masuk lain-lain = pelunasan piutang LAMA (dari shift/hari sebelumnya)
+    // + setoran manual. Penjualan tunai & DP piutang sudah terwakili lewat
+    // omzet, jangan dobel — begitu juga pelunasan piutang yang transaksi
+    // aslinya masih di rentang shift ini (trxShift): begitu piutang itu
+    // dilunasi, `piutang` di atas otomatis turun ke 0, jadi entri "Pelunasan
+    // piutang ..."-nya harus dikecualikan di sini supaya tidak dobel-hitung.
+    const kasMasuk = rows
+        .filter(k => k.tipe === 'masuk')
+        .filter(k => {
+            const ket = String(k.keterangan || '');
+            if (ket.startsWith('Penjualan ') || ket.startsWith('DP Piutang ')) return false;
+            if (ket.startsWith('Pelunasan piutang ')) {
+                const trxId = ket.slice('Pelunasan piutang '.length);
+                const sudahTerwakiliLewatOmzet = trxShift.some(t => t.id === trxId);
+                if (sudahTerwakiliLewatOmzet) return false;
+            }
+            return true;
+        })
+        .reduce((s, k) => s + Number(k.nominal || 0), 0);
     // Kas keluar lain-lain = bayar hutang tunai + pengeluaran manual (di luar pembelian).
     const kasKeluarLain  = sumTipe('keluar', ket => !ket.startsWith('Pembelian '));
     const pembelianTunai = sumTipe('keluar', ket => ket.startsWith('Pembelian '));
