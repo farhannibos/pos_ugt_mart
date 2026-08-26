@@ -412,19 +412,16 @@ async function updateDashboard() {
     setEl('dash-hutang', formatRp(totalHutang));
 
     // ── Kas Aktif (saldo shift kasir yang sedang berjalan, bukan all-time)
-    if (DATA_SHIFT_AKTIF) {
-        const saldoAktif = await dbShiftSaldo(DATA_SHIFT_AKTIF.id);
-        setEl('dash-kas', saldoAktif != null ? formatRp(saldoAktif) : '—');
-        setEl('dash-kas-sub', `Shift berjalan: ${DATA_SHIFT_AKTIF.kasirNama || '—'}`);
-    } else {
-        setEl('dash-kas', '—');
-        setEl('dash-kas-sub', 'Tidak ada shift aktif');
-    }
-
-    // ── Rincian Kas Kasir (breakdown formula, lihat rincianKasKasir())
+    // Nilainya = total rumus rincianKasKasir() (omzet+kas terakhir+kas masuk
+    // − piutang−nontunai−kas keluar−pembelian tunai), bukan lagi dari RPC
+    // fn_shift_saldo — keduanya harus selalu sama (lihat rincianKasKasir()),
+    // tapi versi client-side ini tidak butuh round-trip ke server.
     const cardRincianKas = document.getElementById('card-rincian-kas');
     if (DATA_SHIFT_AKTIF) {
         const r = rincianKasKasir(DATA_SHIFT_AKTIF);
+        setEl('dash-kas', formatRp(r.total));
+        setEl('dash-kas-sub', `Shift berjalan: ${DATA_SHIFT_AKTIF.kasirNama || '—'}`);
+
         setEl('rk-omzet', formatRp(r.omzet));
         setEl('rk-kas-terakhir', formatRp(r.kasTerakhir));
         setEl('rk-kas-masuk', '+ ' + formatRp(r.kasMasuk));
@@ -434,8 +431,10 @@ async function updateDashboard() {
         setEl('rk-pembelian', '− ' + formatRp(r.pembelianTunai));
         setEl('rk-total', formatRp(r.total));
         if (cardRincianKas) cardRincianKas.style.display = '';
-    } else if (cardRincianKas) {
-        cardRincianKas.style.display = 'none';
+    } else {
+        setEl('dash-kas', '—');
+        setEl('dash-kas-sub', 'Tidak ada shift aktif');
+        if (cardRincianKas) cardRincianKas.style.display = 'none';
     }
 
     // ── Supplier aktif
