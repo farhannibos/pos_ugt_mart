@@ -263,7 +263,7 @@
                     <div class="card">
                         <div class="card-header">
                             <div class="card-title"><i data-lucide="line-chart"></i> Grafik Penjualan & Pembelian</div>
-                            <div style="display:flex;gap:8px"><button class="btn btn-secondary btn-sm" onclick="showToast('info','Filter grafik mingguan belum tersedia.')">Mingguan</button><button class="btn btn-primary btn-sm" onclick="showToast('info','Filter grafik bulanan belum tersedia.')">Bulanan</button></div>
+                            <div style="display:flex;gap:8px"><button id="btn-chart-mingguan" class="btn btn-secondary btn-sm" onclick="setChartMode('mingguan')">Mingguan</button><button id="btn-chart-bulanan" class="btn btn-primary btn-sm" onclick="setChartMode('bulanan')">Bulanan</button></div>
                         </div>
                         <div class="card-body">
                             <div class="chart-container"><canvas id="chartSales"></canvas></div>
@@ -2063,8 +2063,8 @@
         <button class="bot-nav-item" onclick="openMobileSidebar()"><i data-lucide="menu"></i><span>Menu</span></button>
     </nav>
 
-    <script src="supabase-config.js?v=8"></script>
-    <script src="script.js?v=6"></script>
+    <script src="supabase-config.js?v=9"></script>
+    <script src="script.js?v=7"></script>
 </body>
 
 </html>

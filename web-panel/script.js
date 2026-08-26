@@ -113,6 +113,7 @@ async function startQrSession() {
                 }
                 localStorage.setItem('ugt_logged', '1');
                 localStorage.setItem('ugt_user', JSON.stringify(found));
+                await daftarkanSesiBaru(found.username);
                 try { await dbLoadAll(); } catch {}
                 try { await dbLoadAllExtra(); } catch {}
                 showApp(found);
@@ -170,6 +171,7 @@ async function doLogin() {
     errEl.style.display = 'none';
     localStorage.setItem('ugt_logged', '1');
     localStorage.setItem('ugt_user', JSON.stringify(found));
+    await daftarkanSesiBaru(found.username);
 
     // Muat data toko ini sebelum tampilkan app
     try { await dbLoadAll(); } catch {}
@@ -203,6 +205,7 @@ function showApp(user) {
     }, 400);
 
     setupRealtime();
+    mulaiSesiTunggal(user.username);
     initPageData();
     setTimeout(() => { initCharts(); }, 100);
     lucide.createIcons();
@@ -233,28 +236,90 @@ async function refreshAllData() {
     }
 }
 
+// Bersihkan semua state sesi lokal (localStorage + data cache), lalu tampilkan
+// lagi layar login. Dipakai baik oleh logout manual maupun logout paksa
+// (kena kick sesi tunggal — lihat paksaLogoutSesiLain()).
+function _resetSesiLokal() {
+    setCurrentToko(null);
+    localStorage.removeItem('ugt_logged');
+    localStorage.removeItem('ugt_user');
+    localStorage.removeItem('ugt_id_toko');
+    localStorage.removeItem('ugt_session_token');
+    // Reset semua array data agar data toko lama tidak tersisa
+    DATA_BARANG.length = 0; DATA_MEMBER.length = 0; DATA_PENJUALAN.length = 0;
+    DATA_KATEGORI.length = 0; DATA_USERS.length = 0; DATA_SUPPLIER.length = 0;
+    DATA_CABANG.length = 0; DATA_RESELLER.length = 0; DATA_PEMBELIAN.length = 0;
+    DATA_RETUR_BELI.length = 0; DATA_RETUR_JUAL.length = 0; DATA_KAS.length = 0;
+    DATA_OPNAME.length = 0; DATA_ADJ.length = 0; DATA_PEMBAYARAN.length = 0;
+    DATA_STOK_LOG.length = 0; DATA_SHIFT_LIST.length = 0; DATA_SHIFT_AKTIF = null;
+    const loginEl = document.getElementById('login-screen');
+    loginEl.style.display = 'flex';
+    loginEl.style.opacity = '0';
+    setTimeout(() => { loginEl.style.opacity = '1'; loginEl.style.transition = 'opacity 0.4s ease'; }, 10);
+}
+
 function doLogout() {
     showConfirm('Konfirmasi Keluar', 'Apakah Anda yakin ingin keluar dari sistem?', async () => {
+        hentikanSesiTunggal();
         teardownRealtime();
         await dbSignOut();
-        setCurrentToko(null);
-        localStorage.removeItem('ugt_logged');
-        localStorage.removeItem('ugt_user');
-        localStorage.removeItem('ugt_id_toko');
-        // Reset semua array data agar data toko lama tidak tersisa
-        DATA_BARANG.length = 0; DATA_MEMBER.length = 0; DATA_PENJUALAN.length = 0;
-        DATA_KATEGORI.length = 0; DATA_USERS.length = 0; DATA_SUPPLIER.length = 0;
-        DATA_CABANG.length = 0; DATA_RESELLER.length = 0; DATA_PEMBELIAN.length = 0;
-        DATA_RETUR_BELI.length = 0; DATA_RETUR_JUAL.length = 0; DATA_KAS.length = 0;
-        DATA_OPNAME.length = 0; DATA_ADJ.length = 0; DATA_PEMBAYARAN.length = 0;
-        DATA_STOK_LOG.length = 0; DATA_SHIFT_LIST.length = 0; DATA_SHIFT_AKTIF = null;
-        const loginEl = document.getElementById('login-screen');
-        loginEl.style.display = 'flex';
-        loginEl.style.opacity = '0';
-        setTimeout(() => { loginEl.style.opacity = '1'; loginEl.style.transition = 'opacity 0.4s ease'; }, 10);
+        _resetSesiLokal();
         document.getElementById('login-pass').value = '';
         showToast('info', 'Anda telah keluar dari sistem.');
     }, { type: 'warning', icon: 'log-out', btnText: 'Ya, Keluar' });
+}
+
+// ── SESI TUNGGAL (1 perangkat per akun) ─────────────────────────────────────
+// Setelah login, token acak disimpan di localStorage DAN di profiles.active_
+// session_token (lewat dbSetActiveSession). Browser ini subscribe realtime ke
+// baris profiles-nya sendiri: begitu token di DB berubah (berarti akun login
+// dari perangkat lain), sesi ini logout otomatis. Polling tiap 45 detik jadi
+// fallback kalau koneksi realtime terputus.
+let _sesiToken      = null;
+let _sesiChannel    = null;
+let _sesiPollTimer  = null;
+
+function mulaiSesiTunggal(username) {
+    hentikanSesiTunggal();
+    _sesiToken = localStorage.getItem('ugt_session_token');
+    if (!username || !_sesiToken) return; // sesi lama (sebelum fitur ini ada) — tidak diawasi
+
+    _sesiChannel = _sb.channel('sesi-' + username)
+        .on('postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `username=eq.${username}` },
+            (payload) => {
+                const tokenBaru = payload.new?.active_session_token;
+                if (tokenBaru && tokenBaru !== _sesiToken) paksaLogoutSesiLain();
+            })
+        .subscribe();
+
+    _sesiPollTimer = setInterval(async () => {
+        const tokenServer = await dbGetActiveSession(username);
+        if (tokenServer && _sesiToken && tokenServer !== _sesiToken) paksaLogoutSesiLain();
+    }, 45000);
+}
+
+function hentikanSesiTunggal() {
+    if (_sesiChannel) { _sb.removeChannel(_sesiChannel); _sesiChannel = null; }
+    if (_sesiPollTimer) { clearInterval(_sesiPollTimer); _sesiPollTimer = null; }
+    _sesiToken = null;
+}
+
+// Dipanggil sekali tiap login berhasil (password maupun QR) — generate token
+// baru, simpan lokal, dan timpa ke server. Login manapun yang paling akhir
+// "menang", sesi sebelumnya (kalau ada) akan ke-kick oleh mulaiSesiTunggal().
+async function daftarkanSesiBaru(username) {
+    const token = (crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + '-' + Math.random().toString(36).slice(2)));
+    localStorage.setItem('ugt_session_token', token);
+    await dbSetActiveSession(username, token);
+}
+
+async function paksaLogoutSesiLain() {
+    hentikanSesiTunggal();
+    teardownRealtime();
+    await dbSignOut();
+    _resetSesiLokal();
+    showToast('warning', 'Akun ini baru saja login di perangkat lain. Anda dikeluarkan dari sesi ini.', 6000);
 }
 
 // ── ROLE-BASED ACCESS ────────────────────────────────────────────
@@ -477,6 +542,11 @@ async function updateDashboard() {
             ? lowStock.map(b => `<tr><td>${escapeHtml(b.nama)}</td><td><span class="badge ${b.stok === 0 ? 'badge-red' : 'badge-yellow'}">${b.stok}</span></td><td>${b.stokMin}</td></tr>`).join('')
             : '<tr><td colspan="3" style="text-align:center;color:var(--text-3);padding:20px">Semua stok aman</td></tr>';
     }
+
+    // ── Grafik penjualan & pembelian — refresh di sini juga supaya sinkron
+    // tiap kali updateDashboard() dipanggil (setelah transaksi/pembelian baru),
+    // bukan cuma sekali saat login.
+    if (typeof initCharts === 'function') initCharts();
 
     lucide.createIcons();
 }
@@ -1753,35 +1823,84 @@ function toggleFullscreen() {
 }
 
 // ── CHARTS ───────────────────────────────────────────────────────
+// 'bulanan' = total per bulan (Jan..bulan berjalan) tahun ini.
+// 'mingguan' = total per hari, 7 hari terakhir termasuk hari ini.
+let CHART_MODE = 'bulanan';
+
+function _dataChartBulanan() {
+    const now      = new Date();
+    const curMonth = now.getMonth();
+    const curYear  = now.getFullYear();
+    const labels    = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const salesData = Array(12).fill(null);
+    const buyData   = Array(12).fill(null);
+    for (let m = 0; m <= curMonth; m++) {
+        salesData[m] = +(DATA_PENJUALAN
+            .filter(t => { const d = new Date(t.tanggal); return d.getMonth() === m && d.getFullYear() === curYear; })
+            .reduce((s, t) => s + t.total, 0) / 1000000).toFixed(2);
+        buyData[m] = +(DATA_PEMBELIAN
+            .filter(p => { const d = new Date(p.tanggal); return d.getMonth() === m && d.getFullYear() === curYear; })
+            .reduce((s, p) => s + p.total, 0) / 1000000).toFixed(2);
+    }
+    return { labels, salesData, buyData };
+}
+
+function _dataChartMingguan() {
+    const namaHari = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+    const labels = [], salesData = [], buyData = [];
+    const hariIni = new Date();
+    hariIni.setHours(0, 0, 0, 0);
+    const samaHari = (tgl, ref) => {
+        const d = new Date(tgl);
+        return d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth() && d.getDate() === ref.getDate();
+    };
+    for (let i = 6; i >= 0; i--) {
+        const ref = new Date(hariIni);
+        ref.setDate(ref.getDate() - i);
+        labels.push(`${namaHari[ref.getDay()]} ${ref.getDate()}`);
+        salesData.push(+(DATA_PENJUALAN.filter(t => samaHari(t.tanggal, ref)).reduce((s, t) => s + t.total, 0) / 1000000).toFixed(2));
+        buyData.push(+(DATA_PEMBELIAN.filter(p => samaHari(p.tanggal, ref)).reduce((s, p) => s + p.total, 0) / 1000000).toFixed(2));
+    }
+    return { labels, salesData, buyData };
+}
+
+// Ganti mode grafik (dipanggil dari tombol Mingguan/Bulanan) lalu redraw.
+function setChartMode(mode) {
+    CHART_MODE = mode;
+    const btnMinggu = document.getElementById('btn-chart-mingguan');
+    const btnBulan  = document.getElementById('btn-chart-bulanan');
+    if (btnMinggu) btnMinggu.className = 'btn btn-sm ' + (mode === 'mingguan' ? 'btn-primary' : 'btn-secondary');
+    if (btnBulan)  btnBulan.className  = 'btn btn-sm ' + (mode === 'bulanan'  ? 'btn-primary' : 'btn-secondary');
+    initCharts();
+}
+
 function initCharts() {
     const ctxSales = document.getElementById('chartSales');
-    if (ctxSales && !ctxSales._chart) {
-        const now      = new Date();
-        const curMonth = now.getMonth();
-        const curYear  = now.getFullYear();
-        const salesData = Array(12).fill(null);
-        const buyData   = Array(12).fill(null);
-        for (let m = 0; m <= curMonth; m++) {
-            salesData[m] = +(DATA_PENJUALAN
-                .filter(t => { const d = new Date(t.tanggal); return d.getMonth() === m && d.getFullYear() === curYear; })
-                .reduce((s, t) => s + t.total, 0) / 1000000).toFixed(2);
-            buyData[m] = +(DATA_PEMBELIAN
-                .filter(p => { const d = new Date(p.tanggal); return d.getMonth() === m && d.getFullYear() === curYear; })
-                .reduce((s, p) => s + p.total, 0) / 1000000).toFixed(2);
-        }
+    if (!ctxSales) return;
 
-        ctxSales._chart = new Chart(ctxSales, {
-            type: 'line',
-            data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
-                datasets: [
-                    { label: 'Penjualan (Juta)', data: salesData, borderColor: '#16A34A', backgroundColor: 'rgba(22,163,74,0.08)', fill: true, tension: 0.4, pointBackgroundColor: '#16A34A', pointRadius: 4, pointHoverRadius: 6, borderWidth: 2.5 },
-                    { label: 'Pembelian (Juta)', data: buyData,   borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.06)', fill: true, tension: 0.4, pointBackgroundColor: '#3B82F6', pointRadius: 4, pointHoverRadius: 6, borderWidth: 2.5 }
-                ]
-            },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { usePointStyle: true, font: { size: 11, family: 'Inter' }, padding: 16 } }, tooltip: { mode: 'index', intersect: false } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#94A3B8' } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 }, color: '#94A3B8', callback: v => v ? v + 'jt' : '0' }, beginAtZero: true } } }
-        });
+    const { labels, salesData, buyData } = CHART_MODE === 'mingguan' ? _dataChartMingguan() : _dataChartBulanan();
+
+    // Chart sudah ada (bukan load pertama) — update datanya di tempat,
+    // jangan bikin instance Chart.js baru di atas canvas yang sama.
+    if (ctxSales._chart) {
+        ctxSales._chart.data.labels = labels;
+        ctxSales._chart.data.datasets[0].data = salesData;
+        ctxSales._chart.data.datasets[1].data = buyData;
+        ctxSales._chart.update();
+        return;
     }
+
+    ctxSales._chart = new Chart(ctxSales, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                { label: 'Penjualan (Juta)', data: salesData, borderColor: '#16A34A', backgroundColor: 'rgba(22,163,74,0.08)', fill: true, tension: 0.4, pointBackgroundColor: '#16A34A', pointRadius: 4, pointHoverRadius: 6, borderWidth: 2.5 },
+                { label: 'Pembelian (Juta)', data: buyData,   borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.06)', fill: true, tension: 0.4, pointBackgroundColor: '#3B82F6', pointRadius: 4, pointHoverRadius: 6, borderWidth: 2.5 }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { usePointStyle: true, font: { size: 11, family: 'Inter' }, padding: 16 } }, tooltip: { mode: 'index', intersect: false } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#94A3B8' } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 }, color: '#94A3B8', callback: v => v ? v + 'jt' : '0' }, beginAtZero: true } } }
+    });
 }
 
 // ── DARK MODE ────────────────────────────────────────────────────
