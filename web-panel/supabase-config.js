@@ -100,6 +100,24 @@ async function dbSignOut() {
     try { await _sb.auth.signOut(); } catch (_) {}
 }
 
+// ── PENGATURAN TOKO ───────────────────────────────────────────────────────────
+// Sama seperti updateTokoSettings() di app mobile — RPC ini SECURITY DEFINER
+// jadi field yang tidak dikirim harus tetap diisi nilai lama (bukan default 0/'')
+// supaya tidak menimpa data yang sudah tersimpan dari tempat lain.
+async function dbUpdateTokoSettings({ namaToko, alamat, noHp, namaPemilik, ppnRate }) {
+    if (!_currentIdToko) return false;
+    const { error } = await _sb.rpc('update_toko_settings', {
+        p_id_toko:      _currentIdToko,
+        p_nama_toko:    namaToko,
+        p_nama_pemilik: namaPemilik ?? '',
+        p_alamat:       alamat ?? '',
+        p_no_hp:        noHp ?? '',
+        p_ppn_rate:     ppnRate ?? 0,
+    });
+    if (error) { console.error('dbUpdateTokoSettings:', error); return false; }
+    return true;
+}
+
 // ── SESI TUNGGAL (1 perangkat per akun) ─────────────────────────────────────
 async function dbSetActiveSession(username, token) {
     try {

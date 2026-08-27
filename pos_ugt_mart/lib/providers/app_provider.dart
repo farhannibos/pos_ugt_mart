@@ -478,12 +478,14 @@ class AppProvider extends ChangeNotifier {
     alamatToko = v.trim();
     notifyListeners();
     _saveSettings();
+    _syncTokoSettingsToDb();
   }
 
   void setStoreName(String v) {
     storeName = v.trim().isEmpty ? 'FABIZO' : v.trim();
     notifyListeners();
     _saveSettings();
+    _syncTokoSettingsToDb();
   }
 
   void setNamaPemilik(String v) {

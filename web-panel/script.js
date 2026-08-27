@@ -1404,6 +1404,8 @@ function openTambahUser() {
     document.getElementById('form-user').reset();
     document.getElementById('fu-status').value = 'Aktif';
     document.getElementById('fu-role').value = 'Admin';
+    document.getElementById('fu-role').disabled = false;
+    document.getElementById('fu-status').disabled = false;
     openModal('modal-user');
 }
 
@@ -1415,9 +1417,24 @@ function bukaEditUser(idx) {
     document.getElementById('fu-username').value = u.username;
     document.getElementById('fu-role').value = u.role;
     document.getElementById('fu-status').value = u.status;
+    document.getElementById('fu-role').disabled = false;
+    document.getElementById('fu-status').disabled = false;
     document.getElementById('fu-pass').value = '';
     document.getElementById('fu-pass2').value = '';
     openModal('modal-user');
+}
+
+// Diklik dari avatar/nama di sidebar — pakai modal Manajemen User yang sama,
+// tapi role & status dikunci supaya user tidak bisa menaikkan role atau
+// menonaktifkan akunnya sendiri lewat sini.
+function bukaProfilSaya() {
+    const me = userSekarang();
+    const idx = DATA_USERS.findIndex(u => u.username === me.username);
+    if (idx < 0) { showToast('error', 'Data profil tidak ditemukan. Coba muat ulang halaman.'); return; }
+    bukaEditUser(idx);
+    document.getElementById('modal-user-title').textContent = 'Profil Saya';
+    document.getElementById('fu-role').disabled = true;
+    document.getElementById('fu-status').disabled = true;
 }
 
 async function simpanUser() {
@@ -1462,6 +1479,17 @@ async function simpanUser() {
             avatar: p.nama?.[0]?.toUpperCase() ?? '?',
             avatarColor: p.avatar_color ?? '#16A34A',
         });
+    }
+
+    // Kalau yang barusan diedit adalah akun yang sedang login, sidebar & cache
+    // lokal (ugt_user) juga harus ikut diperbarui — bukan cuma tabel Manajemen User.
+    const me = userSekarang();
+    if (me.username && me.username === username) {
+        me.nama = nama; me.avatar = nama[0].toUpperCase(); me.avatarColor = roleColors[role] || '#16A34A';
+        localStorage.setItem('ugt_user', JSON.stringify(me));
+        document.querySelector('.u-name').textContent = nama;
+        document.querySelector('.user-avatar').textContent = me.avatar;
+        document.querySelector('.user-avatar').style.background = `linear-gradient(135deg, ${me.avatarColor}, ${me.avatarColor}cc)`;
     }
 
     closeModal('modal-user');
@@ -3980,17 +4008,33 @@ function cetakLaporan(pageId) {
     setTimeout(() => w.print(), 300);
 }
 
-function simpanPengaturan(bagian) {
+async function simpanPengaturan(bagian) {
     const ambil = (id) => document.getElementById(id)?.value ?? '';
     const semua = JSON.parse(localStorage.getItem('ugt_settings') || '{}');
 
     if (bagian === 'toko') {
         const nama = ambil('set-toko-nama').trim();
         if (!nama) { showToast('error', 'Nama toko wajib diisi!'); return; }
+        const telp = ambil('set-toko-telp');
+        const alamat = ambil('set-toko-alamat');
         semua.toko = {
-            nama, telp: ambil('set-toko-telp'), email: ambil('set-toko-email'),
-            alamat: ambil('set-toko-alamat'), kota: ambil('set-toko-kota'), kodePos: ambil('set-toko-pos'),
+            nama, telp, email: ambil('set-toko-email'),
+            alamat, kota: ambil('set-toko-kota'), kodePos: ambil('set-toko-pos'),
         };
+
+        // Field yang ada kolomnya di DB (nama, telp, alamat) disinkron ke tabel `toko`
+        // supaya ikut berubah di mobile app & dev-panel — sama seperti Info Usaha di mobile.
+        const user = userSekarang();
+        const ok = await dbUpdateTokoSettings({
+            namaToko: nama, alamat, noHp: telp,
+            namaPemilik: user.nama_pemilik, ppnRate: user.ppn_rate,
+        });
+        if (ok) {
+            user.nama_toko = nama; user.alamat = alamat; user.no_hp = telp;
+            localStorage.setItem('ugt_user', JSON.stringify(user));
+        } else {
+            showToast('warning', 'Tersimpan lokal, gagal sync nama toko ke server.');
+        }
     } else if (bagian === 'pajak') {
         const ppn = parseFloat(ambil('set-pajak-ppn'));
         const diskon = parseFloat(ambil('set-pajak-diskon'));
@@ -4023,6 +4067,13 @@ function muatPengaturan() {
         isi('set-toko-email', semua.toko.email); isi('set-toko-alamat', semua.toko.alamat);
         isi('set-toko-kota', semua.toko.kota);   isi('set-toko-pos', semua.toko.kodePos);
     }
+    // Nama/telp/alamat toko itu sendiri sudah disinkron ke tabel `toko` (lihat
+    // simpanPengaturan) — nilai dari server ini lebih akurat daripada cache lokal,
+    // jadi ditimpakan di atas isian localStorage kalau ada.
+    const user = userSekarang();
+    isi('set-toko-nama', user.nama_toko);
+    isi('set-toko-telp', user.no_hp);
+    isi('set-toko-alamat', user.alamat);
     if (semua.pajak) {
         isi('set-pajak-ppn', semua.pajak.ppn);   isi('set-pajak-diskon', semua.pajak.diskonMaks);
         isi('set-pajak-poin', semua.pajak.poinPerSeribu); isi('set-pajak-min', semua.pajak.minBelanjaPoin);
