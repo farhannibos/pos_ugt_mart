@@ -1331,7 +1331,6 @@
                         <div class="settings-nav-item active" onclick="showSettingsPanel('set-toko',this)"><i data-lucide="store"></i> Info Toko</div>
                         <div class="settings-nav-item" onclick="showSettingsPanel('set-pajak',this)"><i data-lucide="percent"></i> Pajak & Diskon</div>
                         <div class="settings-nav-item" onclick="showSettingsPanel('set-struk',this)"><i data-lucide="printer"></i> Struk & Printer</div>
-                        <div class="settings-nav-item" onclick="showSettingsPanel('set-backup',this)"><i data-lucide="database"></i> Backup Data</div>
                     </div>
                     <div>
                         <div id="set-toko" class="settings-panel">
@@ -1381,21 +1380,6 @@
                                         <div class="form-group"><label>Cetak Otomatis</label><select id="set-struk-auto" class="form-control"><option>Ya</option><option>Tidak</option></select></div>
                                     </div>
                                     <div style="margin-top:16px"><button class="btn btn-primary" onclick="simpanPengaturan('struk')"><i data-lucide="save"></i> Simpan</button></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="set-backup" class="settings-panel" style="display:none">
-                            <div class="card">
-                                <div class="card-header">
-                                    <div class="card-title"><i data-lucide="database"></i> Backup & Restore</div>
-                                </div>
-                                <div class="card-body">
-                                    <p style="color:var(--text-2);font-size:13px;margin-bottom:16px">Backup data penting sistem secara berkala untuk mencegah kehilangan data.</p>
-                                    <div style="display:flex;flex-direction:column;gap:12px">
-                                        <button class="btn btn-primary" onclick="backupData()"><i data-lucide="download"></i> Backup Sekarang</button>
-                                        <button class="btn btn-secondary" onclick="document.getElementById('restore-file').click()"><i data-lucide="upload"></i> Restore dari File</button>
-                                        <input type="file" id="restore-file" accept="application/json" style="display:none" onchange="restoreData(this)">
-                                    </div>
                                 </div>
                             </div>
                         </div>
